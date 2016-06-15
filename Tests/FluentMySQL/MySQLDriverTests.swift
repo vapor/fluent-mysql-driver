@@ -1,7 +1,6 @@
 import XCTest
 @testable import FluentMySQL
 import Fluent
-import MySQL
 
 class MySQLDriverTests: XCTestCase {
     static let allTests = [
@@ -12,7 +11,7 @@ class MySQLDriverTests: XCTestCase {
     var driver: MySQLDriver!
 
     override func setUp() {
-        driver = MySQLDriver(MySQL.Database.makeTestConnection())
+        driver = MySQLDriver.makeTestConnection()
         database = Database(driver: driver)
     }
 

@@ -4,15 +4,16 @@ import MySQL
 import FluentMySQL
 import Fluent
 
-extension MySQL.Database {
-    static func makeTestConnection() -> MySQL.Database {
+extension MySQLDriver {
+    static func makeTestConnection() -> MySQLDriver {
         do {
-            return try MySQL.Database(
+            let mysql = try MySQL.Database(
                 host: "127.0.0.1",
                 user: "travis",
                 password: "",
                 database: "test"
             )
+            return MySQLDriver(mysql)
         } catch {
             print()
             print()
