@@ -52,6 +52,7 @@ public class MySQLDriver: Fluent.Driver {
     @discardableResult
     public func raw(_ query: String, _ values: [Fluent.Value] = []) throws -> [[String: Fluent.Value]] {
         print(query)
+        print(values)
         var results: [[String: Fluent.Value]] = []
 
         let values = values.map { $0.mysql }
@@ -117,14 +118,4 @@ extension MySQL.Value: Fluent.Value {
     }
 }
 
-extension StructuredData: Fluent.Value {
-    public var structuredData: StructuredData {
-        return self
-    }
-}
 
-extension StructuredData: CustomStringConvertible {
-    public var description: String {
-        return "\(self)"
-    }
-}
