@@ -1,8 +1,8 @@
-import XCTest
-
-import MySQL
 import FluentMySQL
+import MySQL
 import Fluent
+
+import XCTest
 
 extension MySQLDriver {
     static func makeTestConnection() -> MySQLDriver {
@@ -35,3 +35,30 @@ extension MySQLDriver {
         }
     }
 }
+
+struct User: Model {
+    var id: Fluent.Value?
+    var name: String
+    var email: String
+
+    init(id: Fluent.Value?, name: String, email: String) {
+        self.id = id
+        self.name = name
+        self.email = email
+    }
+
+    func serialize() -> [String : Fluent.Value?] {
+        return [
+            "id": id,
+            "name": name,
+            "email" :email
+        ]
+    }
+
+    init?(serialized: [String : Fluent.Value]) {
+        id = serialized["id"]
+        name = serialized["name"]?.string ?? ""
+        email = serialized["email"]?.string ?? ""
+    }
+}
+
