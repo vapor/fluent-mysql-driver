@@ -45,14 +45,15 @@ public class MySQLDriver: Fluent.Driver {
         return results
     }
 
-    public func build(_ builder: Schema.Builder) throws {
+    public func schema(_ schema: Schema) throws {
+        let serializer = MySQLSerializer(sql: schema.sql)
+        let (statement, values) = serializer.serialize()
 
+        try raw(statement, values)
     }
 
     @discardableResult
     public func raw(_ query: String, _ values: [Fluent.Value] = []) throws -> [[String: Fluent.Value]] {
-        print(query)
-        print(values)
         var results: [[String: Fluent.Value]] = []
 
         let values = values.map { $0.mysql }

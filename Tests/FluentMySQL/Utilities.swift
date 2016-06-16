@@ -55,7 +55,7 @@ struct User: Model {
         ]
     }
 
-    init?(serialized: [String : Fluent.Value]) {
+    init(serialized: [String : Fluent.Value]) {
         id = serialized["id"]
         name = serialized["name"]?.string ?? ""
         email = serialized["email"]?.string ?? ""
