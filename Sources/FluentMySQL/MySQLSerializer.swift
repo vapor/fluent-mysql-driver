@@ -14,6 +14,12 @@ public final class MySQLSerializer: GeneralSQLSerializer {
             } else {
                 return sql(name) + " VARCHAR(255)"
             }
+        case .double(let name, let digits, let decimal):
+            if let digits = digits, let decimal = decimal {
+                return sql(name) + " DOUBLE(\(digits),\(decimal))"
+            } else {
+                return sql(name) + " DOUBLE"
+            }
         }
     }
 }
