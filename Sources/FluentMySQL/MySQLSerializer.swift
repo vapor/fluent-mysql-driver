@@ -1,6 +1,8 @@
 import Fluent
 
-
+/**
+    MySQL flavored SQL serializer.
+*/
 public final class MySQLSerializer: GeneralSQLSerializer {
     public override func sql(_ column: SQL.Column) -> String {
         switch column {
