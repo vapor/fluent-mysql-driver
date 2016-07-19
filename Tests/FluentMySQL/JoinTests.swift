@@ -12,7 +12,7 @@ class JoinTests: XCTestCase {
 
     override func setUp() {
         driver = MySQLDriver.makeTestConnection()
-        database = Database(driver: driver)
+        database = Database(driver)
     }
 
     func testBasic() throws {

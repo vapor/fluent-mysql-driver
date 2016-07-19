@@ -97,6 +97,7 @@ public class MySQLDriver: Fluent.Driver, Fluent.RawQueryable {
         allowing plain query strings and value arrays
         to be attempted.
     */
+    @discardableResult
     public func raw(_ query: String, _ values: [Node] = []) throws -> Node {
         return try mysql(query, values)
     }

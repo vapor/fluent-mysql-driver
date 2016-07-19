@@ -12,7 +12,7 @@ class MySQLDriverTests: XCTestCase {
 
     override func setUp() {
         driver = MySQLDriver.makeTestConnection()
-        database = Database(driver: driver)
+        database = Database(driver)
     }
 
     func testSaveAndFind() {
