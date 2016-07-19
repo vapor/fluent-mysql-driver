@@ -56,7 +56,7 @@ public class MySQLDriver: Fluent.Driver {
         Queries the database.
     */
     @discardableResult
-    public func query<T: Model>(_ query: Query<T>) throws -> [[String: Fluent.Value]] {
+    public func query<T: Entity>(_ query: Query<T>) throws -> [Node] {
         let serializer = MySQLSerializer(sql: query.sql)
         let (statement, values) = serializer.serialize()
 
@@ -67,14 +67,14 @@ public class MySQLDriver: Fluent.Driver {
         var results = try raw(statement, values, connection)
 
         if query.action == .create {
-            if let insert = try raw("SELECT LAST_INSERT_ID() as id", [], connection).first?["id"] {
+             if let insert = try raw("SELECT LAST_INSERT_ID() as id", [], connection).first?["id"] {
                 results.append([
                     "id": insert
                 ])
             }
         }
 
-        return results
+        return results.map { Node($0) }
     }
 
     /**
@@ -92,13 +92,13 @@ public class MySQLDriver: Fluent.Driver {
         for running raw queries.
     */
     @discardableResult
-    public func raw(_ query: String, _ values: [Fluent.Value] = [], _ connection: MySQL.Connection? = nil) throws -> [[String: Fluent.Value]] {
-        var results: [[String: Fluent.Value]] = []
+    public func raw(_ query: String, _ values: [Node] = [], _ connection: MySQL.Connection? = nil) throws -> [[String: NodeRepresentable]] {
+        var results: [[String: NodeRepresentable]] = []
 
         let values = values.map { $0.mysql }
 
         for row in try database.execute(query, values, connection) {
-            var result: [String: Fluent.Value] = [:]
+            var result: [String: NodeRepresentable] = [:]
 
             for (key, val) in row {
                 result[key] = val
@@ -111,49 +111,30 @@ public class MySQLDriver: Fluent.Driver {
     }
 }
 
-extension Fluent.Value {
+extension Node {
     public var mysql: MySQL.Value {
-        switch structuredData {
+        switch self {
         case .int(let int):
             return .int(int)
-        case .double(let double):
-            return .double(double)
         case .string(let string):
             return .string(string)
         default:
+            // FIXME
             return .null
         }
     }
 }
 
-extension MySQL.Value: Fluent.Value {
-    public var structuredData: StructuredData {
+extension MySQL.Value: NodeRepresentable {
+    public func makeNode() -> Node {
         switch self {
-        case .string(let string):
-            return .string(string)
         case .int(let int):
             return .int(int)
-        case .uint(let uint):
-            return .int(Int(uint))
-        case .double(let double):
-            return .double(double)
-        case .null:
-            return .null
-        }
-    }
-
-    public var description: String {
-        switch self {
         case .string(let string):
-            return string
-        case int(let int):
-            return "\(int)"
-        case .uint(let uint):
-            return "\(uint)"
-        case .double(let double):
-            return "\(double)"
-        case .null:
-            return "NULL"
+            return .string(string)
+        default:
+            // FIXME
+            return .string("")
         }
     }
 }

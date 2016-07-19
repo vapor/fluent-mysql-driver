@@ -36,7 +36,7 @@ extension MySQLDriver {
     }
 }
 
-struct User: Model {
+struct User: Entity {
     var id: Fluent.Value?
     var name: String
     var email: String
