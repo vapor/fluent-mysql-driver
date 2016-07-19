@@ -24,6 +24,7 @@ class MySQLDriverTests: XCTestCase {
 
         do {
             try user.save()
+            print("JUST SAVED")
         } catch {
             XCTFail("Could not save: \(error)")
         }

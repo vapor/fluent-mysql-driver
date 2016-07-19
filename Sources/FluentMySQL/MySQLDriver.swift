@@ -1,7 +1,7 @@
 import Fluent
 import MySQL
 
-public class MySQLDriver: Fluent.Driver {
+public class MySQLDriver: Fluent.Driver, Fluent.RawQueryable {
     public var idKey: String = "id"
     public var database: MySQL.Database
 
@@ -56,25 +56,30 @@ public class MySQLDriver: Fluent.Driver {
         Queries the database.
     */
     @discardableResult
-    public func query<T: Entity>(_ query: Query<T>) throws -> [Node] {
+    public func query<T: Entity>(_ query: Query<T>) throws -> Fluent.Node {
         let serializer = MySQLSerializer(sql: query.sql)
         let (statement, values) = serializer.serialize()
 
+        print(statement)
         // create a reusable connection 
         // so that LAST_INSERT_ID can be fetched
         let connection = try database.makeConnection()
 
-        var results = try raw(statement, values, connection)
+        let results = try mysql(statement, values, connection)
 
         if query.action == .create {
-             if let insert = try raw("SELECT LAST_INSERT_ID() as id", [], connection).first?["id"] {
-                results.append([
-                    "id": insert
-                ])
+            let insert = try mysql("SELECT LAST_INSERT_ID() as id", [], connection)
+            if
+                case .array(let array) = insert,
+                let first = array.first,
+                case .dictionary(let dict) = first,
+                let id = dict["id"]
+            {
+                return id
             }
         }
 
-        return results.map { Node($0) }
+        return results
     }
 
     /**
@@ -84,7 +89,16 @@ public class MySQLDriver: Fluent.Driver {
         let serializer = MySQLSerializer(sql: schema.sql)
         let (statement, values) = serializer.serialize()
 
-        try raw(statement, values)
+        try mysql(statement, values)
+    }
+
+    /**
+        Conformance to the RawQueryable protocol
+        allowing plain query strings and value arrays
+        to be attempted.
+    */
+    public func raw(_ query: String, _ values: [Node] = []) throws -> Node {
+        return try mysql(query, values)
     }
 
     /**
@@ -92,7 +106,7 @@ public class MySQLDriver: Fluent.Driver {
         for running raw queries.
     */
     @discardableResult
-    public func raw(_ query: String, _ values: [Node] = [], _ connection: MySQL.Connection? = nil) throws -> [[String: NodeRepresentable]] {
+    public func mysql(_ query: String, _ values: [Node] = [], _ connection: MySQL.Connection? = nil) throws -> Node {
         var results: [[String: NodeRepresentable]] = []
 
         let values = values.map { $0.mysql }
@@ -107,7 +121,7 @@ public class MySQLDriver: Fluent.Driver {
             results.append(result)
         }
 
-        return results
+        return Node(results.map({ Node($0) }))
     }
 }
 
@@ -120,6 +134,7 @@ extension Node {
             return .string(string)
         default:
             // FIXME
+            print("WARNING: \(self)")
             return .null
         }
     }
@@ -134,6 +149,7 @@ extension MySQL.Value: NodeRepresentable {
             return .string(string)
         default:
             // FIXME
+            print("WARNING: \(self)")
             return .string("")
         }
     }

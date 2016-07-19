@@ -36,29 +36,98 @@ extension MySQLDriver {
     }
 }
 
-struct User: Entity {
-    var id: Fluent.Value?
+final class Atom: Entity {
+    var id: Node?
+    var name: String
+    var protons: Int
+
+    init(_ node: Node) throws {
+        id = try node.extract("id")
+        name = try node.extract("name")
+        protons = try node.extract("protons")
+    }
+
+    func makeNode() -> Node {
+        return Node([
+            "id": id,
+            "name": name,
+            "protons": protons
+        ])
+    }
+
+    static func prepare(_ database: Fluent.Database) throws {
+        try database.create(entity) { builder in
+            builder.id()
+            builder.string("name")
+            builder.int("protons")
+        }
+    }
+    static func revert(_ database: Fluent.Database) throws {
+        try database.delete(entity)
+    }
+}
+
+final class Compound: Entity {
+    var id: Node?
+    var name: String
+
+    init(_ node: Node) throws {
+        id = try node.extract("id")
+        name = try node.extract("name")
+    }
+
+    func makeNode() -> Node {
+        return Node([
+            "id": id,
+            "name": name
+        ])
+    }
+
+    static func prepare(_ database: Fluent.Database) throws {
+        try database.create(entity) { builder in
+            builder.id()
+            builder.string("name")
+        }
+    }
+    static func revert(_ database: Fluent.Database) throws {
+        try database.delete(entity)
+    }
+}
+
+final class User: Entity {
+    var id: Fluent.Node?
     var name: String
     var email: String
 
-    init(id: Fluent.Value?, name: String, email: String) {
+    init(id: Node?, name: String, email: String) {
         self.id = id
         self.name = name
         self.email = email
     }
 
-    func serialize() -> [String : Fluent.Value?] {
-        return [
+    func makeNode() -> Node {
+        return Node([
             "id": id,
             "name": name,
-            "email" :email
-        ]
+            "email": email
+        ])
     }
 
-    init(serialized: [String : Fluent.Value]) {
-        id = serialized["id"]
-        name = serialized["name"]?.string ?? ""
-        email = serialized["email"]?.string ?? ""
+    init(_ node: Node) throws {
+        id = try node.extract("id")
+        name = try node.extract("name")
+        email = try node.extract("email")
+    }
+
+    static func prepare(_ database: Fluent.Database) throws {
+        try database.create(entity) { builder in
+            builder.id()
+            builder.string("name")
+            builder.string("email")
+        }
+    }
+    static func revert(_ database: Fluent.Database) throws {
+        try database.delete(entity)
     }
 }
 
