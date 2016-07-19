@@ -1,7 +1,7 @@
 import Fluent
 import MySQL
 
-public class MySQLDriver: Fluent.Driver, Fluent.RawQueryable {
+public class MySQLDriver: Fluent.Driver {
     public var idKey: String = "id"
     public var database: MySQL.Database
 
@@ -133,9 +133,16 @@ extension Node {
             return .int(int)
         case .string(let string):
             return .string(string)
+        case .double(let double):
+            return .double(double)
+        case .bool(let bool):
+            return .int(bool ? 1 : 0)
+        case .data(let _):
+            return .string("")
+        case .null:
+            return .null
         default:
-            // FIXME
-            print("WARNING: \(self)")
+            print("Cannot convert Node to MySQL: \(self)")
             return .null
         }
     }
