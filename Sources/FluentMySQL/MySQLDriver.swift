@@ -60,7 +60,6 @@ public class MySQLDriver: Fluent.Driver {
         let serializer = MySQLSerializer(sql: query.sql)
         let (statement, values) = serializer.serialize()
 
-        print(statement)
         // create a reusable connection 
         // so that LAST_INSERT_ID can be fetched
         let connection = try database.makeConnection()
