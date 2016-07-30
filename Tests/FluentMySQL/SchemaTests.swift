@@ -42,7 +42,7 @@ class SchemaTests: XCTestCase {
             self.data = data
         }
 
-        init(_ node: Node) throws {
+        init(node: Node, in context: Context) throws {
             id = try node.extract("id")
             int = try node.extract("int")
             stringDefault = try node.extract("string_default")
@@ -52,15 +52,15 @@ class SchemaTests: XCTestCase {
             data = try node.extract("data")
         }
 
-        func makeNode() -> Node {
-            return Node([
+        func makeNode() throws -> Node {
+            return try Node(node: [
                 "id": id,
                 "int": int,
                 "string_default": stringDefault,
                 "string_64": string64,
                 "double": double,
                 "bool": bool,
-                "data": Node(data)
+                "data": Node(node: data)
             ])
         }
 

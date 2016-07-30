@@ -56,7 +56,7 @@ public class MySQLDriver: Fluent.Driver {
         Queries the database.
     */
     @discardableResult
-    public func query<T: Entity>(_ query: Query<T>) throws -> Fluent.Node {
+    public func query<T: Entity>(_ query: Query<T>) throws -> Node {
         let serializer = MySQLSerializer(sql: query.sql)
         let (statement, values) = serializer.serialize()
 
@@ -72,8 +72,8 @@ public class MySQLDriver: Fluent.Driver {
             if
                 case .array(let array) = insert,
                 let first = array.first,
-                case .dictionary(let dict) = first,
-                let id = dict["id"]
+                case .object(let obj) = first,
+                let id = obj["id"]
             {
                 return id
             }
@@ -108,59 +108,8 @@ public class MySQLDriver: Fluent.Driver {
     */
     @discardableResult
     public func mysql(_ query: String, _ values: [Node] = [], _ connection: MySQL.Connection? = nil) throws -> Node {
-        var results: [[String: NodeRepresentable]] = []
-
-        let values = values.map { $0.mysql }
-
-        for row in try database.execute(query, values, connection) {
-            var result: [String: NodeRepresentable] = [:]
-
-            for (key, val) in row {
-                result[key] = val
-            }
-
-            results.append(result)
-        }
-
-        return Node(results.map({ Node($0) }))
+        let results = try database.execute(query, values.map({ $0 as NodeRepresentable }), connection).map { Node.object($0) }
+        return .array(results)
     }
 }
-
-extension Node {
-    public var mysql: MySQL.Value {
-        switch self {
-        case .int(let int):
-            return .int(int)
-        case .string(let string):
-            return .string(string)
-        case .double(let double):
-            return .double(double)
-        case .bool(let bool):
-            return .int(bool ? 1 : 0)
-        case .data(let _):
-            return .string("")
-        case .null:
-            return .null
-        default:
-            print("Cannot convert Node to MySQL: \(self)")
-            return .null
-        }
-    }
-}
-
-extension MySQL.Value: NodeRepresentable {
-    public func makeNode() -> Node {
-        switch self {
-        case .int(let int):
-            return .int(int)
-        case .string(let string):
-            return .string(string)
-        default:
-            // FIXME
-            print("WARNING: \(self)")
-            return .string("")
-        }
-    }
-}
-
 
