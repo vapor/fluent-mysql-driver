@@ -56,7 +56,7 @@ public class MySQLDriver: Fluent.Driver {
         Queries the database.
     */
     @discardableResult
-    public func query<T: Model>(_ query: Query<T>) throws -> [[String: Fluent.Value]] {
+    public func query<T: Entity>(_ query: Query<T>) throws -> Node {
         let serializer = MySQLSerializer(sql: query.sql)
         let (statement, values) = serializer.serialize()
 
@@ -64,13 +64,17 @@ public class MySQLDriver: Fluent.Driver {
         // so that LAST_INSERT_ID can be fetched
         let connection = try database.makeConnection()
 
-        var results = try raw(statement, values, connection)
+        let results = try mysql(statement, values, connection)
 
         if query.action == .create {
-            if let insert = try raw("SELECT LAST_INSERT_ID() as id", [], connection).first?["id"] {
-                results.append([
-                    "id": insert
-                ])
+            let insert = try mysql("SELECT LAST_INSERT_ID() as id", [], connection)
+            if
+                case .array(let array) = insert,
+                let first = array.first,
+                case .object(let obj) = first,
+                let id = obj["id"]
+            {
+                return id
             }
         }
 
@@ -84,7 +88,17 @@ public class MySQLDriver: Fluent.Driver {
         let serializer = MySQLSerializer(sql: schema.sql)
         let (statement, values) = serializer.serialize()
 
-        try raw(statement, values)
+        try mysql(statement, values)
+    }
+
+    /**
+        Conformance to the RawQueryable protocol
+        allowing plain query strings and value arrays
+        to be attempted.
+    */
+    @discardableResult
+    public func raw(_ query: String, _ values: [Node] = []) throws -> Node {
+        return try mysql(query, values)
     }
 
     /**
@@ -92,70 +106,9 @@ public class MySQLDriver: Fluent.Driver {
         for running raw queries.
     */
     @discardableResult
-    public func raw(_ query: String, _ values: [Fluent.Value] = [], _ connection: MySQL.Connection? = nil) throws -> [[String: Fluent.Value]] {
-        var results: [[String: Fluent.Value]] = []
-
-        let values = values.map { $0.mysql }
-
-        for row in try database.execute(query, values, connection) {
-            var result: [String: Fluent.Value] = [:]
-
-            for (key, val) in row {
-                result[key] = val
-            }
-
-            results.append(result)
-        }
-
-        return results
+    public func mysql(_ query: String, _ values: [Node] = [], _ connection: MySQL.Connection? = nil) throws -> Node {
+        let results = try database.execute(query, values.map({ $0 as NodeRepresentable }), connection).map { Node.object($0) }
+        return .array(results)
     }
 }
-
-extension Fluent.Value {
-    public var mysql: MySQL.Value {
-        switch structuredData {
-        case .int(let int):
-            return .int(int)
-        case .double(let double):
-            return .double(double)
-        case .string(let string):
-            return .string(string)
-        default:
-            return .null
-        }
-    }
-}
-
-extension MySQL.Value: Fluent.Value {
-    public var structuredData: StructuredData {
-        switch self {
-        case .string(let string):
-            return .string(string)
-        case .int(let int):
-            return .int(int)
-        case .uint(let uint):
-            return .int(Int(uint))
-        case .double(let double):
-            return .double(double)
-        case .null:
-            return .null
-        }
-    }
-
-    public var description: String {
-        switch self {
-        case .string(let string):
-            return string
-        case int(let int):
-            return "\(int)"
-        case .uint(let uint):
-            return "\(uint)"
-        case .double(let double):
-            return "\(double)"
-        case .null:
-            return "NULL"
-        }
-    }
-}
-
 

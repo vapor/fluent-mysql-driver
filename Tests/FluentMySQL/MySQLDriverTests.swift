@@ -12,7 +12,7 @@ class MySQLDriverTests: XCTestCase {
 
     override func setUp() {
         driver = MySQLDriver.makeTestConnection()
-        database = Database(driver: driver)
+        database = Database(driver)
     }
 
     func testSaveAndFind() {
@@ -24,6 +24,7 @@ class MySQLDriverTests: XCTestCase {
 
         do {
             try user.save()
+            print("JUST SAVED")
         } catch {
             XCTFail("Could not save: \(error)")
         }
