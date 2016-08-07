@@ -19,7 +19,7 @@ public final class MySQLSerializer: GeneralSQLSerializer {
         case .double:
             return "DOUBLE"
         case .bool:
-            return "BIT"
+            return "TINYINT"
         case .data:
             return "BLOB"
         }
