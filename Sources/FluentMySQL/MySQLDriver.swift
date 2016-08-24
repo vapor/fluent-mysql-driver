@@ -4,6 +4,18 @@ import MySQL
 public class MySQLDriver: Fluent.Driver {
     public var idKey: String = "id"
     public var database: MySQL.Database
+    
+    /**
+        Tells the driver wether or not to make a new database
+        connection on every request. Keep this off if you want
+        session variables to be retained.
+    */
+    public var retainConnection: Bool = true
+    
+    /**
+        The active connection with the database.
+    */
+    public var connection: Connection?
 
     /**
         Attempts to establish a connection to a MySQL database
@@ -98,7 +110,23 @@ public class MySQLDriver: Fluent.Driver {
     */
     @discardableResult
     public func raw(_ query: String, _ values: [Node] = []) throws -> Node {
-        return try mysql(query, values)
+        // Create and save a connection if needed
+        if connection == nil || !retainConnection {
+            connection = try database.makeConnection()
+        }
+        
+        // Disconnect from the server once the request has been sent if
+        // connections should not be retained. By setting this to nil,
+        // the object will be deinitialized which automatically
+        // disconnects on deinit.
+        if !retainConnection {
+            defer {
+                connection = nil
+            }
+        }
+        
+        // Execute the query
+        return try mysql(query, values, connection)
     }
 
     /**
