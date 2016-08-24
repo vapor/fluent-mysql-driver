@@ -33,6 +33,9 @@ public class MySQLDriver: Fluent.Driver {
      the string specifies the socket or named pipe to use.
      - parameter flag: Usually 0, but can be set to a combination of the
      flags at http://dev.mysql.com/doc/refman/5.7/en/mysql-real-connect.html
+     - parameter encoding: Usually "utf8", but something like "utf8mb4" may be
+        used, since "utf8" does not fully implement the UTF8 standard and does
+        not support Unicode.
      
      
      - throws: `Error.connection(String)` if the call to
@@ -44,7 +47,8 @@ public class MySQLDriver: Fluent.Driver {
         password: String,
         database: String,
         port: UInt = 3306,
-        flag: UInt = 0
+        flag: UInt = 0,
+        encoding: String = "utf8"
         ) throws {
         self.database = try MySQL.Database(
             host: host,
@@ -52,7 +56,8 @@ public class MySQLDriver: Fluent.Driver {
             password: password,
             database: database,
             port: port,
-            flag: flag
+            flag: flag,
+            encoding: encoding
         )
     }
     
