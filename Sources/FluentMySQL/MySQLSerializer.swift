@@ -14,7 +14,7 @@ public final class MySQLSerializer: GeneralSQLSerializer {
             if let length = length {
                 return "VARCHAR(\(length))"
             } else {
-                return "VARCHAR(255)"
+                return "VARCHAR(255)" // TODO: This may need to be 191 if using `utf8mb4` encoding
             }
         case .double:
             return "DOUBLE"
