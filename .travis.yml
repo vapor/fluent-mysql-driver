@@ -31,9 +31,9 @@ script:
   # Test MySQL
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       swift test -Xswiftc -I/usr/local/include/mysql -Xlinker -L/usr/local/lib
-	fi
+    fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       swift test -Xswiftc -DNOJSON
     fi
-	
-  
+
+
