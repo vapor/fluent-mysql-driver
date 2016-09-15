@@ -52,7 +52,7 @@ class SchemaTests: XCTestCase {
             data = try node.extract("data")
         }
 
-        func makeNode() throws -> Node {
+        func makeNode(context: Context) throws -> Node {
             return try Node(node: [
                 "id": id,
                 "int": int,

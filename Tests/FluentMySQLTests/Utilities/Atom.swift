@@ -16,7 +16,7 @@ final class Atom: Entity {
         protons = try node.extract("protons")
     }
 
-    func makeNode() throws -> Node {
+    func makeNode(context: Context) throws -> Node {
         return try Node(node: [
             "id": id,
             "name": name,
