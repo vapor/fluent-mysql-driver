@@ -11,7 +11,7 @@ final class User: Entity {
         self.email = email
     }
 
-    func makeNode() throws -> Node {
+    func makeNode(context: Context) throws -> Node {
         return try Node(node: [
             "id": id,
             "name": name,
