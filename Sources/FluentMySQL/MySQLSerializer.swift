@@ -22,6 +22,10 @@ public final class MySQLSerializer: GeneralSQLSerializer {
             return "TINYINT"
         case .data:
             return "BLOB"
+        case .timestamp:
+            return "TIMESTAMP"
+        case .datetime:
+            return "DATETIME"
         }
     }
 }
