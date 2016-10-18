@@ -7,10 +7,12 @@ public class MySQLDriver: Fluent.Driver {
     
     /**
      Tells the driver wether or not to make a new database
-     connection on every request. Keep this off if you want
-     session variables to be retained.
+     connection on every request.
+     Keep this off if you want session variables to be retained.
+     Setting it to `true` might cause timeout errors if there is no 
+     activity during an extended period of time (MySQL default is 8hr).
      */
-    public var retainConnection: Bool = true
+    public var retainConnection: Bool = false
     
     /**
      The active connection with the database.
