@@ -80,6 +80,7 @@ class JoinTests: XCTestCase {
         
         let fetched = try Student.find(1)
         XCTAssertEqual(fetched?.meta["hello"]?.string, "world")
+        XCTAssertEqual(fetched?.age, 22)
     }
 }
 
