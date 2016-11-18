@@ -22,6 +22,8 @@ public final class MySQLSerializer: GeneralSQLSerializer {
             return "TINYINT"
         case .data:
             return "BLOB"
+        case .custom(let type):
+            return type
         }
     }
 }
