@@ -38,7 +38,7 @@ public class MySQLDriver: Fluent.Driver {
         - parameter encoding: Usually "utf8", but something like "utf8mb4" may be
         used, since "utf8" does not fully implement the UTF8 standard and does
         not support Unicode.
-        - parameter fractionalSecondsDigits: Usually 0 for no fractional seconds and up to 6
+        - parameter subSecondResolution: Usually 0 for no fractional seconds and up to 6
         for microsecond resolution
 
 
@@ -53,7 +53,7 @@ public class MySQLDriver: Fluent.Driver {
         port: UInt = 3306,
         flag: UInt = 0,
         encoding: String = "utf8",
-        fractionalSecondsDigits: Int = 0
+        subSecondResolution: Int = 0
     ) throws {
         self.database = try MySQL.Database(
             host: host,
@@ -63,7 +63,7 @@ public class MySQLDriver: Fluent.Driver {
             port: port,
             flag: flag,
             encoding: encoding,
-            fractionalSecondsDigits: fractionalSecondsDigits
+            subSecondResolution: subSecondResolution
         )
     }
     
