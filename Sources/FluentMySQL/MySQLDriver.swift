@@ -53,7 +53,7 @@ public class MySQLDriver: Fluent.Driver {
         port: UInt = 3306,
         flag: UInt = 0,
         encoding: String = "utf8",
-        subSecondResolution: Int = 0
+        subSecondResolution: Int = 0 
     ) throws {
         self.database = try MySQL.Database(
             host: host,
