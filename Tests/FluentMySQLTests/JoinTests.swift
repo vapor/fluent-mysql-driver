@@ -5,7 +5,9 @@ import FluentTester
 
 class JoinTests: XCTestCase {
     static let allTests = [
-        ("testBasic", testBasic)
+        ("testBasic", testBasic),
+        ("testTester", testTester),
+        ("testCreate", testCreate),
     ]
 
     var database: Fluent.Database!
