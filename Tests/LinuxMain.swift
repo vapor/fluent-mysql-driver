@@ -5,6 +5,8 @@ import XCTest
 
 XCTMain([
     testCase(MySQLDriverTests.allTests),
+    testCase(MySQLDriverTests.allTests),
+    testCase(SchemaTests.allTests),
 ])
 
 #endif

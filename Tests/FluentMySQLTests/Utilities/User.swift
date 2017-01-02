@@ -1,6 +1,7 @@
 import Fluent
 
 final class User: Entity {
+    var exists = false
     var id: Fluent.Node?
     var name: String
     var email: String
