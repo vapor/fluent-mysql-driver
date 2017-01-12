@@ -7,6 +7,7 @@ XCTMain([
     testCase(MySQLDriverTests.allTests),
     testCase(MySQLDriverTests.allTests),
     testCase(SchemaTests.allTests),
+    testCase(CreatorMySQLTests.allTests)
 ])
 
 #endif
