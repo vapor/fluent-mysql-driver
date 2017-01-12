@@ -96,6 +96,14 @@ public class MySQLDriver: Fluent.Driver {
                 return id
             }
         }
+        else if query.action == .count {
+            // Get the first row and first column value as int
+            // (which should be the count, otherwise use 0)
+            let integer = results
+                .nodeArray?.first?
+                .nodeObject?.first?.1.int ?? 0
+            return .number(.int(integer))
+        }
         
         return results
     }
