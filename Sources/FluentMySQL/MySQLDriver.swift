@@ -17,7 +17,7 @@ public class MySQLDriver: Fluent.Driver {
     /**
         The active connection with the database.
     */
-    public var connection: Connection?
+    public var connection: MySQL.Connection?
     
     /**
         Attempts to establish a connection to a MySQL database
@@ -71,70 +71,7 @@ public class MySQLDriver: Fluent.Driver {
         self.database = database
     }
     
-    /**
-        Queries the database.
-    */
-    @discardableResult
-    public func query<T: Entity>(_ query: Query<T>) throws -> Node {
-        let serializer = MySQLSerializer(sql: query.sql)
-        let (statement, values) = serializer.serialize()
-        
-        // create a reusable connection
-        // so that LAST_INSERT_ID can be fetched
-        let connection = try database.makeConnection()
-        
-        let results = try mysql(statement, values, connection)
-        
-        if query.action == .create {
-            let insert = try mysql("SELECT LAST_INSERT_ID() as id", [], connection)
-            if
-                case .array(let array) = insert,
-                let first = array.first,
-                case .object(let obj) = first,
-                let id = obj["id"]
-            {
-                return id
-            }
-        }
-        
-        return results
-    }
-    
-    /**
-     Creates the desired schema.
-     */
-    public func schema(_ schema: Schema) throws {
-        let serializer = MySQLSerializer(sql: schema.sql)
-        let (statement, values) = serializer.serialize()
-        
-        try mysql(statement, values)
-    }
-    
-    /**
-     Conformance to the RawQueryable protocol
-     allowing plain query strings and value arrays
-     to be attempted.
-     */
-    @discardableResult
-    public func raw(_ query: String, _ values: [Node] = []) throws -> Node {
-        return try mysql(query, values)
-    }
-    
-    /**
-     Provides access to the underlying MySQL database
-     for running raw queries.
-     */
-    @discardableResult
-    public func mysql(_ query: String, _ values: [Node] = [], _ conn: MySQL.Connection? = nil) throws -> Node {
-        // Create and save a connection if none provided
-        var conn = conn ?? connection
-        if conn == nil && retainConnection {
-            conn = try database.makeConnection()
-            connection = conn
-        } // If `conn` is still nil, the database will create a temporary connection
-        
-        let results = try database.execute(query, values.map({ $0 as NodeRepresentable }), conn).map { Node.object($0) }
-        return .array(results)
+    public func makeConnection() throws -> Fluent.Connection {
+        return MySQLConnection(connection: try database.makeConnection())
     }
 }
-
