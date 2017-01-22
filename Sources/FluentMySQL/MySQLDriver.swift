@@ -81,7 +81,7 @@ public class MySQLDriver: Fluent.Driver {
         
         // create a reusable connection
         // so that LAST_INSERT_ID can be fetched
-        let connection = try database.makeConnection()
+        let connection = try self.connection ?? database.makeConnection()
         
         let results = try mysql(statement, values, connection)
         
