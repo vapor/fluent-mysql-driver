@@ -3,6 +3,7 @@ import Fluent
 final class Compound: Entity {
     var id: Node?
     var name: String
+    var exists: Bool = false
 
     init(name: String) {
         self.name = name
@@ -22,7 +23,7 @@ final class Compound: Entity {
 
     static func prepare(_ database: Fluent.Database) throws {
         try database.create(entity) { builder in
-            builder.id()
+            builder.id(for: self)
             builder.string("name")
         }
     }

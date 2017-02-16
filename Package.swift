@@ -3,7 +3,9 @@ import PackageDescription
 let package = Package(
     name: "FluentMySQL",
     dependencies: [
-   		.Package(url: "https://github.com/vapor/mysql.git", majorVersion: 1),
-   		.Package(url: "https://github.com/vapor/fluent.git", majorVersion: 1),
+    	// Robust MySQL interface for Swift.
+   		.Package(url: "https://github.com/vapor/mysql.git", Version(2,0,0, prereleaseIdentifiers: ["alpha"])),
+   		// Swift models, relationships, and querying for NoSQL and SQL databases.
+   		.Package(url: "https://github.com/vapor/fluent.git", Version(2,0,0, prereleaseIdentifiers: ["alpha"]))
     ]
 )

@@ -19,25 +19,31 @@ class JoinTests: XCTestCase {
     }
 
     func testBasic() throws {
-        try Atom.prepare(database)
-        try Compound.prepare(database)
-        try Pivot<Atom, Compound>.prepare(database)
+        try Atom.revert(database)
+        try Compound.revert(database)
+        try Pivot<Atom, Compound>.revert(database)
 
         Atom.database = database
         Compound.database = database
         Pivot<Atom, Compound>.database = database
+            
+        try Atom.prepare(database)
+        try Compound.prepare(database)
+        try Pivot<Atom, Compound>.prepare(database)
+
 
         var hydrogen = Atom(name: "Hydrogen", protons: 1)
         try hydrogen.save()
+            print(hydrogen.exists)
 
         var water = Compound(name: "Water")
         try water.save()
-        var hydrogenWater = Pivot<Atom, Compound>(hydrogen, water)
+        var hydrogenWater = try Pivot<Atom, Compound>(hydrogen, water)
         try hydrogenWater.save()
 
         var sugar = Compound(name: "Sugar")
         try sugar.save()
-        var hydrogenSugar = Pivot<Atom, Compound>(hydrogen, sugar)
+        var hydrogenSugar = try Pivot<Atom, Compound>(hydrogen, sugar)
         try hydrogenSugar.save()
 
 
@@ -54,6 +60,9 @@ class JoinTests: XCTestCase {
     func testTester() {
         let tester = Tester(database: database)
         do {
+            try Atom.revert(database)
+            try Compound.revert(database)
+            try Pivot<Atom, Compound>.revert(database)
             try database.delete("students")
             try tester.testAll()
         } catch {
@@ -128,7 +137,7 @@ final class Student: Entity {
     
     static func prepare(_ database: Database) throws {
         try database.create("students") { students in
-            students.id()
+            students.id(for: self)
             students.string("name", length: 64)
             students.int("age")
             students.string("ssn", unique: true)
