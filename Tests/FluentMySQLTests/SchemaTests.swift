@@ -66,7 +66,7 @@ class SchemaTests: XCTestCase {
 
         static func prepare(_ database: Database) throws {
             try database.create("schema_tests") { builder in
-                builder.id()
+                builder.id(for: self)
                 builder.int("int")
                 builder.string("string_default")
                 builder.string("string_64", length: 64)
