@@ -19,16 +19,22 @@ class JoinTests: XCTestCase {
     }
 
     func testBasic() throws {
-        try Atom.prepare(database)
-        try Compound.prepare(database)
-        try Pivot<Atom, Compound>.prepare(database)
+        try Atom.revert(database)
+        try Compound.revert(database)
+        try Pivot<Atom, Compound>.revert(database)
 
         Atom.database = database
         Compound.database = database
         Pivot<Atom, Compound>.database = database
+            
+        try Atom.prepare(database)
+        try Compound.prepare(database)
+        try Pivot<Atom, Compound>.prepare(database)
+
 
         var hydrogen = Atom(name: "Hydrogen", protons: 1)
         try hydrogen.save()
+            print(hydrogen.exists)
 
         var water = Compound(name: "Water")
         try water.save()

@@ -4,6 +4,7 @@ final class Atom: Entity {
     var id: Node?
     var name: String
     var protons: Int
+    var exists: Bool = false
 
     init(name: String, protons: Int) {
         self.name = name

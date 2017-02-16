@@ -4,10 +4,23 @@ import Fluent
     MySQL flavored SQL serializer.
 */
 public final class MySQLSerializer: GeneralSQLSerializer {
-    public override func sql(_ type: Schema.Field.DataType) -> String {
+    public override func sql(_ type: Schema.Field.DataType, primaryKey: Bool) -> String {
         switch type {
-        case .id:
-            return "INT(10) UNSIGNED PRIMARY KEY AUTO_INCREMENT"
+        case .id(let type):
+            let typeString: String
+            switch type {
+            case .int:
+                if primaryKey {
+                    typeString = "INT(10) UNSIGNED PRIMARY KEY AUTO_INCREMENT"
+                } else {
+                    typeString = "INT(10) UNSIGNED"
+                }
+            case .uuid:
+                typeString = "CHAR(36)"
+            case .custom(let custom):
+                typeString = custom
+            }
+            return typeString
         case .int:
             return "INT(11)"
         case .string(let length):
