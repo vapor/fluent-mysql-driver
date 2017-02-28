@@ -32,22 +32,22 @@ class JoinTests: XCTestCase {
         try Pivot<Atom, Compound>.prepare(database)
 
 
-        var hydrogen = Atom(name: "Hydrogen", protons: 1)
+        let hydrogen = Atom(name: "Hydrogen", protons: 1)
         try hydrogen.save()
             print(hydrogen.exists)
 
-        var water = Compound(name: "Water")
+        let water = Compound(name: "Water")
         try water.save()
-        var hydrogenWater = try Pivot<Atom, Compound>(hydrogen, water)
+        let hydrogenWater = try Pivot<Atom, Compound>(hydrogen, water)
         try hydrogenWater.save()
 
-        var sugar = Compound(name: "Sugar")
+        let sugar = Compound(name: "Sugar")
         try sugar.save()
-        var hydrogenSugar = try Pivot<Atom, Compound>(hydrogen, sugar)
+        let hydrogenSugar = try Pivot<Atom, Compound>(hydrogen, sugar)
         try hydrogenSugar.save()
 
 
-        let compounds = try hydrogen.compounds().all()
+        let compounds = try hydrogen.compounds.all()
         XCTAssertEqual(compounds.count, 2)
         XCTAssertEqual(compounds.first?.id?.int, water.id?.int)
         XCTAssertEqual(compounds.last?.id?.int, sugar.id?.int)
@@ -63,7 +63,7 @@ class JoinTests: XCTestCase {
             try Atom.revert(database)
             try Compound.revert(database)
             try Pivot<Atom, Compound>.revert(database)
-            try database.delete("students")
+            try database.delete(custom: "students")
             try tester.testAll()
         } catch {
             XCTFail("\(error)")
@@ -81,7 +81,7 @@ class JoinTests: XCTestCase {
         }
         
         
-        var bob = Student(
+        let bob = Student(
             name: "Bob",
             age: 22,
             ssn: "382482",
@@ -97,15 +97,12 @@ class JoinTests: XCTestCase {
 }
 
 final class Student: Entity {
-    var id: Node?
-    
     var name: String
     var age: Int
     var ssn: String
     var donor: Bool
     var meta: Node
-    
-    var exists = false
+    let storage = Storage()
     
     init(name: String, age: Int, ssn: String, donor: Bool, meta: Node) {
         self.name = name
@@ -116,15 +113,14 @@ final class Student: Entity {
     }
     
     init(node: Node, in context: Context) throws {
-        id = try node.extract("id")
-        name = try node.extract("name")
-        age = try node.extract("age")
-        ssn = try node.extract("ssn")
-        donor = try node.extract("donor")
-        meta = try node.extract("meta")
+        name = try node.get("name")
+        age = try node.get("age")
+        ssn = try node.get("ssn")
+        donor = try node.get("donor")
+        meta = try node.get("meta")
     }
     
-    func makeNode(context: Context) throws -> Node {
+    func makeNode(in context: Context) throws -> Node {
         return try Node(node: [
             "id": id,
             "name": name,
@@ -136,7 +132,7 @@ final class Student: Entity {
     }
     
     static func prepare(_ database: Database) throws {
-        try database.create("students") { students in
+        try database.create(self) { students in
             students.id(for: self)
             students.string("name", length: 64)
             students.int("age")
@@ -144,12 +140,12 @@ final class Student: Entity {
             students.bool("donor", default: true)
         }
         
-        try database.modify("students") { students in
+        try database.modify(self) { students in
             students.custom("meta", type: "JSON")
         }
     }
     
     static func revert(_ database: Database) throws {
-        try database.delete("students")
+        try database.delete(self)
     }
 }

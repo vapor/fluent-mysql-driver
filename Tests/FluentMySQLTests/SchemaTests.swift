@@ -18,13 +18,14 @@ class SchemaTests: XCTestCase {
     final class SchemaTester: Entity {
         static var entity = "schema_tests"
 
-        var id: Node?
         var int: Int
         var stringDefault: String
         var string64: String
         var double: Double
         var bool: Bool
         var data: [UInt8]
+
+        let storage = Storage()
 
         init(
             int: Int,
@@ -43,16 +44,15 @@ class SchemaTests: XCTestCase {
         }
 
         init(node: Node, in context: Context) throws {
-            id = try node.extract("id")
-            int = try node.extract("int")
-            stringDefault = try node.extract("string_default")
-            string64 = try node.extract("string_64")
-            double = try node.extract("double")
-            bool = try node.extract("bool")
-            data = try node.extract("data")
+            int = try node.get("int")
+            stringDefault = try node.get("string_default")
+            string64 = try node.get("string_64")
+            double = try node.get("double")
+            bool = try node.get("bool")
+            data = try node.get("data")
         }
 
-        func makeNode(context: Context) throws -> Node {
+        func makeNode(in context: Context) throws -> Node {
             return try Node(node: [
                 "id": id,
                 "int": int,
@@ -65,7 +65,7 @@ class SchemaTests: XCTestCase {
         }
 
         static func prepare(_ database: Database) throws {
-            try database.create("schema_tests") { builder in
+            try database.create(self) { builder in
                 builder.id(for: self)
                 builder.int("int")
                 builder.string("string_default")
@@ -76,7 +76,7 @@ class SchemaTests: XCTestCase {
             }
         }
         static func revert(_ database: Database) throws {
-            try database.delete("schema_tests")
+            try database.delete(self)
         }
     }
 
@@ -86,7 +86,7 @@ class SchemaTests: XCTestCase {
         try SchemaTester.revert(database)
         try SchemaTester.prepare(database)
 
-        var test = SchemaTester(
+        let test = SchemaTester(
             int: 42,
             stringDefault: "this is a default",
             string64: "< 64 bytes",

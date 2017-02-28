@@ -1,20 +1,18 @@
 import Fluent
 
 final class Compound: Entity {
-    var id: Node?
     var name: String
-    var exists: Bool = false
+    let storage = Storage()
 
     init(name: String) {
         self.name = name
     }
 
     init(node: Node, in context: Context) throws {
-        id = try node.extract("id")
-        name = try node.extract("name")
+        name = try node.get("name")
     }
 
-    func makeNode(context: Context) throws -> Node {
+    func makeNode(in context: Context) throws -> Node {
         return try Node(node: [
             "id": id,
             "name": name
@@ -22,12 +20,12 @@ final class Compound: Entity {
     }
 
     static func prepare(_ database: Fluent.Database) throws {
-        try database.create(entity) { builder in
+        try database.create(self) { builder in
             builder.id(for: self)
             builder.string("name")
         }
     }
     static func revert(_ database: Fluent.Database) throws {
-        try database.delete(entity)
+        try database.delete(self)
     }
 }
