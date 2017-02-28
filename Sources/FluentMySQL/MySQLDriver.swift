@@ -20,6 +20,11 @@ public final class MySQLDriver: Fluent.Driver {
     /// which do not themselves implement `Entity.idType`.
     public let idType: IdentifierType
 
+    /// The naming convetion to use for foreign
+    /// id keys, table names, etc.
+    /// ex: snake_case vs. camelCase.
+    public let keyNamingConvention: KeyNamingConvention
+
     /// The underlying MySQL Database
     public let database: MySQL.Database
     
@@ -53,7 +58,8 @@ public final class MySQLDriver: Fluent.Driver {
         flag: UInt = 0,
         encoding: String = "utf8",
         idKey: String = "id",
-        idType: IdentifierType = .int
+        idType: IdentifierType = .int,
+        keyNamingConvention: KeyNamingConvention = .snake_case
     ) throws {
         let database = try MySQL.Database(
             host: host,
@@ -64,7 +70,12 @@ public final class MySQLDriver: Fluent.Driver {
             flag: flag,
             encoding: encoding
         )
-        self.init(database, idKey: idKey, idType: idType)
+        self.init(
+            database, 
+            idKey: idKey, 
+            idType: idType, 
+            keyNamingConvention: keyNamingConvention
+        )
     }
     
     /// Creates the driver from an already
@@ -72,11 +83,13 @@ public final class MySQLDriver: Fluent.Driver {
     public init(
         _ database: MySQL.Database,
         idKey: String = "id",
-        idType: IdentifierType = .int
+        idType: IdentifierType = .int,
+        keyNamingConvention: KeyNamingConvention = .snake_case
     ) {
         self.database = database
         self.idKey = idKey
         self.idType = idType
+        self.keyNamingConvention = keyNamingConvention
     }
 
     /// Creates a connection for executing

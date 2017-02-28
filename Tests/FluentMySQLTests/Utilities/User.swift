@@ -1,18 +1,17 @@
 import Fluent
 
 final class User: Entity {
-    var exists = false
-    var id: Fluent.Node?
     var name: String
     var email: String
+    let storage = Storage()
 
     init(id: Node?, name: String, email: String) {
-        self.id = id
         self.name = name
         self.email = email
+        self.id = id
     }
 
-    func makeNode(context: Context) throws -> Node {
+    func makeNode(in context: Context) throws -> Node {
         return try Node(node: [
             "id": id,
             "name": name,
@@ -21,19 +20,18 @@ final class User: Entity {
     }
 
     init(node: Node, in context: Context) throws {
-        id = try node.extract("id")
-        name = try node.extract("name")
-        email = try node.extract("email")
+        name = try node.get("name")
+        email = try node.get("email")
     }
 
     static func prepare(_ database: Fluent.Database) throws {
-        try database.create(entity) { builder in
+        try database.create(self) { builder in
             builder.id(for: self)
             builder.string("name")
             builder.string("email")
         }
     }
     static func revert(_ database: Fluent.Database) throws {
-        try database.delete(entity)
+        try database.delete(self)
     }
 }
