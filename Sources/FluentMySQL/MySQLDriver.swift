@@ -83,6 +83,10 @@ public class MySQLDriver: Fluent.Driver {
         // so that LAST_INSERT_ID can be fetched
         let connection = try self.connection ?? database.makeConnection()
         
+        if retainConnection && self.connection == nil {
+            self.connection = connection
+        }
+        
         let results = try mysql(statement, values, connection)
         
         if query.action == .create {
