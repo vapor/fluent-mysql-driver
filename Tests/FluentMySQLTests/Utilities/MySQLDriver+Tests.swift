@@ -5,13 +5,13 @@ import Fluent
 import XCTest
 
 extension MySQLDriver {
-    static func makeTestConnection() -> MySQLDriver {
+    static func makeTest() -> MySQLDriver {
         do {
             let mysql = try MySQL.Database(
                 host: "127.0.0.1",
-                user: "root",
+                user: "ubuntu",
                 password: "",
-                database: "test"
+                database: "circle_test"
             )
             return MySQLDriver(mysql)
         } catch {
