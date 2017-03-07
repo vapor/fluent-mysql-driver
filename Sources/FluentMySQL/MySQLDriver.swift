@@ -120,12 +120,12 @@ extension MySQL.Connection: Fluent.Connection {
         if query.action == .create {
             let insert = try mysql("SELECT LAST_INSERT_ID() as id", [])
             if
-                case .array(let array) = insert,
+                case .array(let array) = insert.wrapped,
                 let first = array.first,
                 case .object(let obj) = first,
                 let id = obj["id"]
             {
-                return id
+                return Node(id, in: insert.context)
             }
         }
 
@@ -153,10 +153,9 @@ extension MySQL.Connection: Fluent.Connection {
 
     @discardableResult
     private func mysql(_ query: String, _ values: [Node] = []) throws -> Node {
-        let results = try execute(
+        return try execute(
             query,
             values as [NodeRepresentable]
-        ).map { Node.object($0) }
-        return .array(results)
+        )
     }
 }

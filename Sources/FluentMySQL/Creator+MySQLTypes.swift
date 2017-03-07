@@ -1,7 +1,6 @@
 import Fluent
 
 extension Schema.Creator {
-
     /// Creates a DATETIME type
     ///
     /// - Parameters:
