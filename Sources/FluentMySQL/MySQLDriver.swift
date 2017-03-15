@@ -137,7 +137,6 @@ extension MySQL.Connection: Fluent.Connection {
     public func schema(_ schema: Schema) throws {
         let serializer = MySQLSerializer(sql: schema.sql)
         let (statement, values) = serializer.serialize()
-
         try mysql(statement, values)
     }
 

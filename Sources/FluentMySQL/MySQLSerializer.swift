@@ -31,8 +31,10 @@ public final class MySQLSerializer: GeneralSQLSerializer {
             return "DOUBLE"
         case .bool:
             return "TINYINT(1) UNSIGNED"
-        case .data:
+        case .bytes:
             return "BLOB"
+        case .date:
+            return "DATETIME"
         case .custom(let type):
             return type
         }
