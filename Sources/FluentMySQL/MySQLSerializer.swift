@@ -1,8 +1,8 @@
 import Fluent
 
 /// MySQL flavored SQL serializer.
-public final class MySQLSerializer: GeneralSQLSerializer {
-    public override func sql(_ type: Schema.Field.DataType, primaryKey: Bool) -> String {
+public final class MySQLSerializer<E: Entity>: GeneralSQLSerializer<E> {
+    public override func type(_ type: Field.DataType, primaryKey: Bool) -> String {
         switch type {
         case .id(let type):
             let typeString: String

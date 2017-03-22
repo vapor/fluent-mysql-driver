@@ -113,7 +113,7 @@ extension MySQL.Connection: Fluent.Connection {
     /// created, or updated by the action.
     @discardableResult
     public func query<T: Entity>(_ query: Query<T>) throws -> Node {
-        let serializer = MySQLSerializer(sql: query.sql)
+        let serializer = MySQLSerializer(query)
         let (statement, values) = serializer.serialize()
         let results = try mysql(statement, values)
 
@@ -130,14 +130,6 @@ extension MySQL.Connection: Fluent.Connection {
         }
 
         return results
-    }
-
-    /// Creates the `Schema` indicated
-    /// by the `Builder`.
-    public func schema(_ schema: Schema) throws {
-        let serializer = MySQLSerializer(sql: schema.sql)
-        let (statement, values) = serializer.serialize()
-        try mysql(statement, values)
     }
 
     /// Drivers that support raw querying

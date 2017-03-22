@@ -1,6 +1,6 @@
 import Fluent
 
-extension Schema.Creator {
+extension Builder {
     /// Creates a DATETIME type
     ///
     /// - Parameters:
