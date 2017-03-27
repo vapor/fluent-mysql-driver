@@ -3,7 +3,7 @@ import PackageDescription
 let beta = Version(2,0,0, prereleaseIdentifiers: ["alpha"])
 
 let package = Package(
-    name: "FluentMySQL",
+    name: "MySQLDriver",
     dependencies: [
     	// Robust MySQL interface for Swift.
    		.Package(url: "https://github.com/vapor/mysql.git", beta),

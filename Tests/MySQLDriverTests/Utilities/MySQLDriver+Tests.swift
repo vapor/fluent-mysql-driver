@@ -1,4 +1,4 @@
-import FluentMySQL
+import MySQLDriver
 import MySQL
 import Fluent
 

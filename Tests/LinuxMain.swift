@@ -1,7 +1,7 @@
 #if os(Linux)
 
 import XCTest
-@testable import FluentMySQLTests
+@testable import MySQLDriverTests
 
 XCTMain([
     testCase(FluentMySQLTests.allTests)

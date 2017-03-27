@@ -1,5 +1,5 @@
 import XCTest
-@testable import FluentMySQL
+@testable import MySQLDriver
 import FluentTester
 
 class FluentMySQLTests: XCTestCase {
