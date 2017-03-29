@@ -31,27 +31,7 @@ extension Builder {
         self.datetime("deleted_at", optional: true)
     }
     
-    // MARK: DATE
-   
-    /// Creates a DATE type
-    ///
-    /// - Parameters:
-    ///   - name: name of column
-    ///   - optional: make column optional
-    ///   - unique: make column unique
-    ///   - default: default value
-    public func date(
-        _ name: String,
-        optional: Bool = false,
-        unique: Bool = false,
-        default value: NodeRepresentable? = nil
-        ) {
-        self.custom(name, type: "DATE", optional: optional, unique: unique, default: value)
-    }
-    
-    /*
-     MARK: Numeric datatypes
-     */
+    // MARK: Numeric datatypes
     
     /// Creates a INT type
     ///
