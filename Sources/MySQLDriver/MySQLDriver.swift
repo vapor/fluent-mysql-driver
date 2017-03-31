@@ -103,10 +103,6 @@ public final class MySQLDriver: Fluent.Driver {
 }
 
 extension MySQL.Connection: Fluent.Connection {
-    public var closed: Bool {
-        // TODO: FIXME
-        return false
-    }
 
     /// Executes a `Query` from and
     /// returns an array of results fetched,
