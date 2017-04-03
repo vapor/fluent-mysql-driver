@@ -17,20 +17,6 @@ extension Builder {
         self.custom(name, type: "DATETIME", optional: optional, unique: unique, default: value)
     }
     
-    // MARK: Timestamps
-    
-    /// Creates created_at & updated_at DATETIME
-    public func timestamps() {
-        self.datetime("created_at", optional: true)
-        self.datetime("updated_at", optional: true)
-    }
-    
-    
-    /// Creates created_at & updated_at DATETIME
-    public func softDelete() {
-        self.datetime("deleted_at", optional: true)
-    }
-    
     // MARK: Numeric datatypes
     
     /// Creates a INT type

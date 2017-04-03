@@ -14,7 +14,11 @@ public final class MySQLSerializer<E: Entity>: GeneralSQLSerializer<E> {
                     typeString = "INT(10) UNSIGNED"
                 }
             case .uuid:
-                typeString = "CHAR(36)"
+                if primaryKey {
+                    typeString = "CHAR(36) PRIMARY KEY"
+                } else {
+                    typeString = "CHAR(36)"
+                }
             case .custom(let custom):
                 typeString = custom
             }
