@@ -146,3 +146,19 @@ extension MySQL.Connection: Fluent.Connection {
         )
     }
 }
+
+extension MySQLDriver {
+    /// Executes a MySQL transaction on a single connection.
+    ///
+    /// The argument supplied to the closure is the connection
+    /// to use for this transaction.
+    ///
+    /// It may be ignored if you are using Fluent and not performing
+    /// complex threading.
+    public func transaction(_ closure: (MySQL.Connection) throws -> ()) throws {
+        let connection = try database.makeConnection()
+        try connection.transaction {
+            try closure(connection)
+        }
+    }
+}

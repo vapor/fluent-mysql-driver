@@ -1,19 +1,20 @@
-# MySQL Driver
-
-[![Swift](http://img.shields.io/badge/swift-3.1-brightgreen.svg)](https://swift.org)
-[![CircleCI](https://circleci.com/gh/vapor/mysql-driver.svg?style=shield)](https://circleci.com/gh/vapor/mysql-driver)
-[![Slack Status](http://vapor.team/badge.svg)](http://vapor.team)
-
-A driver implementation for MySQL + Fluent.
-
-## 📖 Documentation
-
-Visit the Vapor web framework's [documentation](http://docs.vapor.codes) for instructions on how to use this package.
-
-## 💧 Community
-
-Join the welcoming community of fellow Vapor developers in [slack](http://vapor.team).
-
-## 🔧 Compatibility
-
-This package has been tested on macOS and Ubuntu.
+<p align="center">
+    <img src="https://cloud.githubusercontent.com/assets/1342803/24657467/a61b5c12-1946-11e7-9b98-b916bbc5fddd.png" width="320" alt="MySQL Driver">
+    <br>
+    <br>
+    <a href="http://beta.docs.vapor.codes/mysql/package/">
+        <img src="http://img.shields.io/badge/read_the-docs-92A8D1.svg" alt="Documentation">
+    </a>
+    <a href="http://vapor.team">
+        <img src="http://vapor.team/badge.svg" alt="Slack Team">
+    </a>
+    <a href="LICENSE">
+        <img src="http://img.shields.io/badge/license-MIT-brightgreen.svg" alt="MIT License">
+    </a>
+    <a href="https://circleci.com/gh/vapor/mysql-driver">
+        <img src="https://circleci.com/gh/vapor/mysql-driver.svg?style=shield" alt="Continuous Integration">
+    </a>
+    <a href="https://swift.org">
+        <img src="http://img.shields.io/badge/swift-3.1-brightgreen.svg" alt="Swift 3.1">
+    </a>
+</center>
