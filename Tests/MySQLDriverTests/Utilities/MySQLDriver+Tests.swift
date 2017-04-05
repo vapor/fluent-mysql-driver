@@ -8,7 +8,7 @@ extension MySQLDriver.Driver {
     static func makeTest() -> MySQLDriver.Driver {
         do {
             let mysql = try MySQL.Database(
-                host: "127.0.0.1",
+                hostname: "127.0.0.1",
                 user: "ubuntu",
                 password: "",
                 database: "circle_test"

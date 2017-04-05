@@ -49,9 +49,18 @@ public final class Connection: Fluent.Connection {
     
     @discardableResult
     private func mysql(_ query: String, _ values: [Node] = []) throws -> Node {
-        return try mysqlConnection.execute(
-            query,
-            values as [NodeRepresentable]
-        )
+        do {
+            return try mysqlConnection.execute(
+                query,
+                values as [NodeRepresentable]
+            )
+        } catch let error as MySQLError
+            where
+                error.code == .serverLost ||
+                error.code == .serverGone ||
+                error.code == .serverLostExtended
+        {
+            throw QueryError.connectionClosed(error)
+        }
     }
 }
