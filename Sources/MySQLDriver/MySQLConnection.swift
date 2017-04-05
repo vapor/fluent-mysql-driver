@@ -49,6 +49,7 @@ public final class Connection: Fluent.Connection {
     
     @discardableResult
     private func mysql(_ query: String, _ values: [Node] = []) throws -> Node {
+        log(query, values)
         do {
             return try mysqlConnection.execute(
                 query,
