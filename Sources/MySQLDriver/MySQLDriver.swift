@@ -140,10 +140,11 @@ extension Driver {
     ///
     /// It may be ignored if you are using Fluent and not performing
     /// complex threading.
-    public func transaction(_ closure: (MySQL.Connection) throws -> ()) throws {
-        let connection = try master.makeConnection()
-        try connection.transaction {
-            try closure(connection)
+    public func transaction(_ closure: (MySQLDriver.Connection) throws -> ()) throws {
+        let conn = try master.makeConnection()
+        try conn.transaction {
+            let wrapped = MySQLDriver.Connection(conn)
+            try closure(wrapped)
         }
     }
 }
