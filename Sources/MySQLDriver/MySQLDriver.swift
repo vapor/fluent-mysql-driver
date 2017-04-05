@@ -1,7 +1,8 @@
 import Fluent
 import MySQL
+import Random
 
-public final class MySQLDriver: Fluent.Driver {
+public final class Driver: Fluent.Driver {
     /// The string value for the
     /// default identifier key.
     ///
@@ -25,8 +26,14 @@ public final class MySQLDriver: Fluent.Driver {
     /// ex: snake_case vs. camelCase.
     public let keyNamingConvention: KeyNamingConvention
 
-    /// The underlying MySQL Database
-    public let database: MySQL.Database
+    /// The master MySQL Database for read/write
+    public let master: MySQL.Database
+    
+    /// The read replicas for read only
+    public let readReplicas: [MySQL.Database]
+    
+    /// Stores query logger
+    public var log: QueryLogCallback?
     
     /// Attempts to establish a connection to a MySQL database
     /// engine running on host.
@@ -50,7 +57,8 @@ public final class MySQLDriver: Fluent.Driver {
     /// - throws: `Error.connection(String)` if the call to
     ///
     public convenience init(
-        host: String,
+        masterHostname: String,
+        readReplicaHostnames: [String],
         user: String,
         password: String,
         database: String,
@@ -61,8 +69,8 @@ public final class MySQLDriver: Fluent.Driver {
         idType: IdentifierType = .int,
         keyNamingConvention: KeyNamingConvention = .snake_case
     ) throws {
-        let database = try MySQL.Database(
-            host: host,
+        let master = try MySQL.Database(
+            hostname: masterHostname,
             user: user,
             password: password,
             database: database,
@@ -70,8 +78,20 @@ public final class MySQLDriver: Fluent.Driver {
             flag: flag,
             encoding: encoding
         )
+        let readReplicas: [MySQL.Database] = try readReplicaHostnames.map { hostname in
+            return try MySQL.Database(
+                hostname: hostname,
+                user: user,
+                password: password,
+                database: database,
+                port: port,
+                flag: flag,
+                encoding: encoding
+            )
+        }
         self.init(
-            database, 
+            master: master,
+            readReplicas: readReplicas,
             idKey: idKey, 
             idType: idType, 
             keyNamingConvention: keyNamingConvention
@@ -81,12 +101,14 @@ public final class MySQLDriver: Fluent.Driver {
     /// Creates the driver from an already
     /// initialized database.
     public init(
-        _ database: MySQL.Database,
+        master: MySQL.Database,
+        readReplicas: [MySQL.Database] = [],
         idKey: String = "id",
         idType: IdentifierType = .int,
         keyNamingConvention: KeyNamingConvention = .snake_case
     ) {
-        self.database = database
+        self.master = master
+        self.readReplicas = readReplicas
         self.idKey = idKey
         self.idType = idType
         self.keyNamingConvention = keyNamingConvention
@@ -97,57 +119,20 @@ public final class MySQLDriver: Fluent.Driver {
     /// automatically create a connection
     /// if any Executor methods are called on
     /// the Driver.
-    public func makeConnection() throws -> Fluent.Connection {
-        return try database.makeConnection()
-    }
-}
-
-extension MySQL.Connection: Fluent.Connection {
-
-    /// Executes a `Query` from and
-    /// returns an array of results fetched,
-    /// created, or updated by the action.
-    @discardableResult
-    public func query<T: Entity>(_ query: Query<T>) throws -> Node {
-        let serializer = MySQLSerializer(query)
-        let (statement, values) = serializer.serialize()
-        let results = try mysql(statement, values)
-
-        if query.action == .create {
-            let insert = try mysql("SELECT LAST_INSERT_ID() as id", [])
-            if
-                case .array(let array) = insert.wrapped,
-                let first = array.first,
-                case .object(let obj) = first,
-                let id = obj["id"]
-            {
-                return Node(id, in: insert.context)
-            }
+    public func makeConnection(_ type: ConnectionType) throws -> Fluent.Connection {
+        let database: MySQL.Database
+        switch type {
+        case .read:
+            database = readReplicas.random ?? master
+        case .readWrite:
+            database = master
         }
-
-        return results
-    }
-
-    /// Drivers that support raw querying
-    /// accept string queries and parameterized values.
-    ///
-    /// This allows Fluent extensions to be written that
-    /// can support custom querying behavior.
-    @discardableResult
-    public func raw(_ raw: String, _ values: [Node]) throws -> Node {
-        return try mysql(raw, values)
-    }
-
-    @discardableResult
-    private func mysql(_ query: String, _ values: [Node] = []) throws -> Node {
-        return try execute(
-            query,
-            values as [NodeRepresentable]
-        )
+        let conn = try database.makeConnection()
+        return Connection(conn)
     }
 }
 
-extension MySQLDriver {
+extension Driver {
     /// Executes a MySQL transaction on a single connection.
     ///
     /// The argument supplied to the closure is the connection
@@ -156,7 +141,7 @@ extension MySQLDriver {
     /// It may be ignored if you are using Fluent and not performing
     /// complex threading.
     public func transaction(_ closure: (MySQL.Connection) throws -> ()) throws {
-        let connection = try database.makeConnection()
+        let connection = try master.makeConnection()
         try connection.transaction {
             try closure(connection)
         }

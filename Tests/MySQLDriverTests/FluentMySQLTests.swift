@@ -4,7 +4,7 @@ import FluentTester
 
 class FluentMySQLTests: XCTestCase {
     func testAll() throws {
-        let driver = MySQLDriver.makeTest()
+        let driver = MySQLDriver.Driver.makeTest()
         let database = Database(driver)
         let tester = Tester(database: database)
 
@@ -16,7 +16,7 @@ class FluentMySQLTests: XCTestCase {
     }
     
     func testForeignKey() throws {
-        let driver = MySQLDriver.makeTest()
+        let driver = MySQLDriver.Driver.makeTest()
         let database = Database(driver)
         
         defer {

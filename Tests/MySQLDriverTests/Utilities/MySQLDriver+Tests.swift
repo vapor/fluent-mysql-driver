@@ -4,8 +4,8 @@ import Fluent
 
 import XCTest
 
-extension MySQLDriver {
-    static func makeTest() -> MySQLDriver {
+extension MySQLDriver.Driver {
+    static func makeTest() -> MySQLDriver.Driver {
         do {
             let mysql = try MySQL.Database(
                 host: "127.0.0.1",
@@ -13,7 +13,7 @@ extension MySQLDriver {
                 password: "",
                 database: "circle_test"
             )
-            return MySQLDriver(mysql)
+            return MySQLDriver.Driver(master: mysql)
         } catch {
             print()
             print()
