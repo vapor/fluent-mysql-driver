@@ -127,8 +127,9 @@ public final class Driver: Fluent.Driver {
         case .readWrite:
             database = master
         }
-        let conn = try database.makeConnection()
-        return Connection(conn)
+        let conn = try Connection(database.makeConnection())
+        conn.log = log
+        return conn
     }
 }
 
@@ -144,6 +145,7 @@ extension Driver {
         let conn = try master.makeConnection()
         try conn.transaction {
             let wrapped = MySQLDriver.Connection(conn)
+            wrapped.log = log
             try closure(wrapped)
         }
     }
