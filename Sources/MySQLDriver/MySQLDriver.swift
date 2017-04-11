@@ -133,7 +133,7 @@ public final class Driver: Fluent.Driver {
     }
 }
 
-extension Driver {
+extension Driver: Transactable {
     /// Executes a MySQL transaction on a single connection.
     ///
     /// The argument supplied to the closure is the connection
@@ -141,7 +141,7 @@ extension Driver {
     ///
     /// It may be ignored if you are using Fluent and not performing
     /// complex threading.
-    public func transaction(_ closure: (MySQLDriver.Connection) throws -> ()) throws {
+    public func transaction(_ closure: (Fluent.Connection) throws -> ()) throws {
         let conn = try master.makeConnection()
         try conn.transaction {
             let wrapped = MySQLDriver.Connection(conn)
