@@ -27,15 +27,15 @@ class FluentMySQLTests: XCTestCase {
         try database.create(Compound.self) { compounds in
             compounds.id(for: Compound.self)
             compounds.string("foo")
-            compounds.index("foo")
         }
+        try database.index("foo", for: Compound.self)
         
         try database.create(Atom.self) { atoms in
             atoms.id(for: Atom.self)
             atoms.string("name")
-            atoms.index("name")
             atoms.foreignKey("name", references: "foo", on: Compound.self)
         }
+        try database.index("name", for: Atom.self)
     }
 
     static let allTests = [

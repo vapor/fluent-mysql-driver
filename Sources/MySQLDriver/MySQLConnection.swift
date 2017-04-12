@@ -3,7 +3,7 @@ import MySQL
 
 public final class Connection: Fluent.Connection {
     public let mysqlConnection: MySQL.Connection
-    public var log: QueryLogCallback?
+    public var queryLogger: QueryLogger?
     public var isClosed: Bool {
         return mysqlConnection.isClosed
     }
@@ -49,7 +49,7 @@ public final class Connection: Fluent.Connection {
     
     @discardableResult
     private func mysql(_ query: String, _ values: [Node] = []) throws -> Node {
-        log(query, values)
+        queryLogger?.log(query, values)
         do {
             return try mysqlConnection.execute(
                 query,

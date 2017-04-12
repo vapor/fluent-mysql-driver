@@ -33,7 +33,7 @@ public final class Driver: Fluent.Driver {
     public let readReplicas: [MySQL.Database]
     
     /// Stores query logger
-    public var log: QueryLogCallback?
+    public var queryLogger: QueryLogger?
     
     /// Attempts to establish a connection to a MySQL database
     /// engine running on host.
@@ -128,7 +128,7 @@ public final class Driver: Fluent.Driver {
             database = master
         }
         let conn = try Connection(database.makeConnection())
-        conn.log = log
+        conn.queryLogger = queryLogger
         return conn
     }
 }
@@ -145,7 +145,7 @@ extension Driver: Transactable {
         let conn = try master.makeConnection()
         try conn.transaction {
             let wrapped = MySQLDriver.Connection(conn)
-            wrapped.log = log
+            wrapped.queryLogger = self.queryLogger
             try closure(wrapped)
         }
     }
