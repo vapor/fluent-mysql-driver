@@ -25,13 +25,13 @@ class FluentMySQLTests: XCTestCase {
         }
         
         try database.create(Compound.self) { compounds in
-            compounds.id(for: Compound.self)
+            compounds.id()
             compounds.string("foo")
         }
         try database.index("foo", for: Compound.self)
         
         try database.create(Atom.self) { atoms in
-            atoms.id(for: Atom.self)
+            atoms.id()
             atoms.string("name")
             atoms.foreignKey("name", references: "foo", on: Compound.self)
         }
