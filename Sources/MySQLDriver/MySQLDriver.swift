@@ -141,12 +141,12 @@ extension Driver: Transactable {
     ///
     /// It may be ignored if you are using Fluent and not performing
     /// complex threading.
-    public func transaction(_ closure: (Fluent.Connection) throws -> ()) throws {
+    public func transaction<R>(_ closure: (Fluent.Connection) throws -> R) throws -> R {
         let conn = try master.makeConnection()
         try conn.transaction {
             let wrapped = MySQLDriver.Connection(conn)
             wrapped.queryLogger = self.queryLogger
-            try closure(wrapped)
+            return try closure(wrapped)
         }
     }
 }
