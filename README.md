@@ -2,7 +2,7 @@
     <img src="https://cloud.githubusercontent.com/assets/1342803/24657467/a61b5c12-1946-11e7-9b98-b916bbc5fddd.png" width="320" alt="MySQL Driver">
     <br>
     <br>
-    <a href="http://beta.docs.vapor.codes/mysql/package/">
+    <a href="https://docs.vapor.codes/mysql/package/">
         <img src="http://img.shields.io/badge/read_the-docs-92A8D1.svg" alt="Documentation">
     </a>
     <a href="http://vapor.team">
@@ -17,4 +17,4 @@
     <a href="https://swift.org">
         <img src="http://img.shields.io/badge/swift-3.1-brightgreen.svg" alt="Swift 3.1">
     </a>
-</center>
+</p>
