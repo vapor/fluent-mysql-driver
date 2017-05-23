@@ -31,7 +31,7 @@ public final class Connection: Fluent.Connection {
             let (statement, values) = serializer.serialize()
             let results = try mysql(statement, values)
             
-            if query.action == .create {
+            if case .int = E.idType, query.action == .create {
                 let insert = try mysql("SELECT LAST_INSERT_ID() as id", [])
                 if
                     case .array(let array) = insert.wrapped,
