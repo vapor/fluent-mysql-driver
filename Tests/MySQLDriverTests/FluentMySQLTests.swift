@@ -33,7 +33,7 @@ class FluentMySQLTests: XCTestCase {
         try database.create(Atom.self) { atoms in
             atoms.id()
             atoms.string("name")
-            atoms.foreignKey(foreignIdKey: "name", referencesIdKey: "foo", on: Compound.self)
+            atoms.foreignKey("name", references: "foo", on: Compound.self)
         }
         try database.index("name", for: Atom.self)
     }

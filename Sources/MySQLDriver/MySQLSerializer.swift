@@ -63,4 +63,25 @@ public final class MySQLSerializer<E: Entity>: GeneralSQLSerializer<E> {
             []
         )
     }
+    
+    public override func limit(_ limit: RawOr<Limit>) -> String {
+        var statement: [String] = []
+        
+        statement += "LIMIT"
+        switch limit {
+        case .raw(let raw, _):
+            statement += raw
+        case .some(let some):
+            if query.action == .delete {
+                if some.offset != 0 {
+                    print("[Fluent] [Warning] You cannot specify offsets in a delete query.")
+                }
+                statement += "\(some.count)"
+            } else {
+                statement += "\(some.offset), \(some.count)"
+            }
+        }
+        
+        return statement.joined(separator: " ")
+    }
 }
