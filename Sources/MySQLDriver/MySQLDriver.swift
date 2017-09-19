@@ -146,7 +146,15 @@ extension Driver: Transactable {
         return try conn.transaction {
             let wrapped = MySQLDriver.Connection(conn)
             wrapped.queryLogger = self.queryLogger
-            return try closure(wrapped)
+            wrapped.queryLogger?.log("START TRANSACTION", [])
+            do {
+                let result = try closure(wrapped)
+                wrapped.queryLogger?.log("COMMIT", [])
+                return result
+            } catch {
+                wrapped.queryLogger?.log("ROLLBACK", [])
+                throw error
+            }
         }
     }
 }
