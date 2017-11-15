@@ -32,6 +32,9 @@ public final class Connection: Fluent.Connection {
             let results = try mysql(statement, values)
             
             if case .int = E.idType, query.action == .create {
+                if let id = query.entity?.id {
+                    return Node(id)
+                }
                 let insert = try mysql("SELECT LAST_INSERT_ID() as id", [])
                 if
                     case .array(let array) = insert.wrapped,
