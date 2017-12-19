@@ -7,7 +7,7 @@ let package = Package(
         .library(name: "FluentMySQL", targets: ["FluentMySQL"]),
     ],
     dependencies: [
-        // Cryptography modules
+        .package(url: "https://github.com/vapor/fluent.git", .branch("beta")),
         .package(url: "https://github.com/vapor/mysql.git", .branch("beta")),
     ],
     targets: [
