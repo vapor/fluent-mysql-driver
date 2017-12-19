@@ -1,13 +1,34 @@
-machine:
-  services:
-    - mysql
-dependencies:
-  override:
-    - eval "$(curl -sL https://apt.vapor.sh)"
-    - sudo apt-get install vapor cmysql
-    - sudo chmod -R a+rx /usr/
-test:
-  override:
-    - swift build
-    - swift build -c release
-    - swift test
+version: 2
+
+jobs:
+  macos:
+    macos:
+      xcode: "9.0"
+    steps:
+      - run: brew install mysql
+      - run: brew services start mysql
+      - checkout
+      - run: swift build
+      - run: echo "CREATE DATABASE vapor_test" | mysql -uroot
+      - run: swift test
+
+  linux:
+    docker:
+      - image: swift:4.0
+      - image: mysql:5.7
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_test
+          MYSQL_USER: root
+    steps:
+      - run: apt-get install -yq libssl-dev
+      - checkout
+      - run: swift build
+      - run: swift test
+
+workflows:
+  version: 2
+  tests:
+    jobs:
+      - macos
+      - linux
