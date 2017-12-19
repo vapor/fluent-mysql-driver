@@ -4,4 +4,5 @@ Packages
 .DS_Store
 .swift-version
 Package.pins
+Package.resolved
 
