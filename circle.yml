@@ -14,7 +14,7 @@ jobs:
 
   linux:
     docker:
-      - image: swift:4.0
+      - image: swift:4.0.3
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
