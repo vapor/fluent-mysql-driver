@@ -7,7 +7,7 @@ jobs:
     steps:
       - run: brew install vapor/tap/vapor vapor/tap/cmysql
       - run: brew services start mysql
-      - run: mysqladmin -h127.0.0.1 -uroot create test
+      - run: sleep 3 && mysqladmin -uroot create test
       - checkout
       - run: swift build
       - run: swift test
