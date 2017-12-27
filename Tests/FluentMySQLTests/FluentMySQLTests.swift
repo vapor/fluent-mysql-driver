@@ -28,7 +28,6 @@ class FluentMySQLTests: XCTestCase {
     }
     
     func testModels() throws {
-        print(#line)
         try! benchmarker.benchmarkModels_withSchema().blockingAwait(timeout: .seconds(60))
     }
     
