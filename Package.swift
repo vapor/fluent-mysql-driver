@@ -8,7 +8,7 @@ let package = Package(
     ],
     dependencies: [
         // Swift ORM (queries, models, and relations) for NoSQL and SQL databases.
-        .package(url: "https://github.com/vapor/fluent.git", .branch("id-type")),
+        .package(url: "https://github.com/vapor/fluent.git", .branch("beta")),
         // Robust MySQL interface for Swift
         .package(url: "https://github.com/vapor/mysql.git", .branch("beta")),
     ],
