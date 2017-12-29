@@ -1,10 +1,13 @@
 import Async
-import Service
-import MySQL
+import CodableKit
 import Fluent
+import Foundation
+import MySQL
+import Service
+import SQL
 
 /// A reference to a MySQL database
-public final class MySQLDatabase : LogSupporting {
+public final class MySQLDatabase {
     /// The hostname to which connections will be connected
     let hostname: String
     
@@ -30,15 +33,14 @@ public final class MySQLDatabase : LogSupporting {
         self.password = password
         self.database = database
     }
-    
-    /// See SupportsLogging.enableLogging
-    public func enableLogging(using logger: DatabaseLogger) {
-        self.logger = logger
-    }
 }
 
-extension MySQLDatabase : Database {
-    public func makeConnection(from config: FluentMySQLConfig, on worker: Worker) -> Future<FluentMySQLConnection> {
+// MARK: Database
+
+extension MySQLDatabase: Database, LogSupporting {
+    public typealias Connection = MySQLConnection
+    
+    public func makeConnection(from config: FluentMySQLConfig, on worker: Worker) -> Future<MySQLConnection> {
         return MySQLConnection.makeConnection(
             hostname: hostname,
             port: port,
@@ -47,10 +49,26 @@ extension MySQLDatabase : Database {
             password: password,
             database: database,
             on: worker.eventLoop
-        ).map(to: FluentMySQLConnection.self) { connection in
-            return FluentMySQLConnection(connection: connection, logger: self.logger)
-        }
+        )
     }
-    
-    public typealias Connection = FluentMySQLConnection
+
+
+    /// See SupportsLogging.enableLogging
+    public func enableLogging(using logger: DatabaseLogger) {
+        self.logger = logger
+    }
+}
+
+extension MySQLDatabase: JoinSupporting {}
+
+extension MySQLDatabase: ReferenceSupporting {
+    /// ReferenceSupporting.enableReferences
+    public static func enableReferences(on connection: MySQLConnection) -> Future<Void> {
+        return connection.administrativeQuery("SET FOREIGN_KEY_CHECKS=1;")
+    }
+
+    /// ReferenceSupporting.disableReferences
+    public static func disableReferences(on connection: MySQLConnection) -> Future<Void> {
+        return connection.administrativeQuery("SET FOREIGN_KEY_CHECKS=0;")
+    }
 }

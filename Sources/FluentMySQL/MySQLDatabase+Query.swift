@@ -1,62 +1,28 @@
 import Async
 import CodableKit
-import Fluent
-import FluentSQL
-import MySQL
+import Foundation
 import SQL
 
-/// A MySQL query serializer
-internal final class MySQLSerializer: SQLSerializer {
-    internal init () {}
-}
-
-/// An error that gets thrown if the ConnectionRepresentable needs to represent itself but fails to do so because it is used in a different context
-struct InvalidConnectionType: Error{}
-
-/// A Fluent wrapper around a MySQL connection that can log
-public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, ReferenceSupporting {
-    public typealias Config = FluentMySQLConfig
-    
-    public func close() {
-        self.connection.close()
-    }
-
-    public func existingConnection<D>(to type: D.Type) -> D.Connection? where D : Database {
-        return self as? D.Connection
-    }
-    
-    /// Respresents the current FluentMySQLConnection as a connection to `D`
-    public func connect<D>(to database: DatabaseIdentifier<D>) -> Future<D.Connection> {
-        fatalError("Call `.existingConnection` first.")
-    }
-    
-    /// Keeps track of logs by MySQL
-    let logger: MySQLLogger?
-    
-    /// The underlying MySQL Connection that can be used for normal queries
-    public let connection: MySQLConnection
-    
-    /// Used to create a new FluentMySQLConnection wrapper
-    init(connection: MySQLConnection, logger: MySQLLogger?) {
-        self.connection = connection
-        self.logger = logger
-    }
-    
-    /// See QueryExecutor.execute
-    public func execute<I, D: Decodable>(query: DatabaseQuery, into stream: I) where I : Async.InputStream, D == I.Input {
+extension MySQLDatabase: QuerySupporting {
+    /// See QuerySupporting.execute
+    public static func execute<I, D>(
+        query: DatabaseQuery<MySQLDatabase>,
+        into stream: I,
+        on connection: MySQLConnection
+    ) where I: Async.InputStream, D: Decodable, D == I.Input {
         /// convert fluent query to an abstract SQL query
         var (dataQuery, binds) = query.makeDataQuery()
-        
+
         if let model = query.data {
             // Encode the model to read it's keys to be used inside the query
             let encoder = CodingPathKeyPreEncoder()
-            
+
             do {
                 dataQuery.columns += try encoder.keys(for: model).flatMap { keys in
                     guard let key = keys.first else {
                         return nil
                     }
-                    
+
                     return DataColumn(name: key)
                 }
             } catch {
@@ -66,12 +32,13 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
                 return
             }
         }
-        
+
         /// Create a MySQL query string
         let sqlString = MySQLSerializer().serialize(data: dataQuery)
-        
-        _ = self.logger?.log(query: sqlString)
-        
+
+        /// FIXME
+        // _ = self.logger?.log(query: sqlString)
+
         if query.data == nil && binds.count == 0 {
             do {
                 try connection.stream(D.self, in: sqlString, to: stream)
@@ -81,7 +48,7 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
             }
             return
         }
-        
+
         // Prepares the statement for binding
         connection.withPreparation(statement: sqlString) { context -> Future<Void> in
             do {
@@ -91,17 +58,17 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
                         if let model = query.data {
                             try model.encode(to: encoder)
                         }
-                        
+
                         for bind in binds {
                             try bind.encodable.encode(to: encoder)
                         }
                     }
                 }
-                
+
                 // Streams all results into the parameter-provided stream
                 try bound.stream(D.self, in: sqlString, to: stream)
                 // try bound.stream(D.self, in: _, to: stream)
-                
+
                 return Future<Void>(())
             } catch {
                 // Close the stream with an error
@@ -115,24 +82,30 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
             stream.close()
         }
     }
-    
-    /// ReferenceSupporting.enableReferences
-    public func enableReferences() -> Future<Void> {
-        return connection.administrativeQuery("SET FOREIGN_KEY_CHECKS=1;")
-    }
 
-    /// ReferenceSupporting.disableReferences
-    public func disableReferences() -> Future<Void> {
-        return connection.administrativeQuery("SET FOREIGN_KEY_CHECKS=0;")
-    }
-    
-    // FIXME: exposure from the MySQL driver
-    public var lastAutoincrementID: Int? {
-        if let id = connection.lastInsertID, id < numericCast(Int.max) {
-            return numericCast(id)
+    /// See QuerySupporting.modelEvent
+    public static func modelEvent<M>(
+        event: ModelEvent,
+        model: M,
+        on connection: MySQLConnection
+    ) -> Future<Void> where MySQLDatabase == M.Database, M: Model {
+        switch event {
+        case .willCreate:
+            switch id(M.ID.self) {
+            case id(UUID.self): model.fluentID = UUID() as? M.ID
+            default: break
+            }
+        case .didCreate:
+            switch id(M.ID.self) {
+            case id(Int.self):
+                if let id = connection.lastInsertID, id < numericCast(Int.max) {
+                    model.fluentID = (numericCast(id) as Int) as? M.ID
+                }
+            default: break
+            }
+        default: break
         }
-        
-        return nil
+
+        return .done
     }
 }
-

@@ -17,8 +17,8 @@ class FluentMySQLTests: XCTestCase {
         )
 
         let conn = try! database.makeConnection(from: .init(), on: loop).blockingAwait()
-        try! conn.connection.administrativeQuery("DROP DATABASE vapor_test").blockingAwait()
-        try! conn.connection.administrativeQuery("CREATE DATABASE vapor_test;").blockingAwait()
+        try! conn.administrativeQuery("DROP DATABASE vapor_test").blockingAwait()
+        try! conn.administrativeQuery("CREATE DATABASE vapor_test;").blockingAwait()
         
         benchmarker = Benchmarker(database, config: .init(), on: loop, onFail: XCTFail)
     }
