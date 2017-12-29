@@ -17,3 +17,4 @@ let package = Package(
         .testTarget(name: "FluentMySQLTests", dependencies: ["FluentBenchmark", "FluentMySQL"]),
     ]
 )
+

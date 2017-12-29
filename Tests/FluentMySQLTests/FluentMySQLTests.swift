@@ -28,7 +28,7 @@ class FluentMySQLTests: XCTestCase {
     }
     
     func testModels() throws {
-        try! benchmarker.benchmarkModels_withSchema().blockingAwait(timeout: .seconds(60))
+        try benchmarker.benchmarkModels_withSchema().blockingAwait(timeout: .seconds(60))
     }
     
     func testRelations() throws {
@@ -46,6 +46,24 @@ class FluentMySQLTests: XCTestCase {
     func testChunking() throws {
         try benchmarker.benchmarkChunking_withSchema().blockingAwait(timeout: .seconds(60))
     }
+
+    /// https://github.com/vapor/vapor/issues/1334
+    func testColumnNotSetToAutoincrementingID() throws {
+        final class Foo: Model, Migration {
+            typealias Database = MySQLDatabase
+            static var idKey = \Foo.id
+            var id: Int?
+            var bar: String
+            init(id: Int? = nil, bar: String) {
+                self.id = id
+                self.bar = bar
+            }
+        }
+        let conn = try benchmarker.database.makeConnection(from: .init(), on: loop).blockingAwait(timeout: .seconds(60))
+        try Foo.prepare(on: conn).blockingAwait(timeout: .seconds(60))
+        let test = Foo(bar: "baz")
+        try test.save(on: conn).blockingAwait()
+    }
     
     static let allTests = [
         ("testSchema", testSchema),
@@ -54,5 +72,6 @@ class FluentMySQLTests: XCTestCase {
         ("testTimestampable", testTimestampable),
         ("testTransactions", testTransactions),
         ("testChunking", testChunking),
+        ("testColumnNotSetToAutoincrementingID", testColumnNotSetToAutoincrementingID),
     ]
 }
