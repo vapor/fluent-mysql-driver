@@ -4,23 +4,45 @@ import FluentBenchmark
 import Dispatch
 import FluentMySQL
 
+let testHostname: String  = "localhost"
+let testUsername: String  = "root"
+let testPassword: String? = nil
+let testDatabase: String  = "vapor_test"
+
 class FluentMySQLTests: XCTestCase {
     var benchmarker: Benchmarker<MySQLDatabase>!
     let loop = DispatchEventLoop(label: "test")
+    var didCreateDatabase = false
     
     override func setUp() {
-        let database = MySQLDatabase(
-            hostname: "localhost",
-            user: "root",
-            password: nil,
-            database: "vapor_test"
-        )
+        // This "extra" connection allows creating the test database
+        // automatically without experiencing "no database selected" errors
+        // later.
+        //
+        // The database is deliberate created without the use of `IF NOT EXISTS`
+        // so no one's data will be accidentally erased. (This is already
+        // unlikely since no one should be running with no root password, but
+        // better to be too careful than not careful enough.)
+        let setupDatabase = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: "")
+        let setupConn = try! setupDatabase.makeConnection(from: .init(), on: loop).blockingAwait()
 
-        let conn = try! database.makeConnection(from: .init(), on: loop).blockingAwait()
-        try! conn.administrativeQuery("DROP DATABASE vapor_test").blockingAwait()
-        try! conn.administrativeQuery("CREATE DATABASE vapor_test;").blockingAwait()
-        
-        benchmarker = Benchmarker(database, config: .init(), on: loop, onFail: XCTFail)
+        try! setupConn.administrativeQuery("CREATE DATABASE \(testDatabase)").blockingAwait()
+        didCreateDatabase = true
+
+        let database = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: testDatabase)
+
+        self.benchmarker = Benchmarker(database, config: .init(), on: loop, onFail: XCTFail)
+    }
+    
+    override func tearDown() {
+        // This extra protection is probably unnecessary, but it's here anyway
+        // to ensure that we're not relying on `XCTestCase`'s semantics to
+        // prevent accidental drops.
+        if didCreateDatabase {
+            let teardownConn = try! benchmarker.database.makeConnection(from: .init(), on: loop).blockingAwait()
+            
+            try! teardownConn.administrativeQuery("DROP DATABASE IF EXISTS \(testDatabase)").blockingAwait()
+        }
     }
     
     func testSchema() throws {
@@ -28,7 +50,7 @@ class FluentMySQLTests: XCTestCase {
     }
     
     func testModels() throws {
-        try! benchmarker.benchmarkModels_withSchema().blockingAwait(timeout: .seconds(60))
+        try benchmarker.benchmarkModels_withSchema().blockingAwait(timeout: .seconds(60))
     }
     
     func testRelations() throws {
