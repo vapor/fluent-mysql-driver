@@ -19,7 +19,7 @@ class FluentMySQLTests: XCTestCase {
         // automatically without experiencing "no database selected" errors
         // later.
         //
-        // The database is deliberate created without the use of `IF NOT EXISTS`
+        // The database is deliberately created without the use of `IF NOT EXISTS`
         // so no one's data will be accidentally erased. (This is already
         // unlikely since no one should be running with no root password, but
         // better to be too careful than not careful enough.)
