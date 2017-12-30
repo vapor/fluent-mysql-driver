@@ -30,7 +30,7 @@ public final class MySQLProvider: Provider {
     
     /// See Provider.register
     public func register(_ services: inout Services) throws {
-        services.instance(FluentMySQLConfig())
+        services.use(FluentMySQLConfig())
         services.register(MySQLDatabase.self) { container -> MySQLDatabase in
             return MySQLDatabase(
                 hostname: self.hostname,
