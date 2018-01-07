@@ -2,37 +2,12 @@ import Async
 import CodableKit
 import Fluent
 import FluentSQL
+import Foundation
 import MySQL
 import SQL
 
-/// A MySQL query serializer
-internal final class MySQLSerializer: SQLSerializer {
-    internal init () {}
-
-    /// See SQLSerializer.serialize(column:)
-    func serialize(column: SchemaColumn) -> String {
-        var sql: [String] = []
-
-        let name = makeEscapedString(from: column.name)
-        sql.append(name)
-
-        sql.append(column.dataType)
-
-        if column.isPrimaryKey {
-            sql.append("AUTO_INCREMENT PRIMARY KEY")
-        } else if column.isNotNull {
-            sql.append("NOT NULL")
-        }
-
-        return sql.joined(separator: " ")
-    }
-}
-
-/// An error that gets thrown if the ConnectionRepresentable needs to represent itself but fails to do so because it is used in a different context
-struct InvalidConnectionType: Error{}
-
 /// A Fluent wrapper around a MySQL connection that can log
-public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, ReferenceSupporting {
+public final class FluentMySQLConnection: DatabaseConnection {
     public typealias Config = FluentMySQLConfig
     
     public func close() {
@@ -49,19 +24,21 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
     }
     
     /// Keeps track of logs by MySQL
-    let logger: MySQLLogger?
+    let logger: DatabaseLogger?
     
     /// The underlying MySQL Connection that can be used for normal queries
     public let connection: MySQLConnection
     
     /// Used to create a new FluentMySQLConnection wrapper
-    init(connection: MySQLConnection, logger: MySQLLogger?) {
+    init(connection: MySQLConnection, logger: DatabaseLogger?) {
         self.connection = connection
         self.logger = logger
     }
-    
-    /// See QueryExecutor.execute
-    public func execute<I, D: Decodable>(query: DatabaseQuery, into stream: I) where I : Async.InputStream, D == I.Input {
+}
+
+extension FluentMySQLConnection: QueryExecuting {
+    /// See QueryExecuting.execute
+    public func execute<I, D>(query: DatabaseQuery, into stream: I) where I: Async.InputStream, D == I.Input, D: Decodable {
         /// convert fluent query to an abstract SQL query
         var (dataQuery, binds) = query.makeDataQuery()
         
@@ -87,8 +64,15 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
         
         /// Create a MySQL query string
         let sqlString = MySQLSerializer().serialize(data: dataQuery)
-        
-        _ = self.logger?.log(query: sqlString)
+
+        if let logger = self.logger {
+            let log = DatabaseLog(
+                query: sqlString,
+                values: ["\(query.data.debugDescription)"] + binds.map { "\($0.encodable)" },
+                date: .init()
+            )
+            logger.record(log: log)
+        }
         
         if query.data == nil && binds.count == 0 {
             do {
@@ -133,7 +117,32 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
             stream.close()
         }
     }
-    
+
+
+    /// See QueryExecuting.setID
+    public func setID<M>(on model: M) throws where M : Model {
+        guard let raw = connection.lastInsertID else {
+            fatalError("Connection was expected to have a last insert ID.")
+        }
+
+        guard let type = M.ID.self as? MySQLLastInsertIDConvertible.Type else {
+            fatalError("\(M.self) ID is not MySQLLastInsertIDConvertible")
+        }
+
+        model[keyPath: M.idKey] = type.convert(from: raw) as? M.ID
+    }
+
+    /// See QueryExecuting.execute
+    public func nextFluentID<T>() throws -> T where T: Fluent.ID {
+        guard T.self is UUID.Type else {
+            fatalError()
+        }
+
+        return UUID() as! T
+    }
+}
+
+extension FluentMySQLConnection: ReferenceConfigurable {
     /// ReferenceSupporting.enableReferences
     public func enableReferences() -> Future<Void> {
         return connection.administrativeQuery("SET FOREIGN_KEY_CHECKS=1;")
@@ -143,14 +152,13 @@ public final class FluentMySQLConnection: DatabaseConnectable, JoinSupporting, R
     public func disableReferences() -> Future<Void> {
         return connection.administrativeQuery("SET FOREIGN_KEY_CHECKS=0;")
     }
-    
-    // FIXME: exposure from the MySQL driver
-    public var lastAutoincrementID: Int? {
-        if let id = connection.lastInsertID, id < numericCast(Int.max) {
-            return numericCast(id)
-        }
-        
-        return nil
-    }
 }
 
+func cast<T>(_ int: UInt64, to: T.Type) -> T where T: BinaryInteger {
+    return numericCast(int)
+}
+
+/// A MySQL query serializer
+internal final class MySQLSerializer: SQLSerializer {
+    internal init () {}
+}
