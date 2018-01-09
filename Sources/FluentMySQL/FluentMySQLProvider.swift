@@ -1,6 +1,9 @@
 import Fluent
 import Service
 
+@available(*, unavailable, renamed: "FluentMySQLProvider")
+public typealias MySQLProvider = FluentMySQLProvider
+
 /// Registers and boots MySQL services.
 public final class FluentMySQLProvider: Provider {
     /// See Provider.repositoryName
