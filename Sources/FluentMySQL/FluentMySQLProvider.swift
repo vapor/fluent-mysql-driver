@@ -1,7 +1,8 @@
+import Fluent
 import Service
 
 /// Registers and boots MySQL services.
-public final class MySQLProvider: Provider {
+public final class FluentMySQLProvider: Provider {
     /// See Provider.repositoryName
     public static let repositoryName = "fluent-mysql"
 
@@ -10,6 +11,7 @@ public final class MySQLProvider: Provider {
     
     /// See Provider.register
     public func register(_ services: inout Services) throws {
+        try services.register(FluentProvider())
         services.register(MySQLConnectionConfig())
         services.register(MySQLDatabase.self) { container -> MySQLDatabase in
             let config = try container.make(MySQLConfig.self, for: MySQLDatabase.self)
