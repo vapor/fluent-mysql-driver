@@ -39,7 +39,7 @@ class FluentMySQLTests: XCTestCase {
         // to ensure that we're not relying on `XCTestCase`'s semantics to
         // prevent accidental drops.
         if didCreateDatabase {
-            let teardownConn = try! benchmarker.database.makeConnection(usingm: .init(), on: loop).blockingAwait()
+            let teardownConn = try! benchmarker.database.makeConnection(using: .init(), on: loop).blockingAwait()
             
             try! teardownConn.administrativeQuery("DROP DATABASE IF EXISTS \(testDatabase)").blockingAwait()
         }
