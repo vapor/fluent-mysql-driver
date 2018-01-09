@@ -72,3 +72,27 @@ extension MySQLDatabase: ReferenceSupporting {
         return connection.administrativeQuery("SET FOREIGN_KEY_CHECKS=0;")
     }
 }
+
+// MARK: Model
+
+/// A MySQL database model.
+/// See `Fluent.Model`.
+public protocol MySQLModel: Model where Database == MySQLDatabase { }
+extension MySQLModel {
+    public typealias Database = MySQLDatabase
+}
+
+/// A MySQL database pivot.
+/// See `Fluent.Pivot`.
+public protocol MySQLPivot: Pivot where Database == MySQLDatabase { }
+extension MySQLPivot {
+    public typealias Database = MySQLDatabase
+}
+
+extension DatabaseIdentifier {
+    /// The main MySQL database identifier.
+    public static var mysql: DatabaseIdentifier<MySQLDatabase> {
+        return .init("mysql")
+    }
+}
+
