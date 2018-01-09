@@ -7,7 +7,7 @@ import Service
 import SQL
 
 /// A reference to a MySQL database
-public final class MySQLDatabase {
+public final class MySQLDatabase: Service {
     /// The hostname to which connections will be connected
     let hostname: String
     
@@ -40,7 +40,7 @@ public final class MySQLDatabase {
 extension MySQLDatabase: Database, LogSupporting {
     public typealias Connection = MySQLConnection
     
-    public func makeConnection(from config: FluentMySQLConfig, on worker: Worker) -> Future<MySQLConnection> {
+    public func makeConnection(using config: MySQLConnectionConfig, on worker: Worker) -> Future<MySQLConnection> {
         return MySQLConnection.makeConnection(
             hostname: hostname,
             port: port,

@@ -24,7 +24,7 @@ class FluentMySQLTests: XCTestCase {
         // unlikely since no one should be running with no root password, but
         // better to be too careful than not careful enough.)
         let setupDatabase = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: "")
-        let setupConn = try! setupDatabase.makeConnection(from: .init(), on: loop).blockingAwait()
+        let setupConn = try! setupDatabase.makeConnection(using: .init(), on: loop).blockingAwait()
 
         try! setupConn.administrativeQuery("CREATE DATABASE \(testDatabase)").blockingAwait()
         didCreateDatabase = true
@@ -39,7 +39,7 @@ class FluentMySQLTests: XCTestCase {
         // to ensure that we're not relying on `XCTestCase`'s semantics to
         // prevent accidental drops.
         if didCreateDatabase {
-            let teardownConn = try! benchmarker.database.makeConnection(from: .init(), on: loop).blockingAwait()
+            let teardownConn = try! benchmarker.database.makeConnection(using: .init(), on: loop).blockingAwait()
             
             try! teardownConn.administrativeQuery("DROP DATABASE IF EXISTS \(testDatabase)").blockingAwait()
         }

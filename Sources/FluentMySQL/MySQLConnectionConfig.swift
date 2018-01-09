@@ -1,8 +1,9 @@
 import TLS
 import MySQL
+import Service
 
 /// A Fluent + MySQL configuration file
-public struct FluentMySQLConfig {
+public struct MySQLConnectionConfig: Service {
     /// If set, the MySQL connection will use these SSL settings
     public var ssl: MySQLSSLConfig?
     

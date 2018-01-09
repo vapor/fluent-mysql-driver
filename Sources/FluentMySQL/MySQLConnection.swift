@@ -11,14 +11,10 @@ internal final class MySQLSerializer: SQLSerializer {
 }
 
 extension MySQLConnection: DatabaseConnection {
-    public typealias Config = FluentMySQLConfig
+    public typealias Config = MySQLConnectionConfig
 
-    public func existingConnection<D>(to type: D.Type) -> D.Connection? where D: Database {
-        return self as? D.Connection
-    }
-
-    public func connect<D>(to database: DatabaseIdentifier<D>) -> Future<D.Connection> {
-        fatalError("Cannot call `.connect(to:)` on an existing connection. Call `.existingConnection` instead.")
+    public func connect<D>(to database: DatabaseIdentifier<D>?) -> Future<D.Connection> {
+        return Future(self as! D.Connection)
     }
 }
 //
