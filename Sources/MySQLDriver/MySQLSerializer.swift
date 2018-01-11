@@ -63,7 +63,58 @@ public final class MySQLSerializer<E: Entity>: GeneralSQLSerializer<E> {
             []
         )
     }
-    
+
+
+    public func alter(
+        add fs: [RawOr<Field>],
+        _ fks: [RawOr<ForeignKey>],
+        delete dfs: [RawOr<Field>],
+        _ dfks: [RawOr<ForeignKey>]
+        ) -> (String, [Node]) {
+        var statement: [String] = []
+
+        statement += "ALTER TABLE"
+        statement += escape(E.entity)
+
+        var subclause: [String] = []
+
+        for field in fs {
+            subclause += "ADD " + column(field)
+        }
+
+        for fk in fks {
+            subclause += "ADD " + foreignKey(fk)
+        }
+
+        for field in dfs {
+            let name: String
+            switch field {
+            case .raw(let raw, _):
+                name = raw
+            case .some(let some):
+                name = some.name
+            }
+            subclause += "DROP " + escape(name)
+        }
+
+        for fk in dfks {
+            switch fk {
+            case .raw(let raw, _):
+                subclause += "DROP FOREIGN KEY " + raw
+            case .some(let some):
+                subclause += "DROP FOREIGN KEY " + escape(some.name)
+            }
+        }
+
+        statement += subclause.joined(separator: ", ")
+
+        return (
+            concatenate(statement),
+            []
+        )
+    }
+
+
     public override func limit(_ limit: RawOr<Limit>) -> String {
         var statement: [String] = []
         

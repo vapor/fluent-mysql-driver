@@ -22,7 +22,7 @@ public final class Connection: Fluent.Connection {
     /// This allows Fluent extensions to be written that
     /// can support custom querying behavior.
     @discardableResult
-    public func query<E: Entity>(_ query: RawOr<Query<E>>) throws -> Node {
+    public func query<E>(_ query: RawOr<Query<E>>) throws -> Node {
         switch query {
         case .raw(let raw, let values):
             return try mysql(raw, values)
