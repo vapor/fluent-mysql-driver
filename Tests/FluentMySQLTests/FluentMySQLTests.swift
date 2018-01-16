@@ -9,21 +9,20 @@ let testUsername: String  = "root"
 let testPassword: String? = nil
 let testDatabase: String  = "vapor_test"
 
+var _loop: DefaultEventLoop?
+let loop: DefaultEventLoop = {
+    if let loop = _loop { return loop }
+    
+    let l = try! DefaultEventLoop(label: "test")
+    
+    _loop = l
+    
+    return l
+}()
+
 class FluentMySQLTests: XCTestCase {
     var benchmarker: Benchmarker<MySQLDatabase>!
-    let loop: DefaultEventLoop = {
-        let l = try! DefaultEventLoop(label: "test")
-        
-        if #available(OSX 10.12, *) {
-            Thread.detachNewThread {
-                l.runLoop()
-            }
-        } else {
-            fatalError()
-        }
-        
-        return l
-    }()
+    
     var didCreateDatabase = false
     
     override func setUp() {
@@ -36,13 +35,13 @@ class FluentMySQLTests: XCTestCase {
         // unlikely since no one should be running with no root password, but
         // better to be too careful than not careful enough.)
         let setupDatabase = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: "")
-        let setupConn = try! setupDatabase.makeConnection(using: .init(), on: loop).blockingAwait()
+        let setupConn = try! setupDatabase.makeConnection(using: .init(), on: loop).await(on: loop)
 
-        try! setupConn.administrativeQuery("CREATE DATABASE \(testDatabase)").blockingAwait()
+        _ = try? setupConn.administrativeQuery("CREATE DATABASE \(testDatabase)").await(on: loop)
         didCreateDatabase = true
+        setupConn.close()
 
         let database = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: testDatabase)
-
         self.benchmarker = Benchmarker(database, config: .init(), on: loop, onFail: XCTFail)
     }
     
@@ -51,35 +50,36 @@ class FluentMySQLTests: XCTestCase {
         // to ensure that we're not relying on `XCTestCase`'s semantics to
         // prevent accidental drops.
         if didCreateDatabase {
-            let teardownConn = try! benchmarker.database.makeConnection(using: .init(), on: loop).blockingAwait()
+            let setupDatabase = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: "")
+            let teardownConn = try! setupDatabase.makeConnection(using: .init(), on: loop).await(on: loop)
             
-            try! teardownConn.administrativeQuery("DROP DATABASE IF EXISTS \(testDatabase)").blockingAwait()
+            try! teardownConn.administrativeQuery("DROP DATABASE IF EXISTS \(testDatabase)").await(on: loop)
+            teardownConn.close()
         }
     }
     
     func testSchema() throws {
-        try benchmarker.benchmarkSchema().blockingAwait(timeout: .seconds(60))
+        try benchmarker.benchmarkSchema().await(on: loop)
     }
     
     func testModels() throws {
-        try benchmarker.benchmarkModels_withSchema().blockingAwait(timeout: .seconds(60))
+        try benchmarker.benchmarkModels_withSchema().await(on: loop)
     }
     
     func testRelations() throws {
-        try benchmarker.benchmarkRelations_withSchema().blockingAwait(timeout: .seconds(60))
+        try benchmarker.benchmarkRelations_withSchema().await(on: loop)
     }
     
     func testTimestampable() throws {
-        try benchmarker.benchmarkTimestampable_withSchema().blockingAwait(timeout: .seconds(60))
+        try benchmarker.benchmarkTimestampable_withSchema().await(on: loop)
     }
     
     func testTransactions() throws {
-        try benchmarker.benchmarkTransactions_withSchema().blockingAwait(timeout: .seconds(60))
+        try benchmarker.benchmarkTransactions_withSchema().await(on: loop)
     }
     
     func testChunking() throws {
-        // FIXME: uncomment when async recursion is fixed
-        // try benchmarker.benchmarkChunking_withSchema().blockingAwait(timeout: .seconds(60))
+         try benchmarker.benchmarkChunking_withSchema().await(on: loop)
     }
     
     static let allTests = [
