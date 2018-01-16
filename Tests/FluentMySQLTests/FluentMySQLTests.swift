@@ -11,7 +11,19 @@ let testDatabase: String  = "vapor_test"
 
 class FluentMySQLTests: XCTestCase {
     var benchmarker: Benchmarker<MySQLDatabase>!
-    let loop = DispatchEventLoop(label: "test")
+    let loop: DefaultEventLoop = {
+        let l = try! DefaultEventLoop(label: "test")
+        
+        if #available(OSX 10.12, *) {
+            Thread.detachNewThread {
+                l.runLoop()
+            }
+        } else {
+            fatalError()
+        }
+        
+        return l
+    }()
     var didCreateDatabase = false
     
     override func setUp() {

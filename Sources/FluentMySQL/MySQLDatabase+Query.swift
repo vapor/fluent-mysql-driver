@@ -66,9 +66,8 @@ extension MySQLDatabase: QuerySupporting {
                 }
 
                 // Streams all results into the parameter-provided stream
-                try bound.stream(D.self, in: sqlString, to: stream)
-                // try bound.stream(D.self, in: _, to: stream)
-
+                try bound.stream(D.self, to: stream)
+                
                 return Future<Void>(())
             } catch {
                 // Close the stream with an error
