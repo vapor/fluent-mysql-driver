@@ -5,8 +5,8 @@ import Dispatch
 import FluentMySQL
 
 let testHostname: String  = "localhost"
-let testUsername: String  = "root"
-let testPassword: String? = nil
+let testUsername: String  = "vapor"
+let testPassword: String? = "vapor3"
 let testDatabase: String  = "vapor_test"
 
 var _loop: DefaultEventLoop?
@@ -59,27 +59,27 @@ class FluentMySQLTests: XCTestCase {
     }
     
     func testSchema() throws {
-        try benchmarker.benchmarkSchema().await(on: loop)
+        try benchmarker.benchmarkSchema()
     }
     
     func testModels() throws {
-        try benchmarker.benchmarkModels_withSchema().await(on: loop)
+        try benchmarker.benchmarkModels_withSchema()
     }
     
     func testRelations() throws {
-        try benchmarker.benchmarkRelations_withSchema().await(on: loop)
+        try benchmarker.benchmarkRelations_withSchema()
     }
     
     func testTimestampable() throws {
-        try benchmarker.benchmarkTimestampable_withSchema().await(on: loop)
+        try benchmarker.benchmarkTimestampable_withSchema()
     }
     
     func testTransactions() throws {
-        try benchmarker.benchmarkTransactions_withSchema().await(on: loop)
+        try benchmarker.benchmarkTransactions_withSchema()
     }
     
     func testChunking() throws {
-         try benchmarker.benchmarkChunking_withSchema().await(on: loop)
+         try benchmarker.benchmarkChunking_withSchema()
     }
     
     static let allTests = [

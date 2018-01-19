@@ -13,18 +13,7 @@ extension MySQLDatabase: SchemaSupporting {
         on connection: MySQLConnection
     ) -> Future<Void> {
 
-        var schemaQuery = schema.makeSchemaQuery()
-
-        switch schemaQuery.statement {
-        case .create(let cols, _):
-            schemaQuery.statement = .create(
-                columns: cols,
-                foreignKeys: schema.makeForeignKeys()
-            )
-        default: break
-        }
-
-        // _ = connection.log(query: query)
+        let schemaQuery = schema.makeSchemaQuery(dataTypeFactory: dataType)
 
         let serializer = MySQLSerializer()
         let sqlString = serializer.serialize(schema: schemaQuery)
