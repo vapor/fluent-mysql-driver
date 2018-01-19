@@ -12,8 +12,8 @@ extension MySQLDatabase: SchemaSupporting {
         schema: DatabaseSchema<MySQLDatabase>,
         on connection: MySQLConnection
     ) -> Future<Void> {
-
-        let schemaQuery = schema.makeSchemaQuery(dataTypeFactory: dataType)
+        var schemaQuery = schema.makeSchemaQuery(dataTypeFactory: dataType)
+        schema.applyReferences(to: &schemaQuery)
 
         let serializer = MySQLSerializer()
         let sqlString = serializer.serialize(schema: schemaQuery)
