@@ -5,8 +5,8 @@ import Dispatch
 import FluentMySQL
 
 let testHostname: String  = "localhost"
-let testUsername: String  = "vapor"
-let testPassword: String? = "vapor3"
+let testUsername: String  = "root"
+let testPassword: String? = nil
 let testDatabase: String  = "vapor_test"
 
 var _loop: DefaultEventLoop?
