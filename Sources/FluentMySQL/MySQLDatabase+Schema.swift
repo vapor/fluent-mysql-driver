@@ -42,38 +42,96 @@ extension MySQLDatabase: SchemaSupporting {
     }
 
     public static func fieldType(for type: Any.Type) throws -> ColumnType {
-        switch id(type) {
-        case id(Int.self):
-            #if arch(x86_64) || arch(arm64)
-                return .int64()
-            #else
-                return .int32()
-            #endif
-        case id(Int8.self): return .int8()
-        case id(Int16.self): return .int16()
-        case id(Int32.self): return .int32()
-        case id(Int64.self): return .int64()
-        case id(UInt.self):
-            #if arch(x86_64) || arch(arm64)
-                return .uint64()
-            #else
-                return .uint32()
-            #endif
-        case id(UInt8.self): return .uint8()
-        case id(UInt16.self): return .uint16()
-        case id(UInt32.self): return .uint32()
-        case id(UInt64.self): return .uint64()
-        case id(String.self): return .varChar(length: 255)
-        case id(Bool.self): return .uint8()
-        case id(Date.self): return .datetime()
-        case id(Double.self): return .double()
-        case id(Float32.self): return .float()
-        case id(UUID.self): return .varChar(length: 64, binary: true)
-        default: fatalError()
+        if let representable = type as? MySQLColumnRepresentable.Type {
+            return representable.mysqlColumn
+        } else {
+            throw UnknwonMySQLField(type: type)
         }
     }
 }
 
-func id(_ type: Any.Type) -> ObjectIdentifier {
-    return ObjectIdentifier(type)
+public protocol MySQLColumnRepresentable {
+    static var mysqlColumn: ColumnType { get }
+}
+
+extension Bool: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .uint8() }
+}
+
+extension String: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .varChar(length: 255) }
+}
+
+extension Date: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .datetime() }
+}
+
+extension Int: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType {
+        #if arch(x86_64) || arch(arm64)
+            return .int64()
+        #else
+            return .int32()
+        #endif
+    }
+}
+
+extension UInt: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType {
+        #if arch(x86_64) || arch(arm64)
+            return .uint64()
+        #else
+            return .uint32()
+        #endif
+    }
+}
+
+extension Int8: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .int8() }
+}
+
+extension Int16: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .int16() }
+}
+
+extension Int32: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .int32() }
+}
+
+extension Int64: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .int64() }
+}
+
+extension UInt8: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .uint8() }
+}
+
+extension UInt16: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .uint16() }
+}
+
+extension UInt32: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .uint32() }
+}
+
+extension UInt64: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .uint64() }
+}
+
+extension Double: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .double() }
+}
+
+extension Float32: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType { return .float() }
+}
+
+extension UUID: MySQLColumnRepresentable {
+    public static var mysqlColumn: ColumnType {
+        return .varChar(length: 64, binary: true)
+    }
+}
+
+struct UnknwonMySQLField: Error {
+    var type: Any.Type
 }

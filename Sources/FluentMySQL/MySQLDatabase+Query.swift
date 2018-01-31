@@ -18,7 +18,7 @@ extension MySQLDatabase: QuerySupporting {
             let encoder = CodingPathKeyPreEncoder()
 
             do {
-                dataQuery.columns += try encoder.keys(for: model).flatMap { keys in
+                dataQuery.columns += try encoder.keys(for: model).compactMap { keys in
                     guard let key = keys.first else {
                         return nil
                     }
@@ -90,21 +90,42 @@ extension MySQLDatabase: QuerySupporting {
     ) -> Future<Void> where MySQLDatabase == M.Database, M: Model {
         switch event {
         case .willCreate:
-            switch id(M.ID.self) {
-            case id(UUID.self): model.fluentID = UUID() as? M.ID
-            default: break
+            if M.ID.self == UUID.self {
+                model.fluentID = UUID() as? M.ID
             }
         case .didCreate:
-            switch id(M.ID.self) {
-            case id(Int.self):
-                if let id = connection.lastInsertID, id < numericCast(Int.max) {
-                    model.fluentID = (numericCast(id) as Int) as? M.ID
+            if let id = connection.lastInsertID {
+                if M.ID.self == Int.self {
+                    model.setId(to: id, type: Int.self)
+                } else if M.ID.self == Int.self {
+                    model.setId(to: id, type: Int.self)
+                } else if M.ID.self == Int8.self {
+                    model.setId(to: id, type: Int8.self)
+                } else if M.ID.self == Int16.self {
+                    model.setId(to: id, type: Int16.self)
+                } else if M.ID.self == Int32.self {
+                    model.setId(to: id, type: Int32.self)
+                } else if M.ID.self == Int64.self {
+                    model.setId(to: id, type: Int64.self)
+                } else if M.ID.self == UInt8.self {
+                    model.setId(to: id, type: UInt8.self)
+                } else if M.ID.self == UInt16.self {
+                    model.setId(to: id, type: UInt16.self)
+                } else if M.ID.self == UInt32.self {
+                    model.setId(to: id, type: UInt32.self)
+                } else if M.ID.self == UInt64.self {
+                    model.setId(to: id, type: UInt64.self)
                 }
-            default: break
             }
         default: break
         }
 
         return .done
+    }
+}
+
+fileprivate extension Model {
+    func setId<T: BinaryInteger>(to int: UInt64, type: T.Type) {
+        self.fluentID = ((numericCast(int) as T) as! ID)
     }
 }
