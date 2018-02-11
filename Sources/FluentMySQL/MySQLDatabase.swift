@@ -33,6 +33,18 @@ public final class MySQLDatabase: Service {
         self.password = password
         self.database = database
     }
+    
+    /// Initialize MySQLDatabase with a DB URL
+    public convenience init(databaseURL: String) {
+        let tokens = databaseURL
+            .replacingOccurrences(of: "mysql://", with: "")
+            .replacingOccurrences(of: "?reconnect=true", with: "")
+            .split { ["@", "/", ":"].contains(String($0)) }
+        
+        let (username, password, host, database) = (String(tokens[0]), String(tokens[1]), String(tokens[2]), String(tokens[3]))
+        
+        self.init(hostname: host, user: username, password: password, database: database)
+    }
 }
 
 // MARK: Database
