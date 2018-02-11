@@ -38,12 +38,12 @@ public final class MySQLDatabase: Service {
     public convenience init?(databaseURL: String) {
         guard let url = URL(string: databaseURL),
             url.scheme == "mysql",
-            url.pathComponents.count >= 2,
+            url.pathComponents.count == 2,
             let hostname = url.host,
-            let username = url.user,
-            let password = url.password
+            let username = url.user
             else {return nil}
-        
+
+        let password = url.password
         let database = url.pathComponents[1]
         self.init(hostname: hostname, user: username, password: password, database: database)
     }
