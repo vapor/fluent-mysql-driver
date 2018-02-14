@@ -82,12 +82,9 @@ extension MySQLDatabase: QuerySupporting {
         }
     }
 
-    /// See QuerySupporting.modelEvent
-    public static func modelEvent<M>(
-        event: ModelEvent,
-        model: M,
-        on connection: MySQLConnection
-    ) -> Future<Void> where MySQLDatabase == M.Database, M: Model {
+    public static func modelEvent<M>(event: ModelEvent, model: M, on connection: MySQLConnection) -> Future<M> where MySQLDatabase == M.Database, M : Model {
+        var model = model
+        
         switch event {
         case .willCreate:
             if M.ID.self == UUID.self {
@@ -119,13 +116,13 @@ extension MySQLDatabase: QuerySupporting {
             }
         default: break
         }
-
-        return .done
+        
+        return Future(model)
     }
 }
 
-fileprivate extension Model {
-    func setId<T: BinaryInteger>(to int: UInt64, type: T.Type) {
+extension Model {
+    fileprivate mutating func setId<T: BinaryInteger>(to int: UInt64, type: T.Type) {
         self.fluentID = ((numericCast(int) as T) as! ID)
     }
 }
