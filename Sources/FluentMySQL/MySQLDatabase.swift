@@ -33,6 +33,20 @@ public final class MySQLDatabase: Service {
         self.password = password
         self.database = database
     }
+    
+    /// Initialize MySQLDatabase with a DB URL
+    public convenience init?(databaseURL: String) {
+        guard let url = URL(string: databaseURL),
+            url.scheme == "mysql",
+            url.pathComponents.count == 2,
+            let hostname = url.host,
+            let username = url.user
+            else {return nil}
+
+        let password = url.password
+        let database = url.pathComponents[1]
+        self.init(hostname: hostname, user: username, password: password, database: database)
+    }
 }
 
 // MARK: Database
