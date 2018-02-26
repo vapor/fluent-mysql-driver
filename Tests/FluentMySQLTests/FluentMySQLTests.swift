@@ -35,14 +35,14 @@ class FluentMySQLTests: XCTestCase {
         // unlikely since no one should be running with no root password, but
         // better to be too careful than not careful enough.)
         let setupDatabase = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: "")
-        let setupConn = try! setupDatabase.makeConnection(on: loop).await(on: loop)
+        let setupConn = try! setupDatabase.makeConnection(using: .init(), on: loop).await(on: loop)
 
         _ = try? setupConn.administrativeQuery("CREATE DATABASE \(testDatabase)").await(on: loop)
         didCreateDatabase = true
         setupConn.close()
 
         let database = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: testDatabase)
-        self.benchmarker = Benchmarker(database, on: loop, onFail: XCTFail)
+        self.benchmarker = Benchmarker(database, config: .init(), on: loop, onFail: XCTFail)
     }
     
     override func tearDown() {
@@ -51,7 +51,7 @@ class FluentMySQLTests: XCTestCase {
         // prevent accidental drops.
         if didCreateDatabase {
             let setupDatabase = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: "")
-            let teardownConn = try! setupDatabase.makeConnection(on: loop).await(on: loop)
+            let teardownConn = try! setupDatabase.makeConnection(using: .init(), on: loop).await(on: loop)
             
             try! teardownConn.administrativeQuery("DROP DATABASE IF EXISTS \(testDatabase)").await(on: loop)
             teardownConn.close()
