@@ -21,6 +21,7 @@ jobs:
           MYSQL_DATABASE: vapor_test
           MYSQL_USER: root
     steps:
+      - run: apt-get update
       - run: apt-get install -yq libssl-dev
       - checkout
       - run: swift build
@@ -30,5 +31,5 @@ workflows:
   version: 2
   tests:
     jobs:
-      - macos
+      # - macos
       - linux
