@@ -54,11 +54,11 @@ public final class MySQLDatabase: Service {
 extension MySQLDatabase: Database, LogSupporting {
     public typealias Connection = MySQLConnection
     
-    public func makeConnection(using config: MySQLConnectionConfig, on worker: Worker) -> Future<MySQLConnection> {
+    public func makeConnection(/*using config: MySQLConnectionConfig, */on worker: Worker) -> Future<MySQLConnection> {
         return MySQLConnection.makeConnection(
             hostname: hostname,
             port: port,
-            ssl: config.ssl,
+//            ssl: config.ssl,
             user: user,
             password: password,
             database: database,
