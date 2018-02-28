@@ -11,8 +11,6 @@ internal final class MySQLSerializer: SQLSerializer {
 }
 
 extension MySQLConnection: DatabaseConnection {
-    public typealias Config = MySQLConnectionConfig
-
     public func connect<D>(to database: DatabaseIdentifier<D>?) -> Future<D.Connection> {
         return Future(self as! D.Connection)
     }

@@ -15,7 +15,6 @@ public final class FluentMySQLProvider: Provider {
     /// See Provider.register
     public func register(_ services: inout Services) throws {
         try services.register(FluentProvider())
-        services.register(MySQLConnectionConfig())
         services.register(MySQLDatabase.self) { container -> MySQLDatabase in
             let config = try container.make(MySQLConfig.self, for: MySQLDatabase.self)
             return MySQLDatabase(
