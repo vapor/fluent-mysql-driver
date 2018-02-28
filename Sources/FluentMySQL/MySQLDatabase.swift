@@ -6,6 +6,9 @@ import MySQL
 import Service
 import SQL
 
+/// If set, query logs will be sent to the supplied logger.
+internal var _logger: MySQLLogger?
+
 /// A reference to a MySQL database
 public final class MySQLDatabase: Service {
     /// The hostname to which connections will be connected
@@ -22,9 +25,6 @@ public final class MySQLDatabase: Service {
     
     /// The database to select
     let database: String
-    
-    /// If set, query logs will be sent to the supplied logger.
-    public var logger: MySQLLogger?
     
     public init(hostname: String, port: UInt16 = 3306, user: String, password: String?, database: String) {
         self.hostname = hostname
@@ -69,7 +69,7 @@ extension MySQLDatabase: Database, LogSupporting {
 
     /// See SupportsLogging.enableLogging
     public func enableLogging(using logger: DatabaseLogger) {
-        self.logger = logger
+        _logger = logger
     }
 }
 

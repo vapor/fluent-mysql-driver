@@ -35,9 +35,7 @@ extension MySQLDatabase: QuerySupporting {
 
         /// Create a MySQL query string
         let sqlString = MySQLSerializer().serialize(data: dataQuery)
-
-        /// FIXME
-        // _ = self.logger?.log(query: sqlString)
+        _logger?.log(query: sqlString)
 
         if query.data == nil && binds.count == 0 {
             do {

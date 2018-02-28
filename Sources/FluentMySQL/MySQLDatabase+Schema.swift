@@ -17,6 +17,7 @@ extension MySQLDatabase: SchemaSupporting {
 
         let serializer = MySQLSerializer()
         let sqlString = serializer.serialize(schema: schemaQuery)
+        _logger?.log(query: sqlString)
 
         return connection.administrativeQuery(sqlString)
     }
