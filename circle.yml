@@ -1,0 +1,36 @@
+version: 2
+
+jobs:
+  macos:
+    macos:
+      xcode: "9.2"
+    steps:
+      - run: brew install mysql
+      - run: brew services start mysql
+      - checkout
+      - run: swift build
+      - run: echo "CREATE DATABASE vapor_test" | mysql -uroot
+      - run: swift test
+
+  linux:
+    docker:
+      - image: norionomura/swift:swift-4.1-branch
+      - image: mysql:5.7
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_test
+          MYSQL_USER: root
+    steps:
+      - run: apt-get update
+      - run: apt-get install -yq libssl-dev
+      - checkout
+      - run: swift build
+      - run: swift test
+      - run: swift build -c release
+
+workflows:
+  version: 2
+  tests:
+    jobs:
+      # - macos
+      - linux

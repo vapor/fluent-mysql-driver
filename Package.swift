@@ -1,13 +1,19 @@
+// swift-tools-version:4.0
 import PackageDescription
 
 let package = Package(
-    name: "MySQLDriver",
+    name: "FluentMySQL",
+    products: [
+        .library(name: "FluentMySQL", targets: ["FluentMySQL"]),
+    ],
     dependencies: [
-    	// Robust MySQL interface for Swift.
-   		.Package(url: "https://github.com/vapor/mysql.git", majorVersion: 2),
-   		// Swift models, relationships, and querying for NoSQL and SQL databases.
-   		.Package(url: "https://github.com/vapor/fluent.git", majorVersion: 2),
-   		// Random number generation
-   		.Package(url: "https://github.com/vapor/random.git", majorVersion: 1),
+        // Swift ORM (queries, models, and relations) for NoSQL and SQL databases.
+        .package(url: "https://github.com/vapor/fluent.git", from: "3.0.0-rc"),
+        // Robust MySQL interface for Swift
+        .package(url: "https://github.com/vapor/mysql.git", from: "3.0.0-rc"),
+    ],
+    targets: [
+        .target(name: "FluentMySQL", dependencies: ["Fluent", "FluentSQL", "MySQL"]),
+        .testTarget(name: "FluentMySQLTests", dependencies: ["FluentBenchmark", "FluentMySQL"]),
     ]
 )

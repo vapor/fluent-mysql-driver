@@ -1,9 +1,9 @@
 <p align="center">
-    <img src="https://cloud.githubusercontent.com/assets/1342803/24657467/a61b5c12-1946-11e7-9b98-b916bbc5fddd.png" width="320" alt="MySQL Driver">
+    <img src="https://user-images.githubusercontent.com/1342803/36770929-446759fc-1c1b-11e8-9a66-5594a66f15b9.png" height="64" alt="Fluent MySQL">
     <br>
     <br>
-    <a href="https://docs.vapor.codes/2.0/mysql/package/">
-        <img src="http://img.shields.io/badge/read_the-docs-92A8D1.svg" alt="Documentation">
+    <a href="https://docs.vapor.codes/3.0/">
+        <img src="http://img.shields.io/badge/read_the-docs-2196f3.svg" alt="Documentation">
     </a>
     <a href="http://vapor.team">
         <img src="http://vapor.team/badge.svg" alt="Slack Team">
@@ -11,10 +11,10 @@
     <a href="LICENSE">
         <img src="http://img.shields.io/badge/license-MIT-brightgreen.svg" alt="MIT License">
     </a>
-    <a href="https://circleci.com/gh/vapor/mysql-driver">
-        <img src="https://circleci.com/gh/vapor/mysql-driver.svg?style=shield" alt="Continuous Integration">
+    <a href="https://circleci.com/gh/vapor/fluent-mysql">
+        <img src="https://circleci.com/gh/vapor/fluent-mysql.svg?style=shield" alt="Continuous Integration">
     </a>
     <a href="https://swift.org">
-        <img src="http://img.shields.io/badge/swift-3.1-brightgreen.svg" alt="Swift 3.1">
+        <img src="http://img.shields.io/badge/swift-4.1-brightgreen.svg" alt="Swift 4.1">
     </a>
 </p>
