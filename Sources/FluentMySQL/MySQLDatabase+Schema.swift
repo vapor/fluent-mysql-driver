@@ -56,7 +56,7 @@ public protocol MySQLColumnRepresentable {
 }
 
 extension Bool: MySQLColumnRepresentable {
-    public static var mysqlColumn: ColumnType { return .uint8() }
+    public static var mysqlColumn: ColumnType { return .uint8(length: 1) }
 }
 
 extension String: MySQLColumnRepresentable {
