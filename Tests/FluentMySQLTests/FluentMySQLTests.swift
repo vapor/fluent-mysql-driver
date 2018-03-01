@@ -22,7 +22,7 @@ let loop: DefaultEventLoop = {
 
 class FluentMySQLTests: XCTestCase {
     var benchmarker: Benchmarker<MySQLDatabase>!
-    
+    var database: MySQLDatabase!
     var didCreateDatabase = false
     
     override func setUp() {
@@ -41,7 +41,7 @@ class FluentMySQLTests: XCTestCase {
         didCreateDatabase = true
         setupConn.close()
 
-        let database = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: testDatabase)
+        self.database = MySQLDatabase(hostname: testHostname, user: testUsername, password: testPassword, database: testDatabase)
         self.benchmarker = Benchmarker(database, on: loop, onFail: XCTFail)
     }
     
@@ -81,7 +81,52 @@ class FluentMySQLTests: XCTestCase {
     func testChunking() throws {
          try benchmarker.benchmarkChunking_withSchema()
     }
-    
+
+    func testReferences() throws {
+        let conn = try database.makeConnection(on: loop).await(on: loop)
+        // Prep tables
+        try Pet.prepare(on: conn).await(on: loop)
+        try User.prepare(on: conn).await(on: loop)
+        // Save Pet
+        let pet = Pet(id: 64, name: "Snuffles")
+        _ = try pet.create(on: conn).await(on: loop)
+        // Save User with a ref to previously saved Pet
+        let user = User(id: nil, name: "Morty", petId: pet.id!)
+        _ = try user.create(on: conn).await(on: loop)
+
+        if let fetched = try User.query(on: conn).first().await(on: loop) {
+            XCTAssertEqual(user.id, fetched.id)
+            XCTAssertEqual(user.name, fetched.name)
+            XCTAssertEqual(user.petId, fetched.petId)
+        } else {
+            XCTFail()
+        }
+        try User.revert(on: conn).await(on: loop)
+        try Pet.revert(on: conn).await(on: loop)
+        conn.close()
+    }
+
+    func testForeignKeyIndexCount() throws {
+        let conn = try database.makeConnection(on: loop).await(on: loop)
+
+        // Prep tables
+        try Pet.prepare(on: conn).await(on: loop)
+        try User.prepare(on: conn).await(on: loop)
+
+        let query = "select COUNT(*) as resultCount from information_schema.KEY_COLUMN_USAGE where table_schema = '\(testDatabase)' and table_name = '\(User.entity)' and constraint_name != 'PRIMARY'"
+
+        let fetched = try conn.all(CountResult.self, in: query).await(on: loop)
+        if let fetchedFirst = fetched.first {
+            XCTAssertEqual(1, fetchedFirst.resultCount)
+        } else {
+            XCTFail()
+        }
+
+        try User.revert(on: conn).await(on: loop)
+        try Pet.revert(on: conn).await(on: loop)
+        conn.close()
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -89,5 +134,40 @@ class FluentMySQLTests: XCTestCase {
         ("testTimestampable", testTimestampable),
         ("testTransactions", testTransactions),
         ("testChunking", testChunking),
+        ("testReferences", testReferences),
+        ("testForeignKeyIndexCount", testForeignKeyIndexCount),
     ]
+}
+
+final class Pet: MySQLModel, Migration {
+    var id: Int?
+    var name: String
+
+    init(id: Int? = nil, name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
+final class CountResult: Codable {
+    var resultCount: Int
+}
+
+final class User: MySQLModel, Migration {
+    var id: Int?
+    var name: String
+    var petId: Int
+
+    init(id: Int? = nil, name: String, petId: Int) {
+        self.id = id
+        self.name = name
+        self.petId = petId
+    }
+
+    static func prepare(on connection: MySQLDatabase.Connection) -> Future<Void> {
+        return Database.create(self, on: connection, closure: { builder in
+            try addProperties(to: builder)
+            builder.addReference(from: \.petId, to: \Pet.id, actions: .update)
+        })
+    }
 }
