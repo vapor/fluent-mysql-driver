@@ -26,7 +26,7 @@ extension MySQLDatabase: SchemaSupporting {
     public static func dataType(for field: SchemaField<MySQLDatabase>) -> String {
         var sql: [String] = []
         sql.append(field.type.name + field.type.lengthName)
-
+        sql.append(field.type.keywords) // appends joined type attributes (e.g: UNSIGNED)
 
         if field.isIdentifier {
             sql.append("PRIMARY KEY")
