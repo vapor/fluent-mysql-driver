@@ -15,6 +15,9 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
 
         if field.isIdentifier {
             string += " PRIMARY KEY"
+            if field.type.name.contains("INT") {
+                string += " AUTO_INCREMENT"
+            }
         }
 
         if !field.isOptional {
@@ -81,5 +84,3 @@ extension SchemaIndex {
         return "_fluent_index_\(entity)_" + fields.map { $0.name }.joined(separator: "_")
     }
 }
-
-

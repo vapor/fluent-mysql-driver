@@ -93,6 +93,11 @@ public struct MySQLColumnDefinition {
     public static func binary(length: Int) -> MySQLColumnDefinition {
         return .init(name: "BINARY", length: length)
     }
+
+    /// A `JSON` column used to store variable length JSON-encoded data.
+    public static func json() -> MySQLColumnDefinition {
+        return .init(name: "JSON")
+    }
 }
 
 /// A type that can be represented by an appropriate `MySQLColumnDefinition` statically.

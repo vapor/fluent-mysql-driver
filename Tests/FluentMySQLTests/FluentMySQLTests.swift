@@ -117,6 +117,21 @@ class FluentMySQLTests: XCTestCase {
         print(all)
     }
 
+    func testJSONType() throws {
+        benchmarker.database.enableLogging(using: .print)
+        let conn = try benchmarker.pool.requestConnection().wait()
+        _ = try? User.revert(on: conn).wait()
+        defer { _ = try? User.revert(on: conn).wait() }
+        _ = try User.prepare(on: conn).wait()
+        let user = User(id: nil, name: "Tanner", pet: Pet(name: "Ziz"))
+        _ = try user.save(on: conn).wait()
+        try print(User.query(on: conn).filter(\.id == 5).all().wait())
+        let users = try User.query(on: conn).all().wait()
+        XCTAssertEqual(users[0].id, 1)
+        XCTAssertEqual(users[0].name, "Tanner")
+        XCTAssertEqual(users[0].pet.name, "Ziz")
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -127,6 +142,7 @@ class FluentMySQLTests: XCTestCase {
         ("testMySQLJoining",testMySQLJoining),
         ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
+        ("testJSONType", testJSONType),
     ]
 }
 
@@ -144,4 +160,14 @@ struct C: MySQLModel {
     static let entity = "tablec"
     var id: Int?
     var colc: Int
+}
+
+struct User: MySQLModel, Migration {
+    var id: Int?
+    var name: String
+    var pet: Pet
+}
+
+struct Pet: MySQLJSONType {
+    var name: String
 }
