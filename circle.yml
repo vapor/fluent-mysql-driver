@@ -18,9 +18,9 @@ jobs:
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: test
-          MYSQL_USER: foo
-          MYSQL_PASSWORD: bar
+          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
     steps:
       - run: apt-get update
       - run: apt-get install -yq libssl-dev pkg-config
