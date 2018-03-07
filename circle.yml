@@ -18,11 +18,12 @@ jobs:
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: vapor_test
-          MYSQL_USER: root
+          MYSQL_DATABASE: test
+          MYSQL_USER: foo
+          MYSQL_PASSWORD: bar
     steps:
       - run: apt-get update
-      - run: apt-get install -yq libssl-dev
+      - run: apt-get install -yq libssl-dev pkg-config
       - checkout
       - run: swift build
       - run: swift test
