@@ -18,29 +18,28 @@ extension MySQLDatabase: QuerySupporting {
             // If the query has an Encodable model attached serialize it.
             // Dictionary keys should be added to the DataQuery as columns.
             // Dictionary values should be added to the parameterized array.
-            let modelData: [PostgreSQLData]
+            let modelData: [MySQLDataConvertible]
             if let model = query.data {
-                let encoder = PostgreSQLRowEncoder()
-                try model.encode(to: encoder)
-                sqlQuery.columns += encoder.data.keys.map { key in
-                    return DataColumn(table: query.entity, name: key)
+                let data = try MySQLRowEncoder().encode(model)
+                sqlQuery.columns += data.keys.map { key in
+                    return DataColumn(table: key.table ?? query.entity, name: key.name)
                 }
-                modelData = .init(encoder.data.values)
+                modelData = [MySQLDataConvertible](data.values.map { $0 as MySQLDataConvertible })
             } else {
                 modelData = []
             }
 
             // Create a PostgreSQL-flavored SQL serializer to create a SQL string
-            let sqlSerializer = PostgreSQLSQLSerializer()
+            let sqlSerializer = MySQLSerializer()
             let sqlString = sqlSerializer.serialize(data: sqlQuery)
 
             // Combine the query data with bind values from filters.
             // All bind values must come _after_ the columns section of the query.
-            let parameters = try modelData + bindValues.map { bind in
+            let parameters: [MySQLDataConvertible] = try modelData + bindValues.map { bind in
                 let encodable = bind.encodable
-                guard let convertible = encodable as? PostgreSQLDataCustomConvertible else {
+                guard let convertible = encodable as? MySQLDataConvertible else {
                     let type = Swift.type(of: encodable)
-                    throw PostgreSQLError(
+                    throw MySQLError(
                         identifier: "convertible",
                         reason: "Unsupported encodable type: \(type)",
                         suggestedFixes: [
@@ -49,12 +48,12 @@ extension MySQLDatabase: QuerySupporting {
                         source: .capture()
                     )
                 }
-                return try convertible.convertToPostgreSQLData()
+                return convertible
             }
 
             // Run the query
-            return try connection.query(sqlString, parameters) { row in
-                let decoded = try D.init(from: PostgreSQLRowDecoder(row: row))
+            return connection.query(sqlString, parameters) { row in
+                let decoded = try MySQLRowDecoder().decode(D.self, from: row)
                 try handler(decoded, connection)
             }
         }

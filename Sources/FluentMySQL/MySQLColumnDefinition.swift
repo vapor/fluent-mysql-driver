@@ -1,3 +1,4 @@
+import Foundation
 import MySQL
 
 /// A single column's type
@@ -68,26 +69,97 @@ public struct MySQLColumnDefinition {
         return .init(name: "DOUBLE")
     }
 
-    /// A DATE
+    /// A `DATE` column.
     public static func date() -> MySQLColumnDefinition {
         return .init(name: "DATE", length: nil)
     }
     
-    /// A TEXT
+    /// A `TEXT` column.
     public static func text() -> MySQLColumnDefinition {
         return .init(name: "TEXT", length: nil)
     }
     
-    /// A DATETIME
+    /// A `DATETIME` column.
     public static func datetime() -> MySQLColumnDefinition {
         return .init(name: "DATETIME", length: nil)
     }
     
-    /// A TIME
+    /// A `TIME` column.
     public static func time() -> MySQLColumnDefinition {
         return .init(name: "TIME", length: nil)
     }
+
+    /// A `BINARY` column used to store fixed-size byte arrays.
+    public static func binary(length: Int) -> MySQLColumnDefinition {
+        return .init(name: "BINARY", length: length)
+    }
 }
+
+/// A type that can be represented by an appropriate `MySQLColumnDefinition` statically.
+public protocol MySQLColumnDefinitionStaticRepresentable {
+    /// An appropriate `MySQLColumnDefinition` for this type.
+    static var mySQLColumnDefinition: MySQLColumnDefinition { get }
+}
+
+extension UUID: MySQLColumnDefinitionStaticRepresentable {
+    /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        return .binary(length: 16)
+    }
+}
+
+extension Date: MySQLColumnDefinitionStaticRepresentable {
+    /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        return .datetime()
+    }
+}
+
+extension String: MySQLColumnDefinitionStaticRepresentable {
+    /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        return .varChar(length: 255)
+    }
+}
+
+extension FixedWidthInteger {
+    /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        switch bitWidth {
+        case 8: return .tinyInt(unsigned: !isSigned)
+        case 16: return .smallInt(unsigned: !isSigned)
+        case 32: return .int(unsigned: !isSigned)
+        case 64: return .bigInt(unsigned: !isSigned)
+        default: fatalError("Unsupported bit-width: \(bitWidth)")
+        }
+    }
+}
+
+extension Int8: MySQLColumnDefinitionStaticRepresentable { }
+extension Int16: MySQLColumnDefinitionStaticRepresentable { }
+extension Int32: MySQLColumnDefinitionStaticRepresentable { }
+extension Int64: MySQLColumnDefinitionStaticRepresentable { }
+extension Int: MySQLColumnDefinitionStaticRepresentable { }
+extension UInt8: MySQLColumnDefinitionStaticRepresentable { }
+extension UInt16: MySQLColumnDefinitionStaticRepresentable { }
+extension UInt32: MySQLColumnDefinitionStaticRepresentable { }
+extension UInt64: MySQLColumnDefinitionStaticRepresentable { }
+extension UInt: MySQLColumnDefinitionStaticRepresentable { }
+
+extension BinaryFloatingPoint {
+    /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        let bitWidth = exponentBitCount + significandBitCount + 1
+        switch bitWidth {
+        case 32: return .float()
+        case 64: return .double()
+        default: fatalError("Unsupported bit-width: \(bitWidth)")
+        }
+    }
+}
+
+extension Float: MySQLColumnDefinitionStaticRepresentable { }
+extension Double: MySQLColumnDefinitionStaticRepresentable { }
 
 extension MySQLColumnDefinition {
     /// A single signed (TINY) byte with a maximum (decimal) length, if specified
