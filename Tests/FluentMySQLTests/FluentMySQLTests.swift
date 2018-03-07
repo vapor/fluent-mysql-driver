@@ -3,6 +3,7 @@ import XCTest
 import FluentBenchmark
 import Dispatch
 import FluentMySQL
+import COperatingSystem
 
 class FluentMySQLTests: XCTestCase {
     var benchmarker: Benchmarker<MySQLDatabase>!
@@ -37,9 +38,9 @@ class FluentMySQLTests: XCTestCase {
         try benchmarker.benchmarkTimestampable_withSchema()
     }
     
-//    func testTransactions() throws {
-//        try benchmarker.benchmarkTransactions_withSchema()
-//    }
+    func testTransactions() throws {
+        try benchmarker.benchmarkTransactions_withSchema()
+    }
 
     func testChunking() throws {
          try benchmarker.benchmarkChunking_withSchema()
@@ -50,7 +51,7 @@ class FluentMySQLTests: XCTestCase {
         ("testModels", testModels),
         ("testRelations", testRelations),
         ("testTimestampable", testTimestampable),
-//        ("testTransactions", testTransactions),
+        ("testTransactions", testTransactions),
         ("testChunking", testChunking),
     ]
 }
