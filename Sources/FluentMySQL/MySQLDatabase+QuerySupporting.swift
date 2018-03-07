@@ -18,15 +18,11 @@ extension MySQLDatabase: QuerySupporting {
             // If the query has an Encodable model attached serialize it.
             // Dictionary keys should be added to the DataQuery as columns.
             // Dictionary values should be added to the parameterized array.
-            let modelData: [MySQLDataConvertible]
-            if let model = query.data {
-                let data = try MySQLRowEncoder().encode(model)
-                sqlQuery.columns += data.keys.map { key in
-                    return DataColumn(table: key.table ?? query.entity, name: key.name)
-                }
-                modelData = [MySQLDataConvertible](data.values.map { $0 as MySQLDataConvertible })
-            } else {
-                modelData = []
+            var modelData: [MySQLDataConvertible] = []
+            modelData.reserveCapacity(query.data.count)
+            for (field, data) in query.data {
+                sqlQuery.columns.append(DataColumn(table: field.entity, name: field.name))
+                modelData.append(data)
             }
 
             // Create a PostgreSQL-flavored SQL serializer to create a SQL string
@@ -82,6 +78,22 @@ extension MySQLDatabase: QuerySupporting {
         }
 
         return Future.map(on: connection) { model }
+    }
+
+    /// See `QuerySupporting.queryDataParse(_:from:)`
+    public static func queryDataParse<T>(_ type: T.Type, from data: MySQLDataConvertible) throws -> T {
+        guard let convertibleType = T.self as? MySQLDataConvertible.Type else {
+            throw MySQLError(identifier: "queryDataParse", reason: "Cannot parse \(T.self) from MySQLData", source: .capture())
+        }
+        return try convertibleType.convertFromMySQLData(data.convertToMySQLData()) as! T
+    }
+
+    /// See `QuerySupporting.queryDataSerialize(data:)`
+    public static func queryDataSerialize<T>(data: T?) throws -> MySQLDataConvertible {
+        guard let convertible = data as? MySQLDataConvertible else {
+            throw MySQLError(identifier: "queryDataSerialize", reason: "Cannot serialize \(T.self) to MySQLData", source: .capture())
+        }
+        return try convertible.convertToMySQLData()
     }
 }
 
