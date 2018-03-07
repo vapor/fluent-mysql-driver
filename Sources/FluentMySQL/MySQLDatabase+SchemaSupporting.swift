@@ -47,6 +47,9 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
             var schemaQuery = schema.makeSchemaQuery(dataTypeFactory: dataType)
             schema.applyReferences(to: &schemaQuery)
             let sqlString = MySQLSerializer().serialize(schema: schemaQuery)
+            if let logger = connection.logger {
+                logger.log(query: sqlString)
+            }
             return connection.simpleQuery(sqlString).map(to: Void.self) { rows in
                 assert(rows.count == 0)
             }.flatMap(to: Void.self) {

@@ -45,7 +45,78 @@ class FluentMySQLTests: XCTestCase {
     func testChunking() throws {
          try benchmarker.benchmarkChunking_withSchema()
     }
-    
+
+    func testMySQLJoining() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
+        _ = try conn.simpleQuery("drop table if exists tableb;").wait()
+        _ = try conn.simpleQuery("drop table if exists tablec;").wait()
+        _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        _ = try conn.simpleQuery("create table tableb (colb INT);").wait()
+        _ = try conn.simpleQuery("create table tablec (colc INT);").wait()
+
+        _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
+
+        _ = try conn.simpleQuery("insert into tableb values (1);").wait()
+        _ = try conn.simpleQuery("insert into tableb values (2);").wait()
+        _ = try conn.simpleQuery("insert into tableb values (3);").wait()
+
+        _ = try conn.simpleQuery("insert into tablec values (2);").wait()
+        _ = try conn.simpleQuery("insert into tablec values (3);").wait()
+        _ = try conn.simpleQuery("insert into tablec values (4);").wait()
+
+        let all = try A.query(on: conn)
+            .join(B.self, field: \.colb, to: \.cola)
+            .alsoDecode(B.self)
+            .join(C.self, field: \.colc, to: \.cola)
+            .alsoDecode(C.self)
+            .all().wait()
+
+        XCTAssertEqual(all.count, 2)
+        for ((a, b), c) in all {
+            print(a.cola)
+            print(b.colb)
+            print(c.colc)
+        }
+    }
+
+    func testMySQLCustomSQL() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
+        _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
+
+
+        let all = try A.query(on: conn)
+            .customSQL { sql in
+                let predicate = DataPredicate(column: "cola", comparison: .isNull)
+                sql.predicates.append(.predicate(predicate))
+            }
+            .all().wait()
+
+        XCTAssertEqual(all.count, 0)
+    }
+
+    func testMySQLSet() throws {
+        benchmarker.database.enableLogging(using: .print)
+        let conn = try benchmarker.pool.requestConnection().wait()
+        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
+        _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
+
+        _ = try A.query(on: conn).update(["cola": "3", "id": 2]).wait()
+
+        let all = try A.query(on: conn).all().wait()
+        print(all)
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -53,5 +124,24 @@ class FluentMySQLTests: XCTestCase {
         ("testTimestampable", testTimestampable),
         ("testTransactions", testTransactions),
         ("testChunking", testChunking),
+        ("testMySQLJoining",testMySQLJoining),
+        ("testMySQLCustomSQL", testMySQLCustomSQL),
+        ("testMySQLSet", testMySQLSet),
     ]
+}
+
+struct A: MySQLModel {
+    static let entity = "tablea"
+    var id: Int?
+    var cola: Int
+}
+struct B: MySQLModel {
+    static let entity = "tableb"
+    var id: Int?
+    var colb: Int
+}
+struct C: MySQLModel {
+    static let entity = "tablec"
+    var id: Int?
+    var colc: Int
 }
