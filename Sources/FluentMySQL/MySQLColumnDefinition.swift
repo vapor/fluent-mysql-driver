@@ -81,12 +81,12 @@ public struct MySQLColumnDefinition {
     
     /// A `DATETIME` column.
     public static func datetime() -> MySQLColumnDefinition {
-        return .init(name: "DATETIME", length: nil)
+        return .init(name: "DATETIME(6)", length: nil)
     }
     
     /// A `TIME` column.
     public static func time() -> MySQLColumnDefinition {
-        return .init(name: "TIME", length: nil)
+        return .init(name: "TIME(6)", length: nil)
     }
 
     /// A `BINARY` column used to store fixed-size byte arrays.
