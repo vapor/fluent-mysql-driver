@@ -78,7 +78,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
             }
         case .didCreate:
             if M.ID.self == Int.self {
-                return connection.simpleQuery("SELECT LAST_INSERT_ID();").map(to: M.self) { row in
+                return connection.simpleQuery("SELECT LAST_INSERT_ID() AS lastval;").map(to: M.self) { row in
                     var model = model
                     try model.fluentID = row[0].firstValue(forColumn: "lastval")?.decode(Int.self) as? M.ID
                     return model
