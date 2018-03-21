@@ -1,9 +1,6 @@
 import Fluent
 import Service
 
-@available(*, unavailable, renamed: "FluentMySQLProvider")
-public typealias MySQLProvider = FluentMySQLProvider
-
 /// Registers and boots MySQL services.
 public final class FluentMySQLProvider: Provider {
     /// See Provider.repositoryName
@@ -15,38 +12,32 @@ public final class FluentMySQLProvider: Provider {
     /// See Provider.register
     public func register(_ services: inout Services) throws {
         try services.register(FluentProvider())
-        services.register(MySQLDatabase.self) { container -> MySQLDatabase in
-            let config = try container.make(MySQLConfig.self, for: MySQLDatabase.self)
-            return MySQLDatabase(
-                hostname: config.hostname,
-                port: config.port,
-                user: config.user,
-                password: config.password,
-                database: config.database
-            )
-        }
+        try services.register(MySQLProvider())
     }
     
     /// See Provider.boot
-    public func boot(_ container: Container) throws {}
+    public func didBoot(_ worker: Container) throws -> EventLoopFuture<Void> {
+        return .done(on: worker)
+    }
 }
 
 public struct MySQLConfig: Service {
     /// The hostname to which connections will be connected
-    let hostname: String
+    public let hostname: String
 
     /// The port to which connections will be connected
-    let port: UInt16
+    public let port: UInt16
 
     /// The username to authenticate with
-    let user: String
+    public let user: String
 
     /// The password to authenticate with
-    let password: String?
+    public let password: String?
 
     /// The database to select
-    let database: String
+    public let database: String
 
+    /// Creates a new `MySQLConfig`.
     public init(hostname: String, port: UInt16 = 3306, user: String, password: String?, database: String) {
         self.hostname = hostname
         self.port = port
