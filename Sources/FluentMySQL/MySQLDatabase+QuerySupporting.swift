@@ -114,6 +114,9 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
             return MySQLData.null
         }
     }
+
+    /// See `QuerySupporting.QueryFilter`
+    public typealias QueryFilter = DataPredicateComparison
 }
 
 extension MySQLData: FluentData { }

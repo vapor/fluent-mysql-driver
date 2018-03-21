@@ -9,13 +9,13 @@ let package = Package(
     dependencies: [
 
         // 🌎 Utility package containing tools for byte manipulation, Codable, OS APIs, and debugging.
-        .package(url: "https://github.com/vapor/core.git", .branch("nio")),
+        .package(url: "https://github.com/vapor/core.git", .branch("master")),
 
         // Swift ORM framework (queries, models, and relations) for building NoSQL and SQL database integrations.
-        .package(url: "https://github.com/vapor/fluent.git", .branch("nio")),
+        .package(url: "https://github.com/vapor/fluent.git", .branch("master")),
 
         // 🐬 Pure Swift MySQL client built on non-blocking, event-driven sockets.
-        .package(url: "https://github.com/vapor/mysql.git", .branch("nio")),
+        .package(url: "https://github.com/vapor/mysql.git", .branch("master")),
     ],
     targets: [
         .target(name: "FluentMySQL", dependencies: ["Async", "CodableKit", "Fluent", "FluentSQL", "MySQL"]),

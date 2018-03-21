@@ -7,31 +7,52 @@ jobs:
     steps:
       - run: brew install mysql
       - run: brew services start mysql
+      - run: sleep 3 && mysqladmin -uroot create test
       - checkout
       - run: swift build
       - run: echo "CREATE DATABASE vapor_test" | mysql -uroot
+      # - run: swift build -c release
       - run: swift test
 
   linux:
     docker:
-      - image: norionomura/swift:swift-4.1-branch
+      - image: codevapor/swift:4.1
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
+          # MYSQL_ROOT_HOST: %
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
     steps:
-      - run: apt-get update
-      - run: apt-get install -yq libssl-dev pkg-config
       - checkout
-      - run: swift build
-      - run: swift test
-      - run: swift build -c release
+      - run: 
+          name: Compile code
+          command: swift build
+      - run: 
+          name: Run unit tests
+          command: swift test
+      - run: 
+          name: Compile code with optimizations
+          command: swift build -c release
+
 
 workflows:
   version: 2
   tests:
     jobs:
-      # - macos
+     # - macos
       - linux
+
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+                
+    jobs:
+      - linux
+      # - macos

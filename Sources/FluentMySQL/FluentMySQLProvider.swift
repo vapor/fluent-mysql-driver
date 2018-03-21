@@ -16,25 +16,28 @@ public final class FluentMySQLProvider: Provider {
     }
     
     /// See Provider.boot
-    public func boot(_ container: Container) throws {}
+    public func didBoot(_ worker: Container) throws -> EventLoopFuture<Void> {
+        return .done(on: worker)
+    }
 }
 
 public struct MySQLConfig: Service {
     /// The hostname to which connections will be connected
-    let hostname: String
+    public let hostname: String
 
     /// The port to which connections will be connected
-    let port: UInt16
+    public let port: UInt16
 
     /// The username to authenticate with
-    let user: String
+    public let user: String
 
     /// The password to authenticate with
-    let password: String?
+    public let password: String?
 
     /// The database to select
-    let database: String
+    public let database: String
 
+    /// Creates a new `MySQLConfig`.
     public init(hostname: String, port: UInt16 = 3306, user: String, password: String?, database: String) {
         self.hostname = hostname
         self.port = port

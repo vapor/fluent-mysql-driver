@@ -120,7 +120,6 @@ class FluentMySQLTests: XCTestCase {
     func testJSONType() throws {
         benchmarker.database.enableLogging(using: .print)
         let conn = try benchmarker.pool.requestConnection().wait()
-        _ = try? User.revert(on: conn).wait()
         defer { _ = try? User.revert(on: conn).wait() }
         _ = try User.prepare(on: conn).wait()
         let user = User(id: nil, name: "Tanner", pet: Pet(name: "Ziz"))
