@@ -22,3 +22,10 @@ extension MySQLJSONType {
         return json
     }
 }
+
+extension MySQLText: MySQLColumnDefinitionStaticRepresentable {
+    /// See `MySQLColumnDefinitionStaticRepresentable`
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        return .text()
+    }
+}
