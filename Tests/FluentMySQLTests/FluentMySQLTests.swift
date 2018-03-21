@@ -131,6 +131,10 @@ class FluentMySQLTests: XCTestCase {
         XCTAssertEqual(users[0].pet.name, "Ziz")
     }
 
+    func testContains() throws {
+        try benchmarker.benchmarkContains_withSchema()
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -142,6 +146,7 @@ class FluentMySQLTests: XCTestCase {
         ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
         ("testJSONType", testJSONType),
+        ("testContains", testContains),
     ]
 }
 
