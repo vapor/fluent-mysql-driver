@@ -135,6 +135,10 @@ class FluentMySQLTests: XCTestCase {
         try benchmarker.benchmarkContains_withSchema()
     }
 
+    func testBugs() throws {
+        try benchmarker.benchmarkBugs_withSchema()
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -147,6 +151,7 @@ class FluentMySQLTests: XCTestCase {
         ("testMySQLSet", testMySQLSet),
         ("testJSONType", testJSONType),
         ("testContains", testContains),
+        ("testBugs", testBugs),
     ]
 }
 
