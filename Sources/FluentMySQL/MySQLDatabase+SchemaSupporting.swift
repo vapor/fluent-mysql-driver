@@ -59,16 +59,16 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
                 /// handle indexes as separate query
                 var indexFutures: [Future<Void>] = []
                 for addIndex in schema.addIndexes {
-                    let fields = addIndex.fields.map { "\"\($0.name)\"" }.joined(separator: ", ")
+                    let fields = addIndex.fields.map { "`\($0.name)`" }.joined(separator: ", ")
                     let name = addIndex.psqlName(for: schema.entity)
-                    let add = connection.simpleQuery("CREATE \(addIndex.isUnique ? "UNIQUE " : "")INDEX \"\(name)\" ON \"\(schema.entity)\" (\(fields))").map(to: Void.self) { rows in
+                    let add = connection.simpleQuery("CREATE \(addIndex.isUnique ? "UNIQUE " : "")INDEX `\(name)` ON `\(schema.entity)` (\(fields))").map(to: Void.self) { rows in
                         assert(rows.count == 0)
                     }
                     indexFutures.append(add)
                 }
                 for removeIndex in schema.removeIndexes {
                     let name = removeIndex.psqlName(for: schema.entity)
-                    let remove = connection.simpleQuery("DROP INDEX \"\(name)\"").map(to: Void.self) { rows in
+                    let remove = connection.simpleQuery("DROP INDEX `\(name)`").map(to: Void.self) { rows in
                         assert(rows.count == 0)
                     }
                     indexFutures.append(remove)
