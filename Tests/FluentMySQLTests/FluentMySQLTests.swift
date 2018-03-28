@@ -216,8 +216,8 @@ class FluentMySQLTests: XCTestCase {
         try Parent.prepare(on: conn).wait()
         try Child.prepare(on: conn).wait()
         // Save Pet
-        var parent = Parent(id: 64, name: "Snuffles")
-        parent = try parent.create(on: conn).wait()
+        let parent = Parent(id: 64, name: "Snuffles")
+        let savedParent = try parent.create(on: conn).wait()
         // Save User with a ref to previously saved Pet
         var child = Child(id: nil, name: "Morty", parentId: parent.id!)
         child = try child.create(on: conn).wait()
