@@ -180,6 +180,14 @@ class FluentMySQLTests: XCTestCase {
         try benchmarker.benchmarkIndexSupporting_withSchema()
     }
 
+    func testGH61() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        let res = try conn.query("SELECT ? as emojis", ["👏🐬💧"]).wait()
+        try XCTAssertEqual(String.convertFromMySQLData(res[0].firstValue(forColumn: "emojis")!), "👏🐬💧")
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -195,6 +203,7 @@ class FluentMySQLTests: XCTestCase {
         ("testBugs", testBugs),
         ("testGH93", testGH93),
         ("testIndexes", testIndexes),
+        ("testGH61", testGH61),
     ]
 }
 
