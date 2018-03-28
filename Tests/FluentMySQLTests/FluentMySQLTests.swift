@@ -16,9 +16,9 @@ class FluentMySQLTests: XCTestCase {
         let config = MySQLDatabaseConfig(
             hostname: "localhost",
             port: 3306,
-            username: "vapor_username",
-            password: "vapor_password",
-            database: "vapor_database"
+            username: "test",
+            password: "test",
+            database: "vapor_test"
         )
         database = MySQLDatabase(config: config)
         benchmarker = Benchmarker(database, on: eventLoop, onFail: XCTFail)
@@ -205,6 +205,56 @@ class FluentMySQLTests: XCTestCase {
         test = try test.save(on: conn).wait()
     }
 
+    func testReferences() throws {
+        database.enableLogging(using: .print)
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        // Prep tables
+        defer { try? Child.revert(on: conn).wait()
+                try? Parent.revert(on: conn).wait() }
+        try Parent.prepare(on: conn).wait()
+        try Child.prepare(on: conn).wait()
+        // Save Pet
+        var parent = Parent(id: 64, name: "Snuffles")
+        parent = try parent.create(on: conn).wait()
+        // Save User with a ref to previously saved Pet
+        var child = Child(id: nil, name: "Morty", parentId: parent.id!)
+        child = try child.create(on: conn).wait()
+
+        if let fetched = try Child.query(on: conn).first().wait() {
+            XCTAssertEqual(child.id, fetched.id)
+            XCTAssertEqual(child.name, fetched.name)
+            XCTAssertEqual(child.parentId, fetched.parentId)
+        } else {
+            XCTFail()
+        }
+    }
+
+    func testForeignKeyIndexCount() throws {
+        database.enableLogging(using: .print)
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        // Prep tables
+        defer { try? Child.revert(on: conn).wait()
+                try? Parent.revert(on: conn).wait() }
+        try Parent.prepare(on: conn).wait()
+        try Child.prepare(on: conn).wait()
+
+        let testDatabase = database.config.database
+        let query = "select COUNT(1) as resultCount from information_schema.KEY_COLUMN_USAGE where table_schema = '\(testDatabase)' and table_name = '\(Child.entity)' and constraint_name != 'PRIMARY'"
+
+        let fetched = try conn.simpleQuery(query).wait()
+        if let fetchedFirst = fetched.first,
+            let resultData = fetchedFirst.firstValue(forColumn: "resultCount"),
+            let resultCount = try? Int.convertFromMySQLData(resultData) {
+            XCTAssertEqual(1, resultCount)
+        } else {
+            XCTFail()
+        }
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -222,6 +272,8 @@ class FluentMySQLTests: XCTestCase {
         ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
+        ("testReferences", testReferences),
+        ("testForeignKeyIndexCount", testForeignKeyIndexCount),
     ]
 }
 
@@ -249,4 +301,22 @@ struct User: MySQLModel, Migration {
 
 struct Pet: MySQLJSONType {
     var name: String
+}
+
+struct Parent: MySQLModel, Migration {
+    var id: Int?
+    var name: String
+}
+
+struct Child: MySQLModel, Migration {
+    var id: Int?
+    var name: String
+    var parentId: Int
+
+    static func prepare(on connection: MySQLDatabase.Connection) -> Future<Void> {
+        return Database.create(self, on: connection, closure: { builder in
+            try addProperties(to: builder)
+            try builder.addReference(from: \.parentId, to: \Parent.id, actions: .update)
+        })
+    }
 }
