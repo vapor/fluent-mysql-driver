@@ -141,6 +141,70 @@ class FluentMySQLTests: XCTestCase {
         try benchmarker.benchmarkBugs_withSchema()
     }
 
+    func testGH93() throws {
+        database.enableLogging(using: .print)
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        struct Post: MySQLModel, Migration {
+            var id: Int?
+            var title: String
+            var strap: String
+            var content: String
+            var category: Int
+            var slug: String
+            var date: Date
+
+            static func prepare(on connection: MySQLConnection) -> Future<Void> {
+                return MySQLDatabase.create(self, on: connection) { builder in
+                    try builder.field(type: .int64(), for: \.id, isOptional: false, isIdentifier: true)
+                    try builder.field(for: \.title)
+                    try builder.field(for: \.strap)
+                    try builder.field(type: .text(), for: \.content)
+                    try builder.field(for: \.category)
+                    try builder.field(for: \.slug)
+                    try builder.field(for: \.date)
+                }
+            }
+        }
+
+        defer { try? Post.revert(on: conn).wait() }
+        try Post.prepare(on: conn).wait()
+
+        var post = Post(id: nil, title: "a", strap: "b", content: "c", category: 1, slug: "d", date: .init())
+        post = try post.save(on: conn).wait()
+        try Post.query(on: conn).delete().wait()
+    }
+
+    func testIndexes() throws {
+        try benchmarker.benchmarkIndexSupporting_withSchema()
+    }
+
+    func testGH61() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        let res = try conn.query("SELECT ? as emojis", ["👏🐬💧"]).wait()
+        try XCTAssertEqual(String.convertFromMySQLData(res[0].firstValue(forColumn: "emojis")!), "👏🐬💧")
+    }
+
+    func testGH76() throws {
+        database.enableLogging(using: .print)
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        struct BoolTest: MySQLModel, Migration {
+            var id: Int?
+            var bool: Bool
+        }
+
+        defer { try? BoolTest.revert(on: conn).wait() }
+        try BoolTest.prepare(on: conn).wait()
+
+        var test = BoolTest(id: nil, bool: true)
+        test = try test.save(on: conn).wait()
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -154,6 +218,10 @@ class FluentMySQLTests: XCTestCase {
         ("testJSONType", testJSONType),
         ("testContains", testContains),
         ("testBugs", testBugs),
+        ("testGH93", testGH93),
+        ("testIndexes", testIndexes),
+        ("testGH61", testGH61),
+        ("testGH76", testGH76),
     ]
 }
 

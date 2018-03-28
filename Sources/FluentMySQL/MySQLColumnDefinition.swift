@@ -34,6 +34,11 @@ public struct MySQLColumnDefinition {
         return .init(name: "BLOB", length: length)
     }
 
+    /// A BOOLEAN type.
+    public static func bool() -> MySQLColumnDefinition {
+        return .init(name: "BOOL")
+    }
+
     /// A single signed (TINY) byte with a maximum (decimal) length, if specified
     public static func tinyInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
         return .init(name: "TINYINT", length: length, attributes: unsigned ? ["UNSIGNED"] : [])
@@ -150,6 +155,13 @@ extension UInt16: MySQLColumnDefinitionStaticRepresentable { }
 extension UInt32: MySQLColumnDefinitionStaticRepresentable { }
 extension UInt64: MySQLColumnDefinitionStaticRepresentable { }
 extension UInt: MySQLColumnDefinitionStaticRepresentable { }
+
+extension Bool: MySQLColumnDefinitionStaticRepresentable {
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+        return .bool()
+    }
+}
 
 extension BinaryFloatingPoint {
     /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
