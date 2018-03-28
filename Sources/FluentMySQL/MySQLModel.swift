@@ -8,9 +8,6 @@ public protocol MySQLModel: Model where Self.Database == MySQLDatabase, Self.ID 
 }
 
 extension MySQLModel {
-    /// See `Model.ID`
-    public typealias ID = Int
-
     /// See `Model.idKey`
     public static var idKey: IDKey { return \.id }
 }
@@ -27,9 +24,6 @@ public protocol MySQLUUIDModel: Model where Self.Database == MySQLDatabase, Self
 }
 
 extension MySQLUUIDModel {
-    /// See `Model.ID`
-    public typealias ID = UUID
-
     /// See `Model.idKey`
     public static var idKey: IDKey { return \.id }
 }

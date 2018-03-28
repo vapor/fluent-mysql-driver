@@ -11,7 +11,7 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
             string += "(\(length))"
         }
 
-        string += field.type.attributes.joined(separator: " ")
+        string += " " + field.type.attributes.joined(separator: " ")
 
         if field.isIdentifier {
             string += " PRIMARY KEY"
