@@ -1,4 +1,5 @@
 import Async
+import Crypto
 import Foundation
 
 /// Adds ability to create, update, and delete schemas using a `MySQLDatabase`.
@@ -49,6 +50,8 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
         return Future.flatMap(on: connection) {
             var schemaQuery = schema.makeSchemaQuery(dataTypeFactory: dataType)
             schema.applyReferences(to: &schemaQuery)
+            try schemaQuery.addForeignKeys.mysqlShortenNames()
+            try schemaQuery.removeForeignKeys.mysqlShortenNames()
             let sqlString = MySQLSerializer().serialize(schema: schemaQuery)
             if let logger = connection.logger {
                 logger.log(query: sqlString)
@@ -60,14 +63,14 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
                 var indexFutures: [Future<Void>] = []
                 for addIndex in schema.addIndexes {
                     let fields = addIndex.fields.map { "`\($0.name)`" }.joined(separator: ", ")
-                    let name = addIndex.psqlName(for: schema.entity)
+                    let name = try addIndex.mysqlIdentifier(for: schema.entity).mysqlShortenedName()
                     let add = connection.simpleQuery("CREATE \(addIndex.isUnique ? "UNIQUE " : "")INDEX `\(name)` ON `\(schema.entity)` (\(fields))").map(to: Void.self) { rows in
                         assert(rows.count == 0)
                     }
                     indexFutures.append(add)
                 }
                 for removeIndex in schema.removeIndexes {
-                    let name = removeIndex.psqlName(for: schema.entity)
+                    let name = try removeIndex.mysqlIdentifier(for: schema.entity).mysqlShortenedName()
                     let remove = connection.simpleQuery("DROP INDEX `\(name)`").map(to: Void.self) { rows in
                         assert(rows.count == 0)
                     }
@@ -79,8 +82,44 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
     }
 }
 
+// MARK: Utilities
+
+extension String {
+    func mysqlShortenedName() throws -> String {
+        return try "_fluent_" + MD5.digest(self).base64URLEncodedString()
+    }
+}
+
+extension String {
+    mutating func mysqlShortenName() throws {
+        self = try mysqlShortenedName()
+    }
+}
+
+extension SQL.SchemaForeignKey {
+    mutating func mysqlShortenName() throws {
+        try name.mysqlShortenName()
+    }
+}
+
+extension Array where Element == SQL.SchemaForeignKey {
+    mutating func mysqlShortenNames() throws {
+        for i in 0..<count {
+            try self[i].mysqlShortenName()
+        }
+    }
+}
+
+extension Array where Element == String {
+    mutating func mysqlShortenNames() throws {
+        for i in 0..<count {
+            try self[i].mysqlShortenName()
+        }
+    }
+}
+
 extension SchemaIndex {
-    func psqlName(for entity: String) -> String {
+    func mysqlIdentifier(for entity: String) -> String {
         return "_fluent_index_\(entity)_" + fields.map { $0.name }.joined(separator: "_")
     }
 }
