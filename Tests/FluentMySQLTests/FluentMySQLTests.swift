@@ -188,6 +188,23 @@ class FluentMySQLTests: XCTestCase {
         try XCTAssertEqual(String.convertFromMySQLData(res[0].firstValue(forColumn: "emojis")!), "👏🐬💧")
     }
 
+    func testGH76() throws {
+        database.enableLogging(using: .print)
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        struct BoolTest: MySQLModel, Migration {
+            var id: Int?
+            var bool: Bool
+        }
+
+        defer { try? BoolTest.revert(on: conn).wait() }
+        try BoolTest.prepare(on: conn).wait()
+
+        var test = BoolTest(id: nil, bool: true)
+        test = try test.save(on: conn).wait()
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -204,6 +221,7 @@ class FluentMySQLTests: XCTestCase {
         ("testGH93", testGH93),
         ("testIndexes", testIndexes),
         ("testGH61", testGH61),
+        ("testGH76", testGH76),
     ]
 }
 
