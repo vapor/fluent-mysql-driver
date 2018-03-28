@@ -16,9 +16,9 @@ class FluentMySQLTests: XCTestCase {
         let config = MySQLDatabaseConfig(
             hostname: "localhost",
             port: 3306,
-            username: "test",
-            password: "test",
-            database: "vapor_test"
+            username: "vapor_username",
+            password: "vapor_password",
+            database: "vapor_database"
         )
         database = MySQLDatabase(config: config)
         benchmarker = Benchmarker(database, on: eventLoop, onFail: XCTFail)
