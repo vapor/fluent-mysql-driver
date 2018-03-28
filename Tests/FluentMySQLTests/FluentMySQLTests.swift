@@ -4,6 +4,8 @@ import FluentBenchmark
 import Dispatch
 import FluentMySQL
 import COperatingSystem
+import Service
+import Console
 
 class FluentMySQLTests: XCTestCase {
     var benchmarker: Benchmarker<MySQLDatabase>!
