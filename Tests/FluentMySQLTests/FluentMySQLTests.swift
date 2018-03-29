@@ -306,6 +306,11 @@ struct Pet: MySQLJSONType {
 final class Parent: MySQLModel, Migration {
     var id: Int?
     var name: String
+    
+    init(id: Int?, name: String) {
+        self.id = id
+        self.name = name
+    }
 }
 
 final class Child: MySQLModel, Migration {
@@ -313,6 +318,12 @@ final class Child: MySQLModel, Migration {
     var name: String
     var parentId: Int
 
+    init(id: Int?, name: String, parentId: Int) {
+        self.id = id
+        self.name = name
+        self.parentId = parentId
+    }
+    
     static func prepare(on connection: MySQLDatabase.Connection) -> Future<Void> {
         return Database.create(self, on: connection, closure: { builder in
             try addProperties(to: builder)
