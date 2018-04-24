@@ -18,11 +18,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
     ) -> EventLoopFuture<Void> {
         return Future<Void>.flatMap(on: connection) {
             // Convert Fluent `DatabaseQuery` to generic FluentSQL `DataQuery`
-            let (sqlQuery, bindValues) = query.makeDataQuery()
-
-            // Create a MySQL-flavored SQL serializer to create a SQL string
-            let sqlSerializer = MySQLSerializer()
-            let sqlString: String
+            var (sqlQuery, bindValues) = query.makeDataQuery()
             let params: [MySQLDatabase.QueryData]
 
             switch sqlQuery {
@@ -32,21 +28,27 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
                 // Dictionary values should be added to the parameterized array.
                 var modelData: [MySQLData] = []
                 modelData.reserveCapacity(query.data.count)
-                for (field, data) in query.data {
-                    let col = DataColumn(table: field.entity, name: field.name)
-                    manipulation.columns.append(.init(column: col, value: .placeholder))
+                manipulation.columns = query.data.map { (field, data) in
                     modelData.append(data)
+                    let col = DataColumn(table: field.entity, name: field.name)
+                    return .init(column: col, value: .placeholder)
                 }
-                sqlString = sqlSerializer.serialize(query: manipulation)
                 params = modelData + bindValues
+                sqlQuery = .manipulation(manipulation)
             case .query(var data):
                 /// Apply custom sql transformations
                 for customSQL in query.customSQL {
                     customSQL.closure(&data)
                 }
-                sqlString = sqlSerializer.serialize(query: data)
                 params = bindValues
+                sqlQuery = .query(data)
+            case .definition:
+                throw FluentError(identifier: "definition", reason: "DataDefinition query not supported.", source: .capture())
             }
+
+            // Create a MySQL-flavored SQL serializer to create a SQL string
+            let sqlSerializer = MySQLSerializer()
+            let sqlString = sqlSerializer.serialize(sqlQuery)
 
             /// Log supporting
             if let logger = connection.logger {
