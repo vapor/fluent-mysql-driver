@@ -39,7 +39,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
                 params = bindValues
                 sqlQuery = .query(data)
             case .definition:
-                throw FluentError(identifier: "definition", reason: "DataDefinition query not supported.", source: .capture())
+                params = []
             }
 
             /// Apply custom sql transformations
