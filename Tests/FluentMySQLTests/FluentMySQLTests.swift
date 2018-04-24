@@ -97,8 +97,13 @@ class FluentMySQLTests: XCTestCase {
 
         let all = try A.query(on: conn)
             .customSQL { sql in
-                let predicate = DataPredicate(column: "cola", comparison: .isNull)
-                sql.predicates.append(.predicate(predicate))
+                switch sql {
+                case .query(var query):
+                    let predicate = DataPredicate(column: "cola", comparison: .isNull)
+                    query.predicates.append(.predicate(predicate))
+                    sql = .query(query)
+                default: break
+                }
             }
             .all().wait()
 

@@ -52,7 +52,15 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
             schema.applyReferences(to: &schemaQuery)
             try schemaQuery.addForeignKeys.mysqlShortenNames()
             try schemaQuery.removeForeignKeys.mysqlShortenNames()
-            let sqlString = MySQLSerializer().serialize(query: schemaQuery)
+
+
+            /// Apply custom sql transformations
+            var sqlQuery: SQLQuery = .definition(schemaQuery)
+            for customSQL in schema.customSQL {
+                customSQL.closure(&sqlQuery)
+            }
+
+            let sqlString = MySQLSerializer().serialize(sqlQuery)
             if let logger = connection.logger {
                 logger.log(query: sqlString)
             }

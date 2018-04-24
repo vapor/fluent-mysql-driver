@@ -35,15 +35,16 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
                 }
                 params = modelData + bindValues
                 sqlQuery = .manipulation(manipulation)
-            case .query(var data):
-                /// Apply custom sql transformations
-                for customSQL in query.customSQL {
-                    customSQL.closure(&data)
-                }
+            case .query(let data):
                 params = bindValues
                 sqlQuery = .query(data)
             case .definition:
                 throw FluentError(identifier: "definition", reason: "DataDefinition query not supported.", source: .capture())
+            }
+
+            /// Apply custom sql transformations
+            for customSQL in query.customSQL {
+                customSQL.closure(&sqlQuery)
             }
 
             // Create a MySQL-flavored SQL serializer to create a SQL string
