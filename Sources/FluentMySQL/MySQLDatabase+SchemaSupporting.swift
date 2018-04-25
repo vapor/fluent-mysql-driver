@@ -52,7 +52,15 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
             schema.applyReferences(to: &schemaQuery)
             try schemaQuery.addForeignKeys.mysqlShortenNames()
             try schemaQuery.removeForeignKeys.mysqlShortenNames()
-            let sqlString = MySQLSerializer().serialize(schema: schemaQuery)
+
+
+            /// Apply custom sql transformations
+            var sqlQuery: SQLQuery = .definition(schemaQuery)
+            for customSQL in schema.customSQL {
+                customSQL.closure(&sqlQuery)
+            }
+
+            let sqlString = MySQLSerializer().serialize(sqlQuery)
             if let logger = connection.logger {
                 logger.log(query: sqlString)
             }
@@ -86,7 +94,7 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
 
 extension String {
     func mysqlShortenedName() throws -> String {
-        return try "_fluent_" + MD5.digest(self).base64URLEncodedString()
+        return try "_fluent_" + MD5.hash(self).base64URLEncodedString()
     }
 }
 
@@ -96,13 +104,13 @@ extension String {
     }
 }
 
-extension SQL.SchemaForeignKey {
+extension DataDefinitionForeignKey {
     mutating func mysqlShortenName() throws {
         try name.mysqlShortenName()
     }
 }
 
-extension Array where Element == SQL.SchemaForeignKey {
+extension Array where Element == DataDefinitionForeignKey {
     mutating func mysqlShortenNames() throws {
         for i in 0..<count {
             try self[i].mysqlShortenName()

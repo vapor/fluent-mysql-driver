@@ -19,15 +19,27 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
         return Future<Void>.flatMap(on: connection) {
             // Convert Fluent `DatabaseQuery` to generic FluentSQL `DataQuery`
             var (sqlQuery, bindValues) = query.makeDataQuery()
+            let params: [MySQLDatabase.QueryData]
 
-            // If the query has an Encodable model attached serialize it.
-            // Dictionary keys should be added to the DataQuery as columns.
-            // Dictionary values should be added to the parameterized array.
-            var modelData: [MySQLData] = []
-            modelData.reserveCapacity(query.data.count)
-            for (field, data) in query.data {
-                sqlQuery.columns.append(DataColumn(table: field.entity, name: field.name))
-                modelData.append(data)
+            switch sqlQuery {
+            case .manipulation(var manipulation):
+                // If the query has an Encodable model attached serialize it.
+                // Dictionary keys should be added to the DataQuery as columns.
+                // Dictionary values should be added to the parameterized array.
+                var modelData: [MySQLData] = []
+                modelData.reserveCapacity(query.data.count)
+                manipulation.columns = query.data.map { (field, data) in
+                    modelData.append(data)
+                    let col = DataColumn(table: field.entity, name: field.name)
+                    return .init(column: col, value: .placeholder)
+                }
+                params = modelData + bindValues
+                sqlQuery = .manipulation(manipulation)
+            case .query(let data):
+                params = bindValues
+                sqlQuery = .query(data)
+            case .definition:
+                params = []
             }
 
             /// Apply custom sql transformations
@@ -37,19 +49,11 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
 
             // Create a MySQL-flavored SQL serializer to create a SQL string
             let sqlSerializer = MySQLSerializer()
-            let sqlString = sqlSerializer.serialize(data: sqlQuery)
-
-            let params = modelData + bindValues
+            let sqlString = sqlSerializer.serialize(sqlQuery)
 
             /// Log supporting
             if let logger = connection.logger {
-                let log = DatabaseLog(
-                    query: sqlString,
-                    values: params.map { $0.description },
-                    dbID: "mysql",
-                    date: .init()
-                )
-                logger.record(log: log)
+                logger.record(query: sqlString, values: params.map { $0.description })
             }
 
             /// Run the query
