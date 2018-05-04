@@ -218,10 +218,13 @@ class FluentMySQLTests: XCTestCase {
         try Child.prepare(on: conn).wait()
         MySQLDatabase.enableLogging(conn.logger!, on: conn)
         // Save Parent
-        var parent = Parent(id: 64, name: "Snuffles")
-        parent = try parent.save(on: conn).wait()
+        var parent = Parent(id: 64, name: "Jerry")
+        parent = try parent.create(on: conn).wait()
         // Save Child with a ref to previously saved Parent
-        var child = Child(id: nil, name: "Morty", parentId: parent.id!)
+        let savedParent = try Parent.query(on: conn).first().wait()
+//        XCTAssertEqual(savedParent!.id!, parent.id!)
+        print("Parent saved with ID", savedParent?.id ?? "NOT SAVED")
+        var child = Child(id: nil, name: "Morty", parentId: savedParent!.id!)
         child = try child.save(on: conn).wait()
 
         if let fetched = try Child.query(on: conn).first().wait() {
