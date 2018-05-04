@@ -21,6 +21,7 @@ class FluentMySQLTests: XCTestCase {
             database: "vapor_database"
         )
         database = MySQLDatabase(config: config)
+        database.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
     }
 
@@ -207,7 +208,6 @@ class FluentMySQLTests: XCTestCase {
     }
 
     func testReferences() throws {
-        database.enableLogging(using: .print)
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 
@@ -216,12 +216,13 @@ class FluentMySQLTests: XCTestCase {
                 try? Parent.revert(on: conn).wait() }
         try Parent.prepare(on: conn).wait()
         try Child.prepare(on: conn).wait()
-        // Save Pet
+        MySQLDatabase.enableLogging(conn.logger!, on: conn)
+        // Save Parent
         var parent = Parent(id: 64, name: "Snuffles")
-        parent = try parent.create(on: conn).wait()
-        // Save User with a ref to previously saved Pet
+        parent = try parent.save(on: conn).wait()
+        // Save Child with a ref to previously saved Parent
         var child = Child(id: nil, name: "Morty", parentId: parent.id!)
-        child = try child.create(on: conn).wait()
+        child = try child.save(on: conn).wait()
 
         if let fetched = try Child.query(on: conn).first().wait() {
             XCTAssertEqual(child.id, fetched.id)
@@ -233,7 +234,6 @@ class FluentMySQLTests: XCTestCase {
     }
 
     func testForeignKeyIndexCount() throws {
-        database.enableLogging(using: .print)
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 
@@ -246,6 +246,7 @@ class FluentMySQLTests: XCTestCase {
         let testDatabase = database.config.database
         let query = "select COUNT(1) as resultCount from information_schema.KEY_COLUMN_USAGE where table_schema = '\(testDatabase)' and table_name = '\(Child.entity)' and constraint_name != 'PRIMARY'"
 
+        // conn.all(CountResult.self, in: query).wait() has been removed
         let fetched = try conn.simpleQuery(query).wait()
         if let fetchedFirst = fetched.first,
             let resultData = fetchedFirst.firstValue(forColumn: "resultCount"),
