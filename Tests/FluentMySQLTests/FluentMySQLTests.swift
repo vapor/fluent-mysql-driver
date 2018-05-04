@@ -21,7 +21,7 @@ class FluentMySQLTests: XCTestCase {
             database: "vapor_database"
         )
         database = MySQLDatabase(config: config)
-        benchmarker = Benchmarker(database, on: eventLoop, onFail: XCTFail)
+        benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
     }
 
     func testSchema() throws {
@@ -97,8 +97,13 @@ class FluentMySQLTests: XCTestCase {
 
         let all = try A.query(on: conn)
             .customSQL { sql in
-                let predicate = DataPredicate(column: "cola", comparison: .isNull)
-                sql.predicates.append(.predicate(predicate))
+                switch sql {
+                case .query(var query):
+                    let predicate = DataPredicate(column: "cola", comparison: .isNull)
+                    query.predicates.append(.predicate(predicate))
+                    sql = .query(query)
+                default: break
+                }
             }
             .all().wait()
 
@@ -106,7 +111,6 @@ class FluentMySQLTests: XCTestCase {
     }
 
     func testMySQLSet() throws {
-        benchmarker.database.enableLogging(using: .print)
         let conn = try benchmarker.pool.requestConnection().wait()
         _ = try conn.simpleQuery("drop table if exists tablea;").wait()
         _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
@@ -120,7 +124,6 @@ class FluentMySQLTests: XCTestCase {
     }
 
     func testJSONType() throws {
-        benchmarker.database.enableLogging(using: .print)
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { _ = try? User.revert(on: conn).wait() }
         _ = try User.prepare(on: conn).wait()
@@ -142,7 +145,6 @@ class FluentMySQLTests: XCTestCase {
     }
 
     func testGH93() throws {
-        database.enableLogging(using: .print)
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 
@@ -189,7 +191,6 @@ class FluentMySQLTests: XCTestCase {
     }
 
     func testGH76() throws {
-        database.enableLogging(using: .print)
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 

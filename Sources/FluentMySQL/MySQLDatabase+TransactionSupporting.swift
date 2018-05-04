@@ -6,7 +6,7 @@ extension MySQLDatabase: TransactionSupporting {
     ) -> Future<Void> {
         return connection.simpleQuery("START TRANSACTION").flatMap(to: Void.self) { _ in
             return transaction.run(on: connection).flatMap(to: Void.self) { void in
-                return connection.simpleQuery("END TRANSACTION").transform(to: ())
+                return connection.simpleQuery("COMMIT").transform(to: ())
             }
         }.catchFlatMap { error in
             return connection.simpleQuery("ROLLBACK").map(to: Void.self) { _ in

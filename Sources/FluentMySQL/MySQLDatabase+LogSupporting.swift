@@ -1,6 +1,6 @@
 extension MySQLDatabase: LogSupporting {
-    /// See `LogSupporting.enableLogging(using:)`
-    public func enableLogging(using logger: DatabaseLogger) {
-        self.logger = logger
+    /// See `LogSupporting`.
+    public static func enableLogging(_ logger: DatabaseLogger, on conn: MySQLConnection) {
+        conn.logger = logger
     }
 }
