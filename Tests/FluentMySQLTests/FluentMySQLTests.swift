@@ -95,7 +95,6 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
         _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
 
-
         let all = try A.query(on: conn)
             .customSQL { sql in
                 switch sql {
