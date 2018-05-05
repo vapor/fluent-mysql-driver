@@ -80,7 +80,8 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
                 return Future.map(on: connection) { model }
             }
         case .didCreate:
-            if M.ID.self == Int.self {
+            // only use last_id if the model's current ID is null, otherwise keep it
+            if model.fluentID == nil, M.ID.self == Int.self {
                 return connection.simpleQuery("SELECT LAST_INSERT_ID() AS lastval;").map(to: M.self) { row in
                     var model = model
                     try model.fluentID = row[0].firstValue(forColumn: "lastval")?.decode(Int.self) as? M.ID
