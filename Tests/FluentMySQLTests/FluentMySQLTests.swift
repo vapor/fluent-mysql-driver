@@ -222,7 +222,7 @@ class FluentMySQLTests: XCTestCase {
         parent = try parent.create(on: conn).wait()
         // Save Child with a ref to previously saved Parent
         let savedParent = try Parent.query(on: conn).first().wait()
-//        XCTAssertEqual(savedParent!.id!, parent.id!)
+        XCTAssertEqual(savedParent!.id!, parent.id!, "Fetched ID \(savedParent!.id!) != saved ID \(parent.id!)")
         print("Parent saved with ID", savedParent?.id ?? "NOT SAVED")
         var child = Child(id: nil, name: "Morty", parentId: savedParent!.id!)
         child = try child.save(on: conn).wait()
