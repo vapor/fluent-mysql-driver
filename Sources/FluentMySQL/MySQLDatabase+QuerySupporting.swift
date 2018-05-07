@@ -80,7 +80,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
                 return Future.map(on: connection) { model }
             }
         case .didCreate:
-            // only use last_id if the model's current ID is null, otherwise keep it
+            // only use last_id if the model's current ID is nil, otherwise keep it
             if model.fluentID == nil, M.ID.self == Int.self {
                 return connection.simpleQuery("SELECT LAST_INSERT_ID() AS lastval;").map(to: M.self) { row in
                     var model = model
