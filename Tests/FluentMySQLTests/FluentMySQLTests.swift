@@ -211,8 +211,10 @@ class FluentMySQLTests: XCTestCase {
         defer { benchmarker.pool.releaseConnection(conn) }
 
         // Prep tables
-        defer { try? Child.revert(on: conn).wait()
-                try? Parent.revert(on: conn).wait() }
+        defer {
+        	try? Child.revert(on: conn).wait()
+			try? Parent.revert(on: conn).wait()
+		}
         try Parent.prepare(on: conn).wait()
         try Child.prepare(on: conn).wait()
         MySQLDatabase.enableLogging(conn.logger!, on: conn)
@@ -240,12 +242,16 @@ class FluentMySQLTests: XCTestCase {
         defer { benchmarker.pool.releaseConnection(conn) }
 
         // Prep tables
-        defer { try? Child.revert(on: conn).wait()
-                try? Parent.revert(on: conn).wait() }
+        defer {
+        	try? Child.revert(on: conn).wait()
+			try? Parent.revert(on: conn).wait()
+		}
         try Parent.prepare(on: conn).wait()
         try Child.prepare(on: conn).wait()
 
         let testDatabase = database.config.database
+        // Fetch how many contraints were created in Child, ignoring primary keys
+        // Should be 1 (Parent-Child foreign key)
         let query = "select COUNT(1) as resultCount from information_schema.KEY_COLUMN_USAGE where table_schema = '\(testDatabase)' and table_name = '\(Child.entity)' and constraint_name != 'PRIMARY'"
 
         // conn.all(CountResult.self, in: query).wait() has been removed
