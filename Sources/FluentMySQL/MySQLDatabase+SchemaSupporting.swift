@@ -126,7 +126,7 @@ extension Array where Element == String {
     }
 }
 
-extension SchemaIndex {
+extension SchemaIndex where Database == MySQLDatabase {
     func mysqlIdentifier(for entity: String) -> String {
         return "_fluent_index_\(entity)_" + fields.map { $0.name }.joined(separator: "_")
     }

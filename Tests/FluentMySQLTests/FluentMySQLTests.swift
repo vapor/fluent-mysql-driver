@@ -14,7 +14,7 @@ class FluentMySQLTests: XCTestCase {
     override func setUp() {
         let eventLoop = MultiThreadedEventLoopGroup(numThreads: 1)
         let config = MySQLDatabaseConfig(
-            hostname: "localhost",
+            hostname: "192.168.99.100",
             port: 3306,
             username: "vapor_username",
             password: "vapor_password",
@@ -117,7 +117,10 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
 
-        _ = try A.query(on: conn).update(["cola": "3", "id": 2]).wait()
+        _ = try A.query(on: conn).update([
+            "cola": "3".convertToMySQLData(),
+            "id": 2.convertToMySQLData()
+        ]).wait()
 
         let all = try A.query(on: conn).all().wait()
         print(all)

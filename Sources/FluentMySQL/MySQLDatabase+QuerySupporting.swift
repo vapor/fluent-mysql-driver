@@ -4,11 +4,14 @@ import Foundation
 
 /// Adds ability to do basic Fluent queries using a `MySQLDatabase`.
 extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
-    /// See `QuerySupporting.QueryData`
+    /// See `QuerySupporting`.
     public typealias QueryData = MySQLData
 
-    /// See `QuerySupporting.QueryDataConvertible`
-    public typealias QueryDataConvertible = MySQLDataConvertible
+    /// See `QuerySupporting`.
+    public typealias QueryField = MySQLColumn
+
+    /// See `QuerySupporting`.
+    public typealias QueryFilter = DataPredicateComparison
 
     /// See `QuerySupporting.execute`
     public static func execute(
@@ -30,7 +33,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
                 modelData.reserveCapacity(query.data.count)
                 manipulation.columns = query.data.map { (field, data) in
                     modelData.append(data)
-                    let col = DataColumn(table: field.entity, name: field.name)
+                    let col = DataColumn(table: field.table, name: field.name)
                     return .init(column: col, value: .placeholder)
                 }
                 params = modelData + bindValues
@@ -58,12 +61,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
 
             /// Run the query
             return connection.query(sqlString,params) { row in
-                var res: [QueryField: MySQLData] = [:]
-                for (col, data) in row {
-                    let field = QueryField(entity: col.table, name: col.name)
-                    res[field] = data
-                }
-                try handler(res, connection)
+                try handler(row, connection)
             }
         }
     }
@@ -93,21 +91,8 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
         return Future.map(on: connection) { model }
     }
 
-    /// See `QuerySupporting.queryDataParse(_:from:)`
-    public static func queryDataParse<T>(_ type: T.Type, from data: MySQLData) throws -> T? {
-        if data.isNull {
-            return nil
-        }
-
-        guard let convertibleType = T.self as? MySQLDataConvertible.Type else {
-            throw MySQLError(identifier: "queryDataParse", reason: "Cannot parse \(T.self) from MySQLData", source: .capture())
-        }
-        let t: T = try convertibleType.convertFromMySQLData(data) as! T
-        return t
-    }
-
-    /// See `QuerySupporting.queryDataSerialize(data:)`
-    public static func queryDataSerialize<T>(data: T?) throws -> MySQLData {
+    /// See `QuerySupporting`.
+    public static func queryDataEncode<T>(_ data: T?) throws -> MySQLData {
         if let data = data {
             guard let convertible = data as? MySQLDataConvertible else {
                 throw MySQLError(identifier: "queryDataSerialize", reason: "Cannot serialize \(T.self) to MySQLData", source: .capture())
@@ -118,8 +103,29 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
         }
     }
 
-    /// See `QuerySupporting.QueryFilter`
-    public typealias QueryFilter = DataPredicateComparison
+    /// See `QuerySupporting`.
+    public static func queryField(for reflectedProperty: ReflectedProperty, entity: String) throws -> MySQLColumn {
+        return .init(table: entity, name: reflectedProperty.path.first ?? "")
+    }
+
+    /// See `QuerySupporting`.
+    public static func queryEncode<E>(_ encodable: E, entity: String) throws -> [MySQLColumn: MySQLData]
+        where E: Encodable
+    {
+        return try MySQLRowEncoder().encode(encodable)
+    }
+
+    /// See `QuerySupporting`.
+    public static func queryDecode<D>(_ data: [MySQLColumn: MySQLData], entity: String, as decodable: D.Type) throws -> D
+        where D: Decodable
+    {
+        return try MySQLRowDecoder().decode(D.self, from: data.filter { $0.key.table == nil || $0.key.table == entity })
+    }
 }
 
 extension MySQLData: FluentData { }
+extension MySQLColumn: DataColumnRepresentable {
+    public func makeDataColumn() -> DataColumn {
+        return .init(table: table, name: name)
+    }
+}

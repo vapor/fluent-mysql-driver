@@ -23,6 +23,11 @@ public struct MySQLColumnDefinition {
     public static func varChar(length: Int) -> MySQLColumnDefinition {
         return .init(name: "VARCHAR", length: length)
     }
+
+    /// A `varChar` column type, typically used to store strings.
+    public static func varBinary(length: Int) -> MySQLColumnDefinition {
+        return .init(name: "VARBINARY", length: length)
+    }
     
     /// A `varChar` column type, can be binary
     public static func tinyBlob(length: Int) -> MySQLColumnDefinition {
@@ -114,7 +119,7 @@ public protocol MySQLColumnDefinitionStaticRepresentable {
 extension UUID: MySQLColumnDefinitionStaticRepresentable {
     /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
     public static var mySQLColumnDefinition: MySQLColumnDefinition {
-        return .binary(length: 16)
+        return .varBinary(length: 16)
     }
 }
 
