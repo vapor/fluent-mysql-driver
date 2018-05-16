@@ -61,8 +61,7 @@ extension MySQLColumnDefinitionStaticRepresentable where Self: RawRepresentable,
 
 /// Provides a default `MySQLDataConvertible` implementation where the type is also
 /// `RawRepresentable` by a `MySQLDataConvertible` type.
-extension MySQLDataConvertible
-    where Self: RawRepresentable, Self.RawValue: MySQLDataConvertible
+extension MySQLDataConvertible where Self: RawRepresentable, Self.RawValue: MySQLDataConvertible
 {
     /// See `MySQLDataConvertible.convertToMySQLData()`
     public func convertToMySQLData() throws -> MySQLData {
