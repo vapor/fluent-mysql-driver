@@ -5,38 +5,72 @@ import Foundation
 /// Adds ability to do basic Fluent queries using a `MySQLDatabase`.
 extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
     /// See `QuerySupporting`.
-    public typealias QueryData = MySQLData
+    public typealias DataType = MySQLData
 
     /// See `QuerySupporting`.
-    public typealias QueryField = MySQLColumn
+    public typealias FieldType = MySQLColumn
 
     /// See `QuerySupporting`.
-    public typealias QueryFilter = DataPredicateComparison
+    public typealias FilterType = DataPredicateComparison
+
+    public typealias ValueType = DataPredicateValue
+
+    /// See `QuerySupporting`.
+    public typealias EntityType = [MySQLColumn: MySQLData]
 
     /// See `QuerySupporting.execute`
     public static func execute(
-        query: DatabaseQuery<MySQLDatabase>,
-        into handler: @escaping ([QueryField: MySQLData], MySQLConnection) throws -> (),
+        query: Query<MySQLDatabase>,
+        into handler: @escaping ([MySQLColumn: MySQLData], MySQLConnection) throws -> (),
         on connection: MySQLConnection
     ) -> EventLoopFuture<Void> {
         return Future<Void>.flatMap(on: connection) {
             // Convert Fluent `DatabaseQuery` to generic FluentSQL `DataQuery`
-            var (sqlQuery, bindValues) = query.makeDataQuery()
-            let params: [MySQLDatabase.QueryData]
+            var (sqlQuery, bindEncodables) = try query.converToDataQuery()
+            let params: [MySQLDatabase.DataType]
+
+            let bindValues: [MySQLData] = try bindEncodables.map { encodable in
+                guard let convertible = encodable as? MySQLDataConvertible else {
+                    throw MySQLError(identifier: "mysqlData", reason: "\(encodable) is not `MySQLDataConvertible`", source: .capture())
+                }
+                return try convertible.convertToMySQLData()
+            }
 
             switch sqlQuery {
             case .manipulation(var manipulation):
+                var manipulationValues: [MySQLData] = []
                 // If the query has an Encodable model attached serialize it.
                 // Dictionary keys should be added to the DataQuery as columns.
                 // Dictionary values should be added to the parameterized array.
-                var modelData: [MySQLData] = []
-                modelData.reserveCapacity(query.data.count)
-                manipulation.columns = query.data.map { (field, data) in
-                    modelData.append(data)
-                    let col = DataColumn(table: field.table, name: field.name)
-                    return .init(column: col, value: .placeholder)
+                switch query.data {
+                case .custom(let row):
+                    manipulationValues.reserveCapacity(row.count)
+                    manipulation.columns = row.map { (field, data) in
+                        manipulationValues.append(data)
+                        let col = DataColumn(table: field.table, name: field.name)
+                        return .init(column: col, value: .placeholder)
+                    }
+                case .encodable(let encodable):
+                    let encodableData = try MySQLRowEncoder().anyEncode(encodable)
+                    manipulationValues.reserveCapacity(encodableData.count)
+                    manipulation.columns = encodableData.map { (field, data) in
+                        manipulationValues.append(data)
+                        let col = DataColumn(table: field.table, name: field.name)
+                        return .init(column: col, value: .placeholder)
+                    }
+                case .field(let field, let value):
+                    let col = try field.convertToDataColumn()
+                    switch value {
+                    case .field(let field):
+                        manipulation.columns = try [.init(column: col, value: .column(field.convertToDataColumn()))]
+                    case .custom: fatalError()
+                    case .encodables(let e):
+                        manipulation.columns = [.init(column: col, value: .placeholder)]
+                        manipulationValues = try [(e[0] as! MySQLDataConvertible).convertToMySQLData()]
+                    }
+                case .none: break
                 }
-                params = modelData + bindValues
+                params = manipulationValues + bindValues
                 sqlQuery = .manipulation(manipulation)
             case .query(let data):
                 params = bindValues
@@ -92,19 +126,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
     }
 
     /// See `QuerySupporting`.
-    public static func queryDataEncode<T>(_ data: T?) throws -> MySQLData {
-        if let data = data {
-            guard let convertible = data as? MySQLDataConvertible else {
-                throw MySQLError(identifier: "queryDataSerialize", reason: "Cannot serialize \(T.self) to MySQLData", source: .capture())
-            }
-            return try convertible.convertToMySQLData()
-        } else {
-            return MySQLData.null
-        }
-    }
-
-    /// See `QuerySupporting`.
-    public static func queryField(for reflectedProperty: ReflectedProperty, entity: String) throws -> MySQLColumn {
+    public static func fieldType(for reflectedProperty: ReflectedProperty, entity: String) throws -> MySQLColumn {
         return .init(table: entity, name: reflectedProperty.path.first ?? "")
     }
 
@@ -123,9 +145,8 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
     }
 }
 
-extension MySQLData: FluentData { }
 extension MySQLColumn: DataColumnRepresentable {
-    public func makeDataColumn() -> DataColumn {
+    public func convertToDataColumn() -> DataColumn {
         return .init(table: table, name: name)
     }
 }

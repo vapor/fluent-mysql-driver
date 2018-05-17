@@ -50,12 +50,14 @@ class FluentMySQLTests: XCTestCase {
 
     func testMySQLJoining() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
-        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
-        _ = try conn.simpleQuery("drop table if exists tableb;").wait()
-        _ = try conn.simpleQuery("drop table if exists tablec;").wait()
         _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
         _ = try conn.simpleQuery("create table tableb (colb INT);").wait()
         _ = try conn.simpleQuery("create table tablec (colc INT);").wait()
+        defer {
+            _ = try? conn.simpleQuery("drop table if exists tablea;").wait()
+            _ = try? conn.simpleQuery("drop table if exists tableb;").wait()
+            _ = try? conn.simpleQuery("drop table if exists tablec;").wait()
+        }
 
         _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
@@ -71,9 +73,9 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablec values (4);").wait()
 
         let all = try A.query(on: conn)
-            .join(B.self, field: \.colb, to: \.cola)
+            .join(\B.colb, to: \A.cola)
             .alsoDecode(B.self)
-            .join(C.self, field: \.colc, to: \.cola)
+            .join(\C.colc, to: \A.cola)
             .alsoDecode(C.self)
             .all().wait()
 
@@ -87,8 +89,8 @@ class FluentMySQLTests: XCTestCase {
 
     func testMySQLCustomSQL() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
-        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
         _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
         _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
         _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
@@ -112,8 +114,8 @@ class FluentMySQLTests: XCTestCase {
 
     func testMySQLSet() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
-        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
         _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
         _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
 
@@ -162,13 +164,13 @@ class FluentMySQLTests: XCTestCase {
 
             static func prepare(on connection: MySQLConnection) -> Future<Void> {
                 return MySQLDatabase.create(self, on: connection) { builder in
-                    try builder.field(type: .int64(), for: \.id, isOptional: false, isIdentifier: true)
-                    try builder.field(for: \.title)
-                    try builder.field(for: \.strap)
-                    try builder.field(type: .text(), for: \.content)
-                    try builder.field(for: \.category)
-                    try builder.field(for: \.slug)
-                    try builder.field(for: \.date)
+                    builder.field(type: .int64(), for: \.id, isOptional: false, isIdentifier: true)
+                    builder.field(for: \.title)
+                    builder.field(for: \.strap)
+                    builder.field(type: .text(), for: \.content)
+                    builder.field(for: \.category)
+                    builder.field(for: \.slug)
+                    builder.field(for: \.date)
                 }
             }
         }
