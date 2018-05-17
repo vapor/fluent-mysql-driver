@@ -2,26 +2,73 @@ import Async
 import Crypto
 import Foundation
 
+extension MySQLColumnDefinition: SchemaDataType {
+    public static func type(_ type: Any.Type) -> MySQLColumnDefinition {
+        guard let representable = type as? MySQLColumnDefinitionStaticRepresentable.Type else {
+            fatalError("No MySQL column type known for \(type).")
+//            throw MySQLError(
+//                identifier: "fieldType",
+//                reason: "No MySQL column type known for \(type).",
+//                suggestedFixes: [
+//                    "Conform \(type) to `MySQLColumnDefinitionStaticRepresentable` to specify field type or implement a custom migration.",
+//                    "Specify the `MySQLColumnDefinition` manually using the schema builder in a migration."
+//                ],
+//                source: .capture()
+//            )
+        }
+        return representable.mySQLColumnDefinition
+    }
+}
+
+public struct MySQLFieldDefinition: SchemaFieldDefinition, DataDefinitionColumnRepresentable {
+
+    public var field: DataColumn
+    public var dataType: MySQLColumnDefinition
+    public var isOptional: Bool
+    public var isIdentifier: Bool
+
+    public static func unit(_ field: DataColumn, _ dataType: MySQLColumnDefinition, isOptional: Bool, isIdentifier: Bool) -> MySQLFieldDefinition {
+        return .init(field: field, dataType: dataType, isOptional: isOptional, isIdentifier: isIdentifier)
+    }
+
+    public typealias Field = DataColumn
+    public typealias DataType = MySQLColumnDefinition
+
+
+    public func convertToDataDefinitionColumn() -> DataDefinitionColumn {
+        var attributes = dataType.attributes
+        if isIdentifier {
+            attributes.append("PRIMARY KEY")
+            if dataType.name.contains("INT") {
+                attributes.append("AUTO_INCREMENT")
+            }
+        }
+        if !isOptional {
+            attributes.append("NOT NULL")
+        }
+
+        var name = dataType.name
+        if let length = dataType.length {
+            name += "(\(length))"
+        }
+
+        return .init(name: field.name, dataType: name, attributes: attributes)
+    }
+}
+
 /// Adds ability to create, update, and delete schemas using a `MySQLDatabase`.
 extension MySQLDatabase: SchemaSupporting, IndexSupporting {
-    /// See `SchemaSupporting`.
-    public typealias SchemaType = MySQLColumnDefinition
+    public typealias FieldDefinition = MySQLFieldDefinition
 
     /// See `SchemaSupporting.execute`
     public static func execute(schema: Schema<MySQLDatabase>, on connection: MySQLConnection) -> Future<Void> {
         return Future.flatMap(on: connection) {
-            var schemaQuery = try schema.convertToSchemaQuery(dataTypeFactory: dataType)
-            try schema.applyReferences(to: &schemaQuery)
-            try schemaQuery.addForeignKeys.mysqlShortenNames()
-            try schemaQuery.removeForeignKeys.mysqlShortenNames()
+            var ddl = try schema.convertToDataDefinitionQuery()
+            try schema.applyReferences(to: &ddl)
+            try ddl.addForeignKeys.mysqlShortenNames()
+            try ddl.removeForeignKeys.mysqlShortenNames()
 
-            /// Apply custom sql transformations
-            var sqlQuery: SQLQuery = .definition(schemaQuery)
-            for customSQL in schema.customSQL {
-                customSQL.closure(&sqlQuery)
-            }
-
-            let sqlString = MySQLSerializer().serialize(sqlQuery)
+            let sqlString = MySQLSerializer().serialize(query: ddl)
             if let logger = connection.logger {
                 logger.log(query: sqlString)
             }
@@ -31,7 +78,7 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
                 /// handle indexes as separate query
                 var indexFutures: [Future<Void>] = []
                 for addIndex in schema.addIndexes {
-                    let fields = try addIndex.fields.map { try "`\($0.convertToDataColumn().name)`" }.joined(separator: ", ")
+                    let fields = addIndex.fields.map { "`\($0.name)`" }.joined(separator: ", ")
                     let name = try addIndex.mysqlIdentifier(for: schema.entity).mysqlShortenedName()
                     let add = connection.simpleQuery("CREATE \(addIndex.isUnique ? "UNIQUE " : "")INDEX `\(name)` ON `\(schema.entity)` (\(fields))").map(to: Void.self) { rows in
                         assert(rows.count == 0)
@@ -48,46 +95,6 @@ extension MySQLDatabase: SchemaSupporting, IndexSupporting {
                 return indexFutures.flatten(on: connection)
             }
         }
-    }
-
-    /// Serializes schema definition field to a `String`.
-    private static func dataType(for field: Schema<MySQLDatabase>.FieldDefinition) throws -> String {
-        let definition: MySQLColumnDefinition
-        switch field.dataType {
-        case .custom(let custom): definition = custom
-        case .type(let type):
-            guard let representable = type as? MySQLColumnDefinitionStaticRepresentable.Type else {
-                throw MySQLError(
-                    identifier: "fieldType",
-                    reason: "No MySQL column type known for \(type).",
-                    suggestedFixes: [
-                        "Conform \(type) to `MySQLColumnDefinitionStaticRepresentable` to specify field type or implement a custom migration.",
-                        "Specify the `MySQLColumnDefinition` manually using the schema builder in a migration."
-                    ],
-                    source: .capture()
-                )
-            }
-            definition = representable.mySQLColumnDefinition
-        }
-        var string = definition.name
-        if let length = definition.length {
-            string += "(\(length))"
-        }
-
-        string += " " + definition.attributes.joined(separator: " ")
-
-        if field.isIdentifier {
-            string += " PRIMARY KEY"
-            if definition.name.contains("INT") {
-                string += " AUTO_INCREMENT"
-            }
-        }
-
-        if !field.isOptional {
-            string += " NOT NULL"
-        }
-
-        return string
     }
 }
 
@@ -129,6 +136,6 @@ extension Array where Element == String {
 
 extension Schema.Index where Database == MySQLDatabase {
     func mysqlIdentifier(for entity: String) throws -> String {
-        return try "_fluent_index_\(entity)_" + fields.map { try $0.convertToDataColumn().name }.joined(separator: "_")
+        return "_fluent_index_\(entity)_" + fields.map { $0.name }.joined(separator: "_")
     }
 }
