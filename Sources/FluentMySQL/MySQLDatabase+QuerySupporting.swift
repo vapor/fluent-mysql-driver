@@ -2,21 +2,28 @@ import Async
 import FluentSQL
 import Foundation
 
+extension MySQLData: DataPredicateValueRepresentable {
+    public func convertToDataPredicateValue() -> DataPredicateValue {
+        return .placeholder
+    }
+}
+
 /// Adds ability to do basic Fluent queries using a `MySQLDatabase`.
 extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
-    /// See `QuerySupporting`.
-    public typealias DataType = MySQLData
-
     /// See `QuerySupporting`.
     public typealias FieldType = MySQLColumn
 
     /// See `QuerySupporting`.
-    public typealias FilterType = DataPredicateComparison
-
-    public typealias ValueType = DataPredicateValue
+    public typealias DataType = MySQLData
 
     /// See `QuerySupporting`.
     public typealias EntityType = [MySQLColumn: MySQLData]
+
+    /// See `QuerySupporting`.
+    public typealias FilterMethodType = DataPredicateComparison
+
+    /// See `QuerySupporting`.
+    public typealias FilterValueType = DataPredicateValue
 
     /// See `QuerySupporting.execute`
     public static func execute(
@@ -27,7 +34,7 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
         return Future<Void>.flatMap(on: connection) {
             // Convert Fluent `DatabaseQuery` to generic FluentSQL `DataQuery`
             var (sqlQuery, bindEncodables) = try query.converToDataQuery()
-            let params: [MySQLDatabase.DataType]
+            let params: [MySQLData]
 
             let bindValues: [MySQLData] = try bindEncodables.map { encodable in
                 guard let convertible = encodable as? MySQLDataConvertible else {
@@ -58,15 +65,25 @@ extension MySQLDatabase: QuerySupporting, CustomSQLSupporting {
                         let col = DataColumn(table: field.table, name: field.name)
                         return .init(column: col, value: .placeholder)
                     }
-                case .field(let field, let value):
-                    let col = try field.convertToDataColumn()
-                    switch value {
-                    case .field(let field):
-                        manipulation.columns = try [.init(column: col, value: .column(field.convertToDataColumn()))]
-                    case .custom: fatalError()
-                    case .encodables(let e):
-                        manipulation.columns = [.init(column: col, value: .placeholder)]
-                        manipulationValues = try [(e[0] as! MySQLDataConvertible).convertToMySQLData()]
+                case .batch(let fields):
+                    for (field, value) in fields {
+                        let col = try field.convertToDataColumn()
+                        switch value {
+                        case .data(let data):
+                            switch data {
+                            case .array: throw MySQLError(identifier: "unsupported", reason: "Array value in batch not yet supported.", source: .capture())
+                            case .custom(let custom):
+                                manipulation.columns.append(.init(column: col, value: .placeholder))
+                                manipulationValues.append(custom)
+                            case .encodable(let encodable):
+                                manipulation.columns.append(.init(column: col, value: .placeholder))
+                                // FIXME: make this better
+                                try manipulationValues.append((encodable as! MySQLDataConvertible).convertToMySQLData())
+                            }
+                        case .field(let field):
+                            try manipulation.columns.append(.init(column: col, value: .column(field.convertToDataColumn())))
+                        case .custom: fatalError()
+                        }
                     }
                 case .none: break
                 }
