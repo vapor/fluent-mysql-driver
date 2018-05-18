@@ -1,7 +1,61 @@
+public struct MySQLQuery: SQLQuery {
+    /// See `SQLQuery`.
+    public var table: String
+
+    /// See `SQLQuery`.
+    public var statement: SQLStatement
+
+    /// See `SQLQuery`.
+    public var binds: [SQLValue]
+
+    /// See `SQLQuery`.
+    public var data: [DataColumn: SQLValue]
+
+    /// See `SQLQuery`.
+    public var predicates: [DataPredicateItem]
+
+    /// See `SQLQuery`.
+    public var columns: [DataQueryColumn]
+
+    /// See `SQLQuery`.
+    public var limit: Int?
+
+    /// See `SQLQuery`.
+    public var offset: Int?
+
+    /// See `SQLQuery`.
+    public var orderBys: [DataOrderBy]
+
+    /// See `SQLQuery`.
+    public var groupBys: [DataGroupBy]
+
+    /// See `SQLQuery`.
+    public var joins: [DataJoin]
+
+    /// See `SQLQuery`.
+    public init(table: String) {
+        self.table = table
+        self.statement = .select
+        self.binds = []
+        self.data = [:]
+        self.predicates = []
+        self.columns = []
+        self.limit = nil
+        self.offset = nil
+        self.orderBys = []
+        self.groupBys = []
+        self.joins = []
+    }
+}
+
 /// Adds ability to do basic Fluent queries using a `MySQLDatabase`.
 extension MySQLDatabase: SQLDatabase {
     /// See `SQLDatabase`.
-    public static func execute(query: SQLQuery, into handler: @escaping ([MySQLColumn: MySQLData], MySQLConnection) throws -> (), on conn: MySQLConnection) -> Future<Void> {
+    public static func execute(
+        query: MySQLQuery,
+        into handler: @escaping ([MySQLColumn: MySQLData], MySQLConnection) throws -> (),
+        on conn: MySQLConnection
+    ) -> Future<Void> {
         do {
             // Create a MySQL-flavored SQL serializer to create a SQL string
             let sqlSerializer = MySQLSerializer()
@@ -36,12 +90,10 @@ extension MySQLDatabase: SQLDatabase {
                 return conn.eventLoop.newSucceededFuture(result: model)
             }
         case .didCreate:
-            if M.ID.self == Int.self && model.fluentID == nil {
-                return conn.simpleQuery("SELECT LAST_INSERT_ID() AS lastval;").map { row in
-                    var model = model
-                    try model.fluentID = row[0].firstValue(forColumn: "lastval")?.decode(Int.self) as? M.ID
-                    return model
-                }
+            if let metadata = conn.lastMetadata, let insertID = metadata.lastInsertID, M.ID.self == Int.self && model.fluentID == nil {
+                var model = model
+                model.fluentID = Int(insertID) as? M.ID
+                return conn.eventLoop.newSucceededFuture(result: model)
             }
         default: break
         }

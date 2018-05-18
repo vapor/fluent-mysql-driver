@@ -131,10 +131,11 @@ class FluentMySQLTests: XCTestCase {
         try print(User.query(on: conn).filter(\.id == 5).all().wait())
         let users = try User.query(on: conn).all().wait()
 
-        let query = User.query(on: conn)
-        query.query.columns = [.all, .computed(.init(function: "CONCAT", columns: ["name", "id"]), key: "test")]
-        let rows = try query.decodeRaw().all().wait()
-        print(rows)
+//        let builder = User.query(on: conn)
+//        builder.query.
+//
+//
+//        print(rows)
 
         XCTAssertEqual(users[0].id, 1)
         XCTAssertEqual(users[0].name, "Tanner")
@@ -164,7 +165,7 @@ class FluentMySQLTests: XCTestCase {
 
             static func prepare(on connection: MySQLConnection) -> Future<Void> {
                 return MySQLDatabase.create(self, on: connection) { builder in
-                    builder.field(type: .int64(), for: \.id, isOptional: false, isIdentifier: true)
+                    builder.id(type: .bigInt())
                     builder.field(for: \.title)
                     builder.field(for: \.strap)
                     builder.field(type: .text(), for: \.content)
@@ -183,9 +184,9 @@ class FluentMySQLTests: XCTestCase {
         try Post.query(on: conn).delete().wait()
     }
 
-    func testIndexes() throws {
-        try benchmarker.benchmarkIndexSupporting_withSchema()
-    }
+//    func testIndexes() throws {
+//        try benchmarker.benchmarkIndexSupporting_withSchema()
+//    }
 
     func testGH61() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
@@ -211,6 +212,19 @@ class FluentMySQLTests: XCTestCase {
         test = try test.save(on: conn).wait()
     }
 
+    func testAffectedRows() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+
+        _ = try conn.simpleQuery("create table tablea (id INT PRIMARY KEY, cola INT);").wait()
+        print(conn.lastMetadata?.affectedRows ?? 0)
+        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
+        _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
+        print(conn.lastMetadata?.affectedRows ?? 0)
+        _ = try conn.simpleQuery("insert ignore into tablea values (1, 2);").wait()
+        print(conn.lastMetadata?.affectedRows ?? 0)
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -225,7 +239,7 @@ class FluentMySQLTests: XCTestCase {
         ("testContains", testContains),
         ("testBugs", testBugs),
         ("testGH93", testGH93),
-        ("testIndexes", testIndexes),
+//        ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
     ]

@@ -13,10 +13,10 @@ public struct MySQLColumnDefinition {
     public var attributes: [String]
     
     /// An internal method of creating the column
-    public init(name: String, length: Int? = nil, attributes: [String] = []) {
+    public init(name: String, length: Int? = nil) {
         self.name = name
         self.length = length
-        self.attributes = attributes
+        self.attributes = ["NOT NULL"]
     }
     
     /// A `varChar` column type, typically used to store strings.
@@ -46,27 +46,36 @@ public struct MySQLColumnDefinition {
 
     /// A single signed (TINY) byte with a maximum (decimal) length, if specified
     public static func tinyInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "TINYINT", length: length, attributes: unsigned ? ["UNSIGNED"] : [])
+        return _int("TINYINT", unsigned: unsigned, length: length)
     }
 
     /// A single (signed SHORT) Int16 with a maximum (decimal) length, if specified
     public static func smallInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "SMALLINT", length: length, attributes: unsigned ? ["UNSIGNED"] : [])
+        return _int("SMALLINT", unsigned: unsigned, length: length)
     }
 
     /// A MEDIUM integer (24-bits, stored as 32-bits)
     public static func mediumInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "MEDIUMINT", length: length, attributes: unsigned ? ["UNSIGNED"] : [])
+        return _int("MEDIUMINT", unsigned: unsigned, length: length)
     }
 
     /// A LONG 32-bits integer
     public static func int(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "INT", length: length, attributes: unsigned ? ["UNSIGNED"] : [])
+        return _int("INT", unsigned: unsigned, length: length)
     }
 
     /// A LONGLONG 64-bits integer
     public static func bigInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "BIGINT", length: length, attributes: unsigned ? ["UNSIGNED"] : [])
+        return _int("BIGINT", unsigned: unsigned, length: length)
+    }
+
+    /// Private, generic int
+    private static func _int(_ type: String, unsigned: Bool, length: Int?) -> MySQLColumnDefinition {
+        var col = MySQLColumnDefinition(name: type, length: length)
+        if unsigned {
+            col.attributes.append("UNSIGNED")
+        }
+        return col
     }
     
     /// A floating point (single precision) 32-bits number
@@ -137,6 +146,19 @@ extension String: MySQLColumnDefinitionStaticRepresentable {
     }
 }
 
+extension Optional: MySQLColumnDefinitionStaticRepresentable {
+    /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        guard let representable = Wrapped.self as? MySQLColumnDefinitionStaticRepresentable.Type else {
+            fatalError("No MySQL column type known for \(Wrapped.Type.self).")
+        }
+        let wrapped = representable.mySQLColumnDefinition
+        var col = MySQLColumnDefinition(name: wrapped.name, length: wrapped.length)
+        col.attributes = col.attributes.filter { $0 != "NOT NULL" }
+        return col
+    }
+}
+
 extension FixedWidthInteger {
     /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
     public static var mySQLColumnDefinition: MySQLColumnDefinition {
@@ -182,66 +204,3 @@ extension BinaryFloatingPoint {
 
 extension Float: MySQLColumnDefinitionStaticRepresentable { }
 extension Double: MySQLColumnDefinitionStaticRepresentable { }
-
-extension MySQLColumnDefinition {
-    /// A single signed (TINY) byte with a maximum (decimal) length, if specified
-    @available(*, renamed: "tinyInt(length:)")
-    public static func int8(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "TINYINT", length: length)
-    }
-
-    /// A single unsigned (TINY) byte with a maximum (decimal) length, if specified
-    @available(*, renamed: "tinyInt(length:)")
-    public static func uint8(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "TINYINT", length: length, attributes: ["UNSIGNED"])
-    }
-
-    /// A single (signed SHORT) Int16 with a maximum (decimal) length, if specified
-    @available(*, renamed: "smallInt(length:)")
-    public static func int16(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "SMALLINT", length: length)
-    }
-
-    /// A single (unsigned SHORT) UInt16 with a maximum (decimal) length, if specified
-    @available(*, renamed: "smallInt(length:)")
-    public static func uint16(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "SMALLINT", length: length, attributes: ["UNSIGNED"])
-    }
-
-    /// A MEDIUM integer (24-bits, stored as 32-bits)
-    @available(*, renamed: "mediumInt(length:)")
-    public static func int24(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "MEDIUMINT", length: length)
-    }
-
-    /// An unsigned MEDIUM integer (24-bits, stored as 32-bits)
-    @available(*, renamed: "mediumInt(length:)")
-    public static func uint24(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "MEDIUMINT", length: length, attributes: ["UNSIGNED"])
-    }
-
-    /// A (signed LONG) 32-bits integer
-    @available(*, renamed: "int(length:)")
-    public static func int32(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "INT", length: length)
-    }
-
-    /// A (unsigned LONG) 32-bits integer
-    @available(*, renamed: "int(length:)")
-    public static func uint32(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "INT", length: length, attributes: ["UNSIGNED"])
-    }
-
-    /// A (signed LONGLONG) 64-bits integer
-    @available(*, renamed: "bigint(length:)")
-    public static func int64(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "BIGINT", length: length)
-    }
-
-    /// A (unsigned LONGLONG) 64-bits integer
-    @available(*, renamed: "bigint(length:)")
-    public static func uint64(length: Int? = nil) -> MySQLColumnDefinition {
-        return .init(name: "BIGINT", length: length, attributes: ["UNSIGNED"])
-    }
-
-}
