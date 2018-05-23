@@ -82,30 +82,21 @@ class FluentMySQLTests: XCTestCase {
         }
     }
 
-//    func testMySQLCustomSQL() throws {
-//        let conn = try benchmarker.pool.requestConnection().wait()
-//        _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
-//        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
-//        _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
-//        _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
-//        _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
-//        _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
-//
-//
-//        let all = try A.query(on: conn)
-//            .customSQL { sql in
-//                switch sql {
-//                case .query(var query):
-//                    let predicate = DataPredicate(column: "cola", comparison: .isNull)
-//                    query.predicates.append(.predicate(predicate))
-//                    sql = .query(query)
-//                default: break
-//                }
-//            }
-//            .all().wait()
-//
-//        XCTAssertEqual(all.count, 0)
-//    }
+    func testMySQLCustomSQL() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
+        _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
+        _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
+
+        let all = try A.query(on: conn).customSQL { query in
+            let predicate = DataPredicate(column: "cola", comparison: .isNull)
+            query.predicates.append(.predicate(predicate))
+        }.all().wait()
+        XCTAssertEqual(all.count, 0)
+    }
 
     func testMySQLSet() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
@@ -184,9 +175,9 @@ class FluentMySQLTests: XCTestCase {
         try Post.query(on: conn).delete().wait()
     }
 
-//    func testIndexes() throws {
-//        try benchmarker.benchmarkIndexSupporting_withSchema()
-//    }
+    func testIndexes() throws {
+        try benchmarker.benchmarkIndexSupporting_withSchema()
+    }
 
     func testGH61() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
@@ -233,13 +224,13 @@ class FluentMySQLTests: XCTestCase {
         ("testTransactions", testTransactions),
         ("testChunking", testChunking),
         ("testMySQLJoining",testMySQLJoining),
-//        ("testMySQLCustomSQL", testMySQLCustomSQL),
+        ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
         ("testJSONType", testJSONType),
         ("testContains", testContains),
         ("testBugs", testBugs),
         ("testGH93", testGH93),
-//        ("testIndexes", testIndexes),
+        ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
     ]
