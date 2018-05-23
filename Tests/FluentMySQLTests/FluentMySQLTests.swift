@@ -264,6 +264,10 @@ class FluentMySQLTests: XCTestCase {
             XCTFail()
         }
     }
+    
+    func testLifecycle() throws {
+        try benchmarker.benchmarkLifecycleHooks_withSchema()
+    }
 
     static let allTests = [
         ("testSchema", testSchema),
@@ -284,6 +288,7 @@ class FluentMySQLTests: XCTestCase {
         ("testGH76", testGH76),
         ("testReferences", testReferences),
         ("testForeignKeyIndexCount", testForeignKeyIndexCount),
+        ("testLifecycle", testLifecycle)
     ]
 }
 
