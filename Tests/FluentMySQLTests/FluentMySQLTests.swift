@@ -92,7 +92,7 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
 
         let all = try A.query(on: conn).customSQL { query in
-            let predicate = DataPredicate(column: "cola", comparison: .isNull)
+            let predicate = DataPredicate(column: "cola", comparison: .equal, value: .null)
             query.predicates.append(.predicate(predicate))
         }.all().wait()
         XCTAssertEqual(all.count, 0)
@@ -106,9 +106,8 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
 
         let builder = A.query(on: conn)
-        _ = try builder.update(\.cola, to: 3).wait()
-        _ = try builder.update(\.id, to: 2).wait()
-
+        _ = try builder.update(data: ["cola": 3]).wait()
+        _ = try builder.update(data: ["id": 2]).wait()
         let all = try A.query(on: conn).all().wait()
         print(all)
     }
@@ -156,10 +155,10 @@ class FluentMySQLTests: XCTestCase {
 
             static func prepare(on connection: MySQLConnection) -> Future<Void> {
                 return MySQLDatabase.create(self, on: connection) { builder in
-                    builder.id(type: .bigInt())
+                    builder.field(for: \.id, dataType: .bigInt(), primaryKey: true)
                     builder.field(for: \.title)
                     builder.field(for: \.strap)
-                    builder.field(type: .text(), for: \.content)
+                    builder.field(for: \.content, dataType: .text())
                     builder.field(for: \.category)
                     builder.field(for: \.slug)
                     builder.field(for: \.date)

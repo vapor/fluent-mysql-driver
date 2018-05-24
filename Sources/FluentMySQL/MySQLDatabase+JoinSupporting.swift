@@ -1,1 +1,0 @@
-extension MySQLDatabase: JoinSupporting { }
