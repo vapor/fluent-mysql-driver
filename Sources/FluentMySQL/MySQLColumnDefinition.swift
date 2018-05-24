@@ -2,22 +2,6 @@ public typealias MySQLColumnDefinition = MySQLDataType
 
 /// A single column's type
 public struct MySQLDataType {
-    /// The column's name
-    public var dataType: DataDefinitionDataType
-
-    /// An internal method of creating the column
-    public init(name: String, parameters: [String] = [], attributes: [String] = ["NOT NULL"]) {
-        self.dataType = .init(name: name, parameters: parameters, attributes: attributes)
-    }
-
-    /// Adds primary key attributes.
-    mutating func addPrimaryKeyAttributes() {
-        dataType.attributes.append("PRIMARY KEY")
-        if dataType.name.contains("INT") {
-            dataType.attributes.append("AUTO_INCREMENT")
-        }
-    }
-
     /// A `varChar` column type, typically used to store strings.
     public static func varChar(length: Int = 255) -> MySQLColumnDefinition {
         return make("VARCHAR", length: length)
@@ -108,7 +92,24 @@ public struct MySQLDataType {
         return make("BIGINT", unsigned: unsigned, length: length)
     }
 
-    /// Private, generic int
+    /// The column's name
+    public var dataType: DataDefinitionDataType
+
+    /// An internal method of creating the column
+    public init(name: String, parameters: [String] = [], attributes: [String] = ["NOT NULL"]) {
+        self.dataType = .init(name: name, parameters: parameters, attributes: attributes)
+    }
+
+    /// Adds primary key attributes.
+    mutating func addPrimaryKeyAttributes() {
+        dataType.attributes.append("PRIMARY KEY")
+        if dataType.name.contains("INT") {
+            dataType.attributes.append("AUTO_INCREMENT")
+        }
+    }
+
+    // MARK: Private
+
     private static func make(_ type: String, unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
         var type: MySQLDataType = .init(name: type)
         if unsigned {
