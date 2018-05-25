@@ -122,13 +122,13 @@ extension MySQLDatabase: SQLSupporting & LogSupporting & TransactionSupporting {
 
 
     /// See `TransactionSupporting`.
-    public static func execute(transaction: DatabaseTransaction<MySQLDatabase>, on connection: MySQLConnection) -> Future<Void> {
-        return connection.simpleQuery("START TRANSACTION").flatMap { _ in
-            return transaction.run(on: connection).flatMap { void in
-                return connection.simpleQuery("COMMIT").transform(to: ())
+    public static func transactionExecute<T>(_ transaction: @escaping (MySQLConnection) throws -> Future<T>, on conn: MySQLConnection) -> Future<T> {
+        return conn.simpleQuery("START TRANSACTION").flatMap { _ -> Future<T> in
+            return try transaction(conn).flatMap { res -> Future<T> in
+                return conn.simpleQuery("COMMIT").transform(to: res)
             }
         }.catchFlatMap { error in
-            return connection.simpleQuery("ROLLBACK").map { _ in
+            return conn.simpleQuery("ROLLBACK").map { _ in
                 throw error
             }
         }

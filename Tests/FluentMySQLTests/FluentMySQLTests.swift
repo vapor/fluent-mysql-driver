@@ -208,6 +208,10 @@ class FluentMySQLTests: XCTestCase {
         print(conn.lastMetadata?.affectedRows ?? 0)
     }
 
+    func testLifecycle() throws {
+        try benchmarker.benchmarkLifecycle_withSchema()
+    }
+
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -225,6 +229,7 @@ class FluentMySQLTests: XCTestCase {
         ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
+        ("testLifecycle", testLifecycle),
     ]
 }
 
