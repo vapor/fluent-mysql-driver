@@ -12,6 +12,6 @@ extension SchemaBuilder where Model.Database == MySQLDatabase {
         if primaryKey ?? (keyPath == Model.idKey) {
             dataType.addPrimaryKeyAttributes()
         }
-        field(for: .keyPath(keyPath), dataType: dataType.dataType)
+        field(for: .fluentProperty(.keyPath(keyPath)), dataType: dataType.dataType)
     }
 }

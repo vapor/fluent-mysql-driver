@@ -118,14 +118,7 @@ class FluentMySQLTests: XCTestCase {
         _ = try User.prepare(on: conn).wait()
         let user = User(id: nil, name: "Tanner", pet: Pet(name: "Ziz"))
         _ = try user.save(on: conn).wait()
-        try print(User.query(on: conn).filter(\.id == 5).all().wait())
         let users = try User.query(on: conn).all().wait()
-
-//        let builder = User.query(on: conn)
-//        builder.query.
-//
-//
-//        print(rows)
 
         XCTAssertEqual(users[0].id, 1)
         XCTAssertEqual(users[0].name, "Tanner")

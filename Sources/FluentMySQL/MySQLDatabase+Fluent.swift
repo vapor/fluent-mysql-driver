@@ -7,15 +7,16 @@ extension MySQLData: Encodable {
 }
 
 /// Adds ability to create, update, and delete schemas using a `MySQLDatabase`.
-extension MySQLDatabase: SQLDatabase & LogSupporting & TransactionSupporting {
+extension MySQLDatabase: SQLSupporting & LogSupporting & TransactionSupporting {
     /// See `SQLDatabase`.
     public static func queryExecute(_ query: DataManipulationQuery, on conn: MySQLConnection, into handler: @escaping ([MySQLColumn : MySQLData], MySQLConnection) throws -> ()) -> EventLoopFuture<Void> {
         do {
             // Create a MySQL-flavored SQL serializer to create a SQL string
-            let (sql, encodables) = MySQLSerializer().serialize(query: query)
+            var binds = Binds()
+            let sql = MySQLSerializer().serialize(query: query, binds: &binds)
 
             // Convert binds to MySQL data
-            let binds = try encodables.map { encodable -> MySQLData in
+            let parameters = try binds.values.map { encodable -> MySQLData in
                 guard let mysqlData = encodable as? MySQLDataConvertible else {
                     throw MySQLError(identifier: "mysqlData", reason: "`\(type(of: encodable))` does not conform to `MySQLDataConvertible`. ", source: .capture())
                 }
@@ -24,11 +25,11 @@ extension MySQLDatabase: SQLDatabase & LogSupporting & TransactionSupporting {
 
             /// If a logger exists, log the query
             if let logger = conn.logger {
-                logger.record(query: sql, values: binds.map { $0.description })
+                logger.record(query: sql, values: parameters.map { $0.description })
             }
 
             /// Run the query!
-            return conn.query(sql, binds) { row in
+            return conn.query(sql, parameters) { row in
                 try handler(row, conn)
             }
         } catch {
@@ -66,7 +67,7 @@ extension MySQLDatabase: SQLDatabase & LogSupporting & TransactionSupporting {
             if row.value.isNull {
                 return .init(column: .init(table: row.key.table, name: row.key.name), value: .null)
             } else {
-                return .init(column: .init(table: row.key.table, name: row.key.name), value: .values([row.value]))
+                return .init(column: .init(table: row.key.table, name: row.key.name), value: .binds([row.value]))
             }
         }
     }
@@ -133,29 +134,3 @@ extension MySQLDatabase: SQLDatabase & LogSupporting & TransactionSupporting {
         }
     }
 }
-
-/*
- let indexCount = schema.createIndexes.count + schema.deleteIndexes.count
- guard indexCount > 0 else {
- return conn.eventLoop.newSucceededFuture(result: ())
- }
- /// handle indexes as separate query
- var indexes: [Future<Void>] = []
- indexes.reserveCapacity(indexCount)
- indexes += try schema.createIndexes.map { index in
- let fields = index.fields.map { "`\($0.name)`" }.joined(separator: ", ")
- let name = try index.mysqlIdentifier(for: schema.table).mysqlShortenedName()
- let prefix: String
- if index.isUnique {
- prefix = "CREATE UNIQUE INDEX"
- } else {
- prefix = "CREATE INDEX"
- }
- return conn.simpleQuery("\(prefix) `\(name)` ON `\(schema.table)` (\(fields))").transform(to: ())
- }
- indexes += try schema.deleteIndexes.map { index in
- let name = try index.mysqlIdentifier(for: schema.table).mysqlShortenedName()
- return conn.simpleQuery("DROP INDEX `\(name)`").transform(to: ())
- }
- return indexes.flatten(on: conn)
- */
