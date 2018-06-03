@@ -14,12 +14,22 @@ internal class MySQLSerializer: SQLSerializer {
     func makePlaceholder(name: String) -> String {
         return "?"
     }
+    
+    /// See `SQLSerializer`.
+    func serialize(conflict: SQLQuery.DML.Conflict, binds: inout Binds) -> String {
+        var sql: [String] = []
+        sql.append("ON DUPLICATE KEY UPDATE")
+        sql.append(conflict.values.map { data in
+            serialize(column: data.key, value: data.value, binds: &binds)
+        }.joined(separator: ", "))
+        return sql.joined(separator: " ")
+    }
 
     /// See `SQLSerializer`.
-    func makeName(for constraint: DataDefinitionConstraint) -> String {
+    func makeName(for constraint: SQLQuery.DDL.Constraint) -> String {
         let type: String
         let name: String
-        switch constraint {
+        switch constraint.storage {
         case .foreignKey(let foreignKey):
             type = "fk"
             name = "\(foreignKey.local.table ?? "").\(foreignKey.local.name)_\(foreignKey.foreign.table ?? "").\(foreignKey.foreign.name)"

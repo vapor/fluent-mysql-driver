@@ -3,109 +3,104 @@ public typealias MySQLColumnDefinition = MySQLDataType
 /// A single column's type
 public struct MySQLDataType {
     /// A `varChar` column type, typically used to store strings.
-    public static func varChar(length: Int = 255) -> MySQLColumnDefinition {
+    public static func varChar(length: Int = 255) -> MySQLDataType {
         return make("VARCHAR", length: length)
     }
 
     /// A `varChar` column type, typically used to store strings.
-    public static func varBinary(length: Int) -> MySQLColumnDefinition {
+    public static func varBinary(length: Int) -> MySQLDataType {
         return make("VARBINARY", length: length)
     }
 
     /// A `BINARY` column used to store fixed-size byte arrays.
-    public static func binary(length: Int) -> MySQLColumnDefinition {
+    public static func binary(length: Int) -> MySQLDataType {
         return make("BINARY", length: length)
     }
     
     /// A `varChar` column type, can be binary
-    public static func tinyBlob(length: Int) -> MySQLColumnDefinition {
+    public static func tinyBlob(length: Int) -> MySQLDataType {
         return make("TINYBLOB", length: length)
     }
     
     /// A `varChar` column type, can be binary
-    public static func blob(length: Int) -> MySQLColumnDefinition {
+    public static func blob(length: Int) -> MySQLDataType {
         return make("BLOB", length: length)
     }
 
     /// A BOOLEAN type.
-    public static func bool() -> MySQLColumnDefinition {
+    public static func bool() -> MySQLDataType {
         return make("BOOL")
     }
 
     /// A floating point (single precision) 32-bits number
-    public static func float() -> MySQLColumnDefinition {
+    public static func float() -> MySQLDataType {
         return make("FLOAT")
     }
     
     /// A floating point (double precision) 64-bits number
-    public static func double() -> MySQLColumnDefinition {
+    public static func double() -> MySQLDataType {
         return make("DOUBLE")
     }
 
     /// A `DATE` column.
-    public static func date() -> MySQLColumnDefinition {
+    public static func date() -> MySQLDataType {
         return make("DATE")
     }
     
     /// A `TEXT` column.
-    public static func text() -> MySQLColumnDefinition {
+    public static func text() -> MySQLDataType {
         return make("TEXT")
     }
     
     /// A `DATETIME` column.
-    public static func datetime() -> MySQLColumnDefinition {
+    public static func datetime() -> MySQLDataType {
         return make("DATETIME", length: 6)
     }
     
     /// A `TIME` column.
-    public static func time() -> MySQLColumnDefinition {
+    public static func time() -> MySQLDataType {
         return make("TIME", length: 6)
     }
 
     /// A `JSON` column used to store variable length JSON-encoded data.
-    public static func json() -> MySQLColumnDefinition {
+    public static func json() -> MySQLDataType {
         return make("JSON")
     }
 
     /// A single signed (TINY) byte with a maximum (decimal) length, if specified
-    public static func tinyInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
+    public static func tinyInt(unsigned: Bool = false, length: Int? = nil) -> MySQLDataType {
         return make("TINYINT", unsigned: unsigned, length: length)
     }
 
     /// A single (signed SHORT) Int16 with a maximum (decimal) length, if specified
-    public static func smallInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
+    public static func smallInt(unsigned: Bool = false, length: Int? = nil) -> MySQLDataType {
         return make("SMALLINT", unsigned: unsigned, length: length)
     }
 
     /// A MEDIUM integer (24-bits, stored as 32-bits)
-    public static func mediumInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
+    public static func mediumInt(unsigned: Bool = false, length: Int? = nil) -> MySQLDataType {
         return make("MEDIUMINT", unsigned: unsigned, length: length)
     }
 
     /// A LONG 32-bits integer
-    public static func int(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
+    public static func int(unsigned: Bool = false, length: Int? = nil) -> MySQLDataType {
         return make("INT", unsigned: unsigned, length: length)
     }
 
     /// A LONGLONG 64-bits integer
-    public static func bigInt(unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
+    public static func bigInt(unsigned: Bool = false, length: Int? = nil) -> MySQLDataType {
         return make("BIGINT", unsigned: unsigned, length: length)
     }
-
-    /// The column's name
-    public var dataType: DataDefinitionDataType
+    
+    public var name: String
+    public var parameters: [String]
+    public var attributes: [String]
 
     /// An internal method of creating the column
     public init(name: String, parameters: [String] = [], attributes: [String] = ["NOT NULL"]) {
-        self.dataType = .init(name: name, parameters: parameters, attributes: attributes)
-    }
-
-    /// Adds primary key attributes.
-    mutating func addPrimaryKeyAttributes() {
-        dataType.attributes.append("PRIMARY KEY")
-        if dataType.name.contains("INT") {
-            dataType.attributes.append("AUTO_INCREMENT")
-        }
+        self.name = name
+        self.parameters = parameters
+        self.attributes = attributes
     }
 
     // MARK: Private
@@ -113,10 +108,10 @@ public struct MySQLDataType {
     private static func make(_ type: String, unsigned: Bool = false, length: Int? = nil) -> MySQLColumnDefinition {
         var type: MySQLDataType = .init(name: type)
         if unsigned {
-            type.dataType.attributes.append("UNSIGNED")
+            type.attributes.append("UNSIGNED")
         }
         if let length = length {
-            type.dataType.parameters.append(length.description)
+            type.parameters.append(length.description)
         }
         return type
     }
@@ -158,7 +153,7 @@ extension Optional: MySQLColumnDefinitionStaticRepresentable {
 
         // remove NOT NULL since this is optional
         var type = representable.mySQLColumnDefinition
-        type.dataType.attributes = type.dataType.attributes.filter { $0 != "NOT NULL" }
+        type.attributes = type.attributes.filter { $0 != "NOT NULL" }
         return type
     }
 }

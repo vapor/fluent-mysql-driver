@@ -7,9 +7,9 @@ class FluentMySQLTests: XCTestCase {
     var database: MySQLDatabase!
 
     override func setUp() {
-        let eventLoop = MultiThreadedEventLoopGroup(numThreads: 1)
+        let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let config = MySQLDatabaseConfig(
-            hostname: "192.168.99.100",
+            hostname: "localhost",
             port: 3306,
             username: "vapor_username",
             password: "vapor_password",
@@ -17,6 +17,14 @@ class FluentMySQLTests: XCTestCase {
         )
         database = MySQLDatabase(config: config)
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
+    }
+    
+    func testVersion() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        let version = try conn.simpleQuery("SELECT version();").wait()
+        print(version)
     }
 
     func testSchema() throws {
@@ -91,9 +99,8 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
         _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
 
-        let all = try A.query(on: conn).customSQL { query in
-            let predicate = DataPredicate(column: "cola", comparison: .equal, value: .null)
-            query.predicates.append(.predicate(predicate))
+        let all = try A.query(on: conn).custom { query in
+            query.predicates.append(.predicate("cola", .equal, .null))
         }.all().wait()
         XCTAssertEqual(all.count, 0)
     }
@@ -148,10 +155,10 @@ class FluentMySQLTests: XCTestCase {
 
             static func prepare(on connection: MySQLConnection) -> Future<Void> {
                 return MySQLDatabase.create(self, on: connection) { builder in
-                    builder.field(for: \.id, dataType: .bigInt(), primaryKey: true)
+                    builder.field(for: \.id, type: .bigInt(), primaryKey: true, autoIncrement: true)
                     builder.field(for: \.title)
                     builder.field(for: \.strap)
-                    builder.field(for: \.content, dataType: .text())
+                    builder.field(for: \.content, type: .text())
                     builder.field(for: \.category)
                     builder.field(for: \.slug)
                     builder.field(for: \.date)
@@ -210,6 +217,39 @@ class FluentMySQLTests: XCTestCase {
 
     func testLifecycle() throws {
         try benchmarker.benchmarkLifecycle_withSchema()
+    }
+    
+    func testCreateOrIgnore() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+
+        let a = User(id: 1, name: "A", pet: .init(name: "A"))
+        let b = User(id: 1, name: "B", pet: .init(name: "B"))
+
+        _ = try a.create(orIgnore: true, on: conn).wait()
+        let resa = conn.lastMetadata?.affectedRows
+        _ = try b.create(orIgnore: true, on: conn).wait()
+        let resb = conn.lastMetadata?.affectedRows
+
+        XCTAssertNotEqual(resa, resb)
+    }
+
+    func testCreateOrUpdate() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        let a = User(id: 1, name: "A", pet: .init(name: "A"))
+        let b = User(id: 1, name: "B", pet: .init(name: "B"))
+        
+        _ = try a.create(orUpdate: true, on: conn).wait()
+        _ = try b.create(orUpdate: true, on: conn).wait()
+        
+        let c = try User.find(1, on: conn).wait()
+        XCTAssertEqual(c?.name, "B")
     }
 
     static let allTests = [

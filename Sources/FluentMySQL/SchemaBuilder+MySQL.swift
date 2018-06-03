@@ -5,13 +5,16 @@ extension SchemaBuilder where Model.Database == MySQLDatabase {
     ///
     /// - parameters:
     ///     - keyPath: `KeyPath` to the field.
-    ///     - dataType: Data type for the field.
+    ///     - type: Data type for the field.
     ///     - primaryKey: If `true`, override this field to be a `PRIMARY KEY` field.
-    public func field<T>(for keyPath: KeyPath<Model, T>, dataType: MySQLDataType, primaryKey: Bool? = nil) {
-        var dataType = dataType
+    public func field<T>(for keyPath: KeyPath<Model, T>, type: MySQLDataType, primaryKey: Bool? = nil, autoIncrement: Bool = false) {
+        var type = SQLQuery.DDL.ColumnDefinition.ColumnType.init(name: type.name, parameters: type.parameters, attributes: type.attributes)
         if primaryKey ?? (keyPath == Model.idKey) {
-            dataType.addPrimaryKeyAttributes()
+            type.attributes.append("PRIMARY KEY")
         }
-        field(for: .fluentProperty(.keyPath(keyPath)), dataType: dataType.dataType)
+        if autoIncrement {
+            type.attributes.append("AUTO_INCREMENT")
+        }
+        field(for: .fluentProperty(.keyPath(keyPath)), type: type)
     }
 }

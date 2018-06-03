@@ -9,11 +9,56 @@ extension MySQLData: Encodable {
 /// Adds ability to create, update, and delete schemas using a `MySQLDatabase`.
 extension MySQLDatabase: SQLSupporting & LogSupporting & TransactionSupporting {
     /// See `SQLDatabase`.
-    public static func queryExecute(_ query: DataManipulationQuery, on conn: MySQLConnection, into handler: @escaping ([MySQLColumn : MySQLData], MySQLConnection) throws -> ()) -> EventLoopFuture<Void> {
+    public typealias QueryJoin = SQLQuery.DML.Join
+    
+    /// See `SQLDatabase`.
+    public typealias QueryJoinMethod = SQLQuery.DML.Join.Method
+    
+    /// See `SQLDatabase`.
+    public typealias Query = SQLQuery.DML
+    
+    /// See `SQLDatabase`.
+    public typealias Output = [MySQLColumn: MySQLData]
+    
+    /// See `SQLDatabase`.
+    public typealias QueryAction = SQLQuery.DML.Statement
+    
+    /// See `SQLDatabase`.
+    public typealias QueryAggregate = String
+    
+    /// See `SQLDatabase`.
+    public typealias QueryData = [SQLQuery.DML.Column: SQLQuery.DML.Value]
+    
+    /// See `SQLDatabase`.
+    public typealias QueryField = SQLQuery.DML.Column
+    
+    /// See `SQLDatabase`.
+    public typealias QueryFilterMethod = SQLQuery.DML.Predicate.Comparison
+    
+    /// See `SQLDatabase`.
+    public typealias QueryFilterValue = SQLQuery.DML.Value
+    
+    /// See `SQLDatabase`.
+    public typealias QueryFilter = SQLQuery.DML.Predicate
+    
+    /// See `SQLDatabase`.
+    public typealias QueryFilterRelation = SQLQuery.DML.Predicate.Relation
+    
+    /// See `SQLDatabase`.
+    public typealias QueryKey = SQLQuery.DML.Key
+    
+    /// See `SQLDatabase`.
+    public typealias QuerySort = SQLQuery.DML.OrderBy
+    
+    /// See `SQLDatabase`.
+    public typealias QuerySortDirection = SQLQuery.DML.OrderBy.Direction
+    
+    /// See `SQLDatabase`.
+    public static func queryExecute(_ dml: SQLQuery.DML, on conn: MySQLConnection, into handler: @escaping ([MySQLColumn: MySQLData], MySQLConnection) throws -> ()) -> Future<Void> {
         do {
             // Create a MySQL-flavored SQL serializer to create a SQL string
             var binds = Binds()
-            let sql = MySQLSerializer().serialize(query: query, binds: &binds)
+            let sql = MySQLSerializer().serialize(dml: dml, binds: &binds)
 
             // Convert binds to MySQL data
             let parameters = try binds.values.map { encodable -> MySQLData in
@@ -61,22 +106,15 @@ extension MySQLDatabase: SQLSupporting & LogSupporting & TransactionSupporting {
     }
 
     /// See `SQLDatabase`.
-    public static func queryEncode<E>(_ encodable: E, entity: String) throws -> [DataManipulationColumn] where E : Encodable {
-        let row = try MySQLRowEncoder().encode(encodable)
-        return row.map { (row) -> DataManipulationColumn in
-            if row.value.isNull {
-                return .init(column: .init(table: row.key.table, name: row.key.name), value: .null)
-            } else {
-                return .init(column: .init(table: row.key.table, name: row.key.name), value: .binds([row.value]))
-            }
-        }
-    }
-
-    /// See `SQLDatabase`.
-    public static func queryDecode<D>(_ data: [MySQLColumn: MySQLData], entity: String, as decodable: D.Type) throws -> D
+    public static func queryDecode<D>(_ data: [MySQLColumn: MySQLData], entity: String, as decodable: D.Type, on conn: MySQLConnection) -> Future<D>
         where D: Decodable
     {
-        return try MySQLRowDecoder().decode(D.self, from: data.filter { $0.key.table == nil || $0.key.table == entity })
+        do {
+            let decoded = try MySQLRowDecoder().decode(D.self, from: data.filter { $0.key.table == nil || $0.key.table == entity })
+            return conn.future(decoded)
+        } catch {
+            return conn.future(error: error)
+        }
     }
 
     /// See `SQLDatabase`.
@@ -84,31 +122,36 @@ extension MySQLDatabase: SQLSupporting & LogSupporting & TransactionSupporting {
         return connection.simpleQuery("SET foreign_key_checks = 1;").transform(to: ())
     }
 
-    /// See `SQLDatabase`.
+    /// See `SQLSupporting`.
     public static func disableReferences(on connection: MySQLConnection) -> Future<Void> {
         return connection.simpleQuery("SET foreign_key_checks = 0;").transform(to: ())
     }
 
-    public static func schemaDataType(for type: Any.Type, primaryKey: Bool) -> DataDefinitionDataType {
-        guard let representable = type as? MySQLColumnDefinitionStaticRepresentable.Type else {
-            fatalError("""
-            No MySQL column type known for `\(type)`.
-
-            Suggested Fixes:
-                - Conform \(type) to `MySQLColumnDefinitionStaticRepresentable` to specify field type or implement a custom migration.
-                - Specify the `MySQLColumnDefinition` manually using the schema builder in a migration.
-            """)
+    /// See `SQLSupporting`.
+    public static func schemaColumnType(for type: Any.Type, primaryKey: Bool) -> SQLQuery.DDL.ColumnDefinition.ColumnType {
+        let dataType: MySQLDataType
+        if let representable = type as? MySQLColumnDefinitionStaticRepresentable.Type {
+            dataType = representable.mySQLColumnDefinition
+        } else {
+            dataType = .json()
         }
-        var mysqlDataType = representable.mySQLColumnDefinition
+        var columnType = SQLQuery.DDL.ColumnDefinition.ColumnType(
+            name: dataType.name,
+            parameters: dataType.parameters,
+            attributes: dataType.attributes
+        )
         if primaryKey {
-            mysqlDataType.addPrimaryKeyAttributes()
+            columnType.attributes.append("PRIMARY KEY")
+            if columnType.name.contains("INT") {
+                columnType.attributes.append("AUTO_INCREMENT")
+            }
         }
-        return mysqlDataType.dataType
+        return columnType
     }
 
     /// See `SQLDatabase`.
-    public static func schemaExecute(_ schema: DataDefinitionQuery, on conn: MySQLConnection) -> Future<Void> {
-        let sqlString = MySQLSerializer().serialize(query: schema)
+    public static func schemaExecute(_ ddl: SQLQuery.DDL, on conn: MySQLConnection) -> Future<Void> {
+        let sqlString = MySQLSerializer().serialize(ddl: ddl)
         if let logger = conn.logger {
             logger.log(query: sqlString)
         }
