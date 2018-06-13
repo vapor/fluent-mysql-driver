@@ -13,7 +13,8 @@ class FluentMySQLTests: XCTestCase {
             port: 3306,
             username: "vapor_username",
             password: "vapor_password",
-            database: "vapor_database"
+            database: "vapor_database",
+            transport: .unverifiedTLS
         )
         database = MySQLDatabase(config: config)
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
@@ -99,10 +100,9 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
         _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
 
-        let all = try A.query(on: conn).custom { query in
-            query.predicates.append(.predicate("cola", .equal, .null))
-        }.all().wait()
-        XCTAssertEqual(all.count, 0)
+        let builder = A.query(on: conn)
+        builder.query.predicate &= MySQLQuery.Expression.binary("cola", .equal, .literal(.null))
+        try XCTAssertEqual(builder.all().wait().count, 0)
     }
 
     func testMySQLSet() throws {
@@ -132,10 +132,6 @@ class FluentMySQLTests: XCTestCase {
         XCTAssertEqual(users[0].pet.name, "Ziz")
     }
 
-    func testContains() throws {
-        try benchmarker.benchmarkContains_withSchema()
-    }
-
     func testBugs() throws {
         try benchmarker.benchmarkBugs_withSchema()
     }
@@ -155,10 +151,10 @@ class FluentMySQLTests: XCTestCase {
 
             static func prepare(on connection: MySQLConnection) -> Future<Void> {
                 return MySQLDatabase.create(self, on: connection) { builder in
-                    builder.field(for: \.id, type: .bigInt(), primaryKey: true, autoIncrement: true)
+                    builder.field(for: \.id)
                     builder.field(for: \.title)
                     builder.field(for: \.strap)
-                    builder.field(for: \.content, type: .text())
+                    builder.field(for: \.content, type: .varchar(64, nil, nil))
                     builder.field(for: \.category)
                     builder.field(for: \.slug)
                     builder.field(for: \.date)
@@ -182,7 +178,7 @@ class FluentMySQLTests: XCTestCase {
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 
-        let res = try conn.query("SELECT ? as emojis", ["👏🐬💧"]).wait()
+        let res = try conn.query(.raw("SELECT ? as emojis", ["👏🐬💧"])).wait()
         try XCTAssertEqual(String.convertFromMySQLData(res[0].firstValue(forColumn: "emojis")!), "👏🐬💧")
     }
 
@@ -263,7 +259,7 @@ class FluentMySQLTests: XCTestCase {
         ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
         ("testJSONType", testJSONType),
-        ("testContains", testContains),
+//        ("testContains", testContains),
         ("testBugs", testBugs),
         ("testGH93", testGH93),
         ("testIndexes", testIndexes),
@@ -295,6 +291,6 @@ struct User: MySQLModel, Migration {
     var pet: Pet
 }
 
-struct Pet: MySQLJSONType {
+struct Pet: Codable {
     var name: String
 }
