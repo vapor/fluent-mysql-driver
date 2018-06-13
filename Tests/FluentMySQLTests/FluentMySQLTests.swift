@@ -17,6 +17,7 @@ class FluentMySQLTests: XCTestCase {
             transport: .unverifiedTLS
         )
         database = MySQLDatabase(config: config)
+        database.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
     }
     
@@ -293,4 +294,33 @@ struct User: MySQLModel, Migration {
 
 struct Pet: Codable {
     var name: String
+}
+
+final class Parent: MySQLModel, Migration {
+    var id: Int?
+    var name: String
+    
+    init(id: Int?, name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
+final class Child: MySQLModel, Migration {
+    var id: Int?
+    var name: String
+    var parentId: Int
+
+    init(id: Int?, name: String, parentId: Int) {
+        self.id = id
+        self.name = name
+        self.parentId = parentId
+    }
+    
+    static func prepare(on connection: MySQLDatabase.Connection) -> Future<Void> {
+        return Database.create(self, on: connection, closure: { builder in
+            try addProperties(to: builder)
+            try builder.addReference(from: \.parentId, to: \Parent.id, actions: .update)
+        })
+    }
 }
