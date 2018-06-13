@@ -17,7 +17,6 @@ class FluentMySQLTests: XCTestCase {
             transport: .unverifiedTLS
         )
         database = MySQLDatabase(config: config)
-        database.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
     }
     
@@ -320,7 +319,7 @@ final class Child: MySQLModel, Migration {
     static func prepare(on connection: MySQLDatabase.Connection) -> Future<Void> {
         return Database.create(self, on: connection, closure: { builder in
             try addProperties(to: builder)
-            try builder.addReference(from: \.parentId, to: \Parent.id, actions: .update)
+            builder.reference(from: \.parentId, to: \Parent.id)
         })
     }
 }
