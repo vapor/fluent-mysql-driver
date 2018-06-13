@@ -74,6 +74,11 @@ public struct MySQLColumnDefinition {
         return .init(name: "DOUBLE")
     }
 
+    /// A Decimal number
+    public static func decimal(precision: Int = 9, scale: Int = 2) -> MySQLColumnDefinition {
+        return .init(name: "DECIMAL(\(precision),\(scale))")
+    }
+
     /// A `DATE` column.
     public static func date() -> MySQLColumnDefinition {
         return .init(name: "DATE", length: nil)
@@ -155,6 +160,12 @@ extension UInt16: MySQLColumnDefinitionStaticRepresentable { }
 extension UInt32: MySQLColumnDefinitionStaticRepresentable { }
 extension UInt64: MySQLColumnDefinitionStaticRepresentable { }
 extension UInt: MySQLColumnDefinitionStaticRepresentable { }
+extension Decimal: MySQLColumnDefinitionStaticRepresentable {
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+        return .decimal()
+    }
+}
 
 extension Bool: MySQLColumnDefinitionStaticRepresentable {
     public static var mySQLColumnDefinition: MySQLColumnDefinition {
