@@ -21,9 +21,16 @@ extension Date: MySQLColumnDefinitionStaticRepresentable {
 }
 
 extension String: MySQLColumnDefinitionStaticRepresentable {
-    /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
+    /// See `MySQLColumnDefinitionStaticRepresentable`.
     public static var mySQLColumnDefinition: MySQLColumnDefinition {
         return .varchar(255, nil, nil)
+    }
+}
+
+extension Decimal: MySQLColumnDefinitionStaticRepresentable {
+    /// See `MySQLColumnDefinitionStaticRepresentable`.
+    public static var mySQLColumnDefinition: MySQLColumnDefinition {
+        return .decimal(nil, unsigned: false, zerofill: false)
     }
 }
 
