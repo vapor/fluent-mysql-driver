@@ -337,6 +337,22 @@ class FluentMySQLTests: XCTestCase {
         _ = try [usersByAge, usersByName].flatten(on: conn).wait()
     }
     
+    func testEmptySubset() throws {
+        struct User: MySQLModel, MySQLMigration {
+            var id: Int?
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { _ = try? User.revert(on: conn).wait() }
+        
+        let res = try User.query(on: conn).filter(\.id ~~ []).all().wait()
+        XCTAssertEqual(res.count, 0)
+        _ = try User.query(on: conn).filter(\.id ~~ [1]).all().wait()
+        _ = try User.query(on: conn).filter(\.id ~~ [1, 2]).all().wait()
+        _ = try User.query(on: conn).filter(\.id ~~ [1, 2, 3]).all().wait()
+    }
+    
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -356,6 +372,7 @@ class FluentMySQLTests: XCTestCase {
         ("testLifecycle", testLifecycle),
         ("testContains", testContains),
         ("testConcurrentQuery", testConcurrentQuery),
+        ("testEmptySubset", testEmptySubset),
     ]
 }
 

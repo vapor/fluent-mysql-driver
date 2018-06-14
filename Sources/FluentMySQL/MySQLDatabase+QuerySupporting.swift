@@ -284,7 +284,7 @@ extension MySQLDatabase: QuerySupporting {
         switch method {
         case .binary(let binary): return .binary(.column(field), binary, value)
         case .compare(let compare): return .compare(.init(.column(field), not: false, compare, value, escape: nil))
-        case .subset(let subset): return .subset(.column(field), subset, .expressions([value]))
+        case .subset(let subset): return .subset(.column(field), subset, .expression(value))
         }
         
     }
