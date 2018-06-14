@@ -15,7 +15,7 @@ class FluentMySQLTests: XCTestCase {
             username: "vapor_username",
             password: "vapor_password",
             database: "vapor_database",
-            transport: .unverifiedTLS
+            transport: .cleartext
         )
         database = MySQLDatabase(config: config)
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
@@ -319,6 +319,24 @@ class FluentMySQLTests: XCTestCase {
         XCTAssertNotEqual(usersByName, usersByAge)
     }
     
+    func testConcurrentQuery() throws {
+        struct User: MySQLModel, MySQLMigration, Equatable {
+            var id: Int?
+            var name: String
+            var age: Int
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        let usersByName = User.query(on: conn).sort(\.name, .descending).all()
+        let usersByAge = User.query(on: conn).sort(\.age, .descending).all()
+        
+        _ = try [usersByAge, usersByName].flatten(on: conn).wait()
+    }
+    
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -337,6 +355,7 @@ class FluentMySQLTests: XCTestCase {
         ("testGH76", testGH76),
         ("testLifecycle", testLifecycle),
         ("testContains", testContains),
+        ("testConcurrentQuery", testConcurrentQuery),
     ]
 }
 
