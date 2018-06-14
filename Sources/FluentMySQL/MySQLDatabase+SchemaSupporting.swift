@@ -99,13 +99,13 @@ extension MySQLDatabase: SchemaSupporting {
     
     /// See `SchemaSupporting`.
     public static func schemaFieldDelete(_ field: MySQLQuery.QualifiedColumnName, to query: inout MySQLQuery.FluentSchema) {
-        fatalError("MySQL does not support deleting columns from tables.")
+        fatalError("MySQL does not yet support deleting columns from tables.")
     }
     
     /// See `SchemaSupporting`.
     public static func schemaReference(from: MySQLQuery.QualifiedColumnName, to: MySQLQuery.QualifiedColumnName, onUpdate: MySQLQuery.ForeignKeyReference.Action?, onDelete: MySQLQuery.ForeignKeyReference.Action?) -> MySQLQuery.TableConstraint {
         return .init(
-            name: "fk",
+            name: "fk:" + from.readable + "+" + to.readable,
             .foreignKey(.init(
                 columns: [from.name],
                 reference: .init(
@@ -123,7 +123,7 @@ extension MySQLDatabase: SchemaSupporting {
     /// See `SchemaSupporting`.
     public static func schemaUnique(on: [MySQLQuery.QualifiedColumnName]) -> MySQLQuery.TableConstraint {
         return .init(
-            name: "uq",
+        name: "uq:" + on.map { $0.readable }.joined(separator: "+"),
             .unique(.init(
                 columns: on.map { .init(value: .column($0.name)) },
                 conflictResolution: nil

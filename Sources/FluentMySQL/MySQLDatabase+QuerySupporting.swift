@@ -235,7 +235,7 @@ extension MySQLDatabase: QuerySupporting {
     }
     
     public static func queryField(_ property: FluentProperty) -> MySQLQuery.QualifiedColumnName {
-        return .init(schema: nil, table: property.entity, name: .init(property.path[0]))
+        return .init(table: property.entity, name: .init(property.path[0]))
     }
     
     public static var queryFilterMethodEqual: MySQLQuery.FluentQuery.Comparison {
