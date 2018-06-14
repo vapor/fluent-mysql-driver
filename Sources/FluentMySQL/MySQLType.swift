@@ -2,34 +2,6 @@
 /// migrations and convert to / from native MySQL data.
 public typealias MySQLType = MySQLColumnDefinitionStaticRepresentable & MySQLDataConvertible
 
-/// A MySQL type that is represented by JSON in the database.
-public protocol MySQLJSONType: MySQLType, Codable { }
-
-extension MySQLJSONType {
-    /// An appropriate `MySQLColumnDefinition` for this type.
-    public static var mySQLColumnDefinition: MySQLColumnDefinition { return .json() }
-
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
-    public func convertToMySQLData() throws -> MySQLData {
-        return try MySQLData(json: self)
-    }
-
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
-    public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self {
-        guard let json = try mysqlData.json(Self.self) else {
-            throw MySQLError(identifier: "json", reason: "Could not parse JSON from: \(self)", source: .capture())
-        }
-        return json
-    }
-}
-
-extension MySQLText: MySQLColumnDefinitionStaticRepresentable {
-    /// See `MySQLColumnDefinitionStaticRepresentable`
-    public static var mySQLColumnDefinition: MySQLColumnDefinition {
-        return .text()
-    }
-}
-
 // MARK: Enum
 /// This type-alias makes it easy to declare nested enum types for your `MySQLModel`.
 ///
@@ -64,8 +36,8 @@ extension MySQLColumnDefinitionStaticRepresentable where Self: RawRepresentable,
 extension MySQLDataConvertible where Self: RawRepresentable, Self.RawValue: MySQLDataConvertible
 {
     /// See `MySQLDataConvertible.convertToMySQLData()`
-    public func convertToMySQLData() throws -> MySQLData {
-        return try rawValue.convertToMySQLData()
+    public func convertToMySQLData() -> MySQLData {
+        return rawValue.convertToMySQLData()
     }
 
     /// See `MySQLDataConvertible.convertFromMySQLData(_:)`

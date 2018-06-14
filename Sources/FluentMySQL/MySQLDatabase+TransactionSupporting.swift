@@ -1,16 +1,12 @@
 extension MySQLDatabase: TransactionSupporting {
-    /// Runs a transaction on the MySQL connection
-    public static func execute(
-        transaction: DatabaseTransaction<MySQLDatabase>,
-        on connection: MySQLConnection
-    ) -> Future<Void> {
-        return connection.simpleQuery("START TRANSACTION").flatMap(to: Void.self) { _ in
-            return transaction.run(on: connection).flatMap(to: Void.self) { void in
-                return connection.simpleQuery("COMMIT").transform(to: ())
-            }
-        }.catchFlatMap { error in
-            return connection.simpleQuery("ROLLBACK").map(to: Void.self) { _ in
-                throw error
+    public static func transactionExecute<T>(_ transaction: @escaping (MySQLConnection) throws -> Future<T>, on conn: MySQLConnection) -> Future<T> {
+        return conn.simpleQuery("START TRANSACTION").flatMap { results in
+            return try transaction(conn).flatMap { res in
+                return conn.simpleQuery("COMMIT").transform(to: res)
+            }.catchFlatMap { error in
+                return conn.simpleQuery("ROLLBACK").map { results in
+                    throw error
+                }
             }
         }
     }

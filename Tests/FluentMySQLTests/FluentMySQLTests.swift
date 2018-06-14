@@ -1,28 +1,32 @@
-import Async
-import XCTest
 import FluentBenchmark
-import Dispatch
 import FluentMySQL
-import COperatingSystem
-import Service
-import Console
+import Fluent
+import XCTest
 
 class FluentMySQLTests: XCTestCase {
     var benchmarker: Benchmarker<MySQLDatabase>!
     var database: MySQLDatabase!
 
     override func setUp() {
-        let eventLoop = MultiThreadedEventLoopGroup(numThreads: 1)
+        let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let config = MySQLDatabaseConfig(
             hostname: "localhost",
             port: 3306,
             username: "vapor_username",
             password: "vapor_password",
-            database: "vapor_database"
+            database: "vapor_database",
+            transport: .cleartext
         )
         database = MySQLDatabase(config: config)
-        database.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
+    }
+    
+    func testVersion() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        let version = try conn.simpleQuery("SELECT version();").wait()
+        print(version)
     }
 
     func testSchema() throws {
@@ -51,12 +55,14 @@ class FluentMySQLTests: XCTestCase {
 
     func testMySQLJoining() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
-        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
-        _ = try conn.simpleQuery("drop table if exists tableb;").wait()
-        _ = try conn.simpleQuery("drop table if exists tablec;").wait()
         _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
         _ = try conn.simpleQuery("create table tableb (colb INT);").wait()
         _ = try conn.simpleQuery("create table tablec (colc INT);").wait()
+        defer {
+            _ = try? conn.simpleQuery("drop table if exists tablea;").wait()
+            _ = try? conn.simpleQuery("drop table if exists tableb;").wait()
+            _ = try? conn.simpleQuery("drop table if exists tablec;").wait()
+        }
 
         _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
@@ -72,9 +78,9 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablec values (4);").wait()
 
         let all = try A.query(on: conn)
-            .join(B.self, field: \.colb, to: \.cola)
+            .join(\B.colb, to: \A.cola)
             .alsoDecode(B.self)
-            .join(C.self, field: \.colc, to: \.cola)
+            .join(\C.colc, to: \A.cola)
             .alsoDecode(C.self)
             .all().wait()
 
@@ -88,37 +94,28 @@ class FluentMySQLTests: XCTestCase {
 
     func testMySQLCustomSQL() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
-        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
         _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
         _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
         _ = try conn.simpleQuery("insert into tablea values (3, 3);").wait()
         _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
 
-        let all = try A.query(on: conn)
-            .customSQL { sql in
-                switch sql {
-                case .query(var query):
-                    let predicate = DataPredicate(column: "cola", comparison: .isNull)
-                    query.predicates.append(.predicate(predicate))
-                    sql = .query(query)
-                default: break
-                }
-            }
-            .all().wait()
-
-        XCTAssertEqual(all.count, 0)
+        let builder = A.query(on: conn)
+        builder.query.predicate &= MySQLQuery.Expression.binary("cola", .equal, .literal(.null))
+        try XCTAssertEqual(builder.all().wait().count, 0)
     }
 
     func testMySQLSet() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
-        _ = try conn.simpleQuery("drop table if exists tablea;").wait()
         _ = try conn.simpleQuery("create table tablea (id INT, cola INT);").wait()
+        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
         _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
         _ = try conn.simpleQuery("insert into tablea values (2, 2);").wait()
 
-        _ = try A.query(on: conn).update(["cola": "3", "id": 2]).wait()
-
+        let builder = A.query(on: conn)
+        _ = try builder.update(data: ["cola": 3]).wait()
+        _ = try builder.update(data: ["id": 2]).wait()
         let all = try A.query(on: conn).all().wait()
         print(all)
     }
@@ -129,15 +126,11 @@ class FluentMySQLTests: XCTestCase {
         _ = try User.prepare(on: conn).wait()
         let user = User(id: nil, name: "Tanner", pet: Pet(name: "Ziz"))
         _ = try user.save(on: conn).wait()
-        try print(User.query(on: conn).filter(\.id == 5).all().wait())
         let users = try User.query(on: conn).all().wait()
+
         XCTAssertEqual(users[0].id, 1)
         XCTAssertEqual(users[0].name, "Tanner")
         XCTAssertEqual(users[0].pet.name, "Ziz")
-    }
-
-    func testContains() throws {
-        try benchmarker.benchmarkContains_withSchema()
     }
 
     func testBugs() throws {
@@ -159,13 +152,13 @@ class FluentMySQLTests: XCTestCase {
 
             static func prepare(on connection: MySQLConnection) -> Future<Void> {
                 return MySQLDatabase.create(self, on: connection) { builder in
-                    try builder.field(type: .int64(), for: \.id, isOptional: false, isIdentifier: true)
-                    try builder.field(for: \.title)
-                    try builder.field(for: \.strap)
-                    try builder.field(type: .text(), for: \.content)
-                    try builder.field(for: \.category)
-                    try builder.field(for: \.slug)
-                    try builder.field(for: \.date)
+                    builder.field(for: \.id)
+                    builder.field(for: \.title)
+                    builder.field(for: \.strap)
+                    builder.field(for: \.content, type: .varchar(64, nil, nil))
+                    builder.field(for: \.category)
+                    builder.field(for: \.slug)
+                    builder.field(for: \.date)
                 }
             }
         }
@@ -186,7 +179,7 @@ class FluentMySQLTests: XCTestCase {
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 
-        let res = try conn.query("SELECT ? as emojis", ["👏🐬💧"]).wait()
+        let res = try conn.query(.raw("SELECT ? as emojis", ["👏🐬💧"])).wait()
         try XCTAssertEqual(String.convertFromMySQLData(res[0].firstValue(forColumn: "emojis")!), "👏🐬💧")
     }
 
@@ -206,65 +199,160 @@ class FluentMySQLTests: XCTestCase {
         test = try test.save(on: conn).wait()
     }
 
-    func testReferences() throws {
+    func testAffectedRows() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 
-        // Prep tables
-        defer {
-        	try? Child.revert(on: conn).wait()
-			try? Parent.revert(on: conn).wait()
-		}
-        try Parent.prepare(on: conn).wait()
-        try Child.prepare(on: conn).wait()
-        MySQLDatabase.enableLogging(conn.logger!, on: conn)
-        // Save Parent
-        var parent = Parent(id: 64, name: "Jerry")
-        parent = try parent.create(on: conn).wait()
-        // Save Child with a ref to previously saved Parent
-        let savedParent = try Parent.query(on: conn).first().wait()
-        XCTAssertEqual(savedParent!.id!, parent.id!, "Fetched ID \(savedParent!.id!) != saved ID \(parent.id!)")
-        print("Parent saved with ID", savedParent?.id ?? "NOT SAVED")
-        var child = Child(id: nil, name: "Morty", parentId: savedParent!.id!)
-        child = try child.save(on: conn).wait()
-
-        if let fetched = try Child.query(on: conn).first().wait() {
-            XCTAssertEqual(child.id, fetched.id)
-            XCTAssertEqual(child.name, fetched.name)
-            XCTAssertEqual(child.parentId, fetched.parentId)
-        } else {
-            XCTFail()
-        }
+        _ = try conn.simpleQuery("create table tablea (id INT PRIMARY KEY, cola INT);").wait()
+        print(conn.lastMetadata?.affectedRows ?? 0)
+        defer { _ = try? conn.simpleQuery("drop table if exists tablea;").wait() }
+        _ = try conn.simpleQuery("insert into tablea values (1, 1);").wait()
+        print(conn.lastMetadata?.affectedRows ?? 0)
+        _ = try conn.simpleQuery("insert ignore into tablea values (1, 2);").wait()
+        print(conn.lastMetadata?.affectedRows ?? 0)
     }
 
-    func testForeignKeyIndexCount() throws {
+    func testLifecycle() throws {
+        try benchmarker.benchmarkLifecycle_withSchema()
+    }
+    
+    func testCreateOrIgnore() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
 
-        // Prep tables
-        defer {
-        	try? Child.revert(on: conn).wait()
-			try? Parent.revert(on: conn).wait()
-		}
-        try Parent.prepare(on: conn).wait()
-        try Child.prepare(on: conn).wait()
+        let a = User(id: 1, name: "A", pet: .init(name: "A"))
+        let b = User(id: 1, name: "B", pet: .init(name: "B"))
 
-        let testDatabase = database.config.database
-        // Fetch how many contraints were created in Child, ignoring primary keys
-        // Should be 1 (Parent-Child foreign key)
-        let query = "select COUNT(1) as resultCount from information_schema.KEY_COLUMN_USAGE where table_schema = '\(testDatabase)' and table_name = '\(Child.entity)' and constraint_name != 'PRIMARY'"
+        _ = try a.create(orIgnore: true, on: conn).wait()
+        let resa = conn.lastMetadata?.affectedRows
+        _ = try b.create(orIgnore: true, on: conn).wait()
+        let resb = conn.lastMetadata?.affectedRows
 
-        // conn.all(CountResult.self, in: query).wait() has been removed
-        let fetched = try conn.simpleQuery(query).wait()
-        if let fetchedFirst = fetched.first,
-            let resultData = fetchedFirst.firstValue(forColumn: "resultCount"),
-            let resultCount = try? Int.convertFromMySQLData(resultData) {
-            XCTAssertEqual(1, resultCount)
-        } else {
-            XCTFail()
-        }
+        XCTAssertNotEqual(resa, resb)
     }
 
+    func testCreateOrUpdate() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        let a = User(id: 1, name: "A", pet: .init(name: "A"))
+        let b = User(id: 1, name: "B", pet: .init(name: "B"))
+        
+        _ = try a.create(orUpdate: true, on: conn).wait()
+        _ = try b.create(orUpdate: true, on: conn).wait()
+        
+        let c = try User.find(1, on: conn).wait()
+        XCTAssertEqual(c?.name, "B")
+    }
+
+    func testContains() throws {
+        struct User: MySQLModel, MySQLMigration {
+            var id: Int?
+            var name: String
+            var age: Int
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        // create
+        let tanner1 = User(id: nil, name: "tanner", age: 23)
+        _ = try tanner1.save(on: conn).wait()
+        let tanner2 = User(id: nil, name: "ner", age: 23)
+        _ = try tanner2.save(on: conn).wait()
+        let tanner3 = User(id: nil, name: "tan", age: 23)
+        _ = try tanner3.save(on: conn).wait()
+        
+        let tas = try User.query(on: conn).filter(\.name =~~ "ta").count().wait()
+        if tas != 2 {
+            XCTFail("tas == \(tas)")
+        }
+        let ers = try User.query(on: conn).filter(\.name ~~= "er").count().wait()
+        if ers != 2 {
+            XCTFail("ers == \(tas)")
+        }
+        let annes = try User.query(on: conn).filter(\.name ~~ "anne").count().wait()
+        if annes != 1 {
+            XCTFail("annes == \(tas)")
+        }
+        let ns = try User.query(on: conn).filter(\.name ~~ "n").count().wait()
+        if ns != 3 {
+            XCTFail("ns == \(tas)")
+        }
+        
+        let nertan = try User.query(on: conn).filter(\.name ~~ ["ner", "tan"]).count().wait()
+        if nertan != 2 {
+            XCTFail("nertan == \(tas)")
+        }
+        
+        let notner = try User.query(on: conn).filter(\.name !~ ["ner"]).count().wait()
+        if notner != 2 {
+            XCTFail("nertan == \(tas)")
+        }
+    }
+    
+    func testSort() throws {
+        struct User: MySQLModel, MySQLMigration, Equatable {
+            var id: Int?
+            var name: String
+            var age: Int
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        var a = User(id: nil, name: "A", age: 90)
+        a = try a.save(on: conn).wait()
+        var z = User(id: nil, name: "Z", age: 10)
+        z = try z.save(on: conn).wait()
+        
+        let usersByName = try User.query(on: conn).sort(\.name, .descending).all().wait()
+        let usersByAge = try User.query(on: conn).sort(\.age, .descending).all().wait()
+        XCTAssertNotEqual(usersByName, usersByAge)
+    }
+    
+    func testConcurrentQuery() throws {
+        struct User: MySQLModel, MySQLMigration, Equatable {
+            var id: Int?
+            var name: String
+            var age: Int
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        let usersByName = User.query(on: conn).sort(\.name, .descending).all()
+        let usersByAge = User.query(on: conn).sort(\.age, .descending).all()
+        
+        _ = try [usersByAge, usersByName].flatten(on: conn).wait()
+    }
+    
+    func testEmptySubset() throws {
+        struct User: MySQLModel, MySQLMigration {
+            var id: Int?
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { _ = try? User.revert(on: conn).wait() }
+        
+        let res = try User.query(on: conn).filter(\.id ~~ []).all().wait()
+        XCTAssertEqual(res.count, 0)
+        _ = try User.query(on: conn).filter(\.id ~~ [1]).all().wait()
+        _ = try User.query(on: conn).filter(\.id ~~ [1, 2]).all().wait()
+        _ = try User.query(on: conn).filter(\.id ~~ [1, 2, 3]).all().wait()
+    }
+    
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -276,14 +364,15 @@ class FluentMySQLTests: XCTestCase {
         ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
         ("testJSONType", testJSONType),
-        ("testContains", testContains),
         ("testBugs", testBugs),
         ("testGH93", testGH93),
         ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
-        ("testReferences", testReferences),
-        ("testForeignKeyIndexCount", testForeignKeyIndexCount),
+        ("testLifecycle", testLifecycle),
+        ("testContains", testContains),
+        ("testConcurrentQuery", testConcurrentQuery),
+        ("testEmptySubset", testEmptySubset),
     ]
 }
 
@@ -309,7 +398,7 @@ struct User: MySQLModel, Migration {
     var pet: Pet
 }
 
-struct Pet: MySQLJSONType {
+struct Pet: Codable {
     var name: String
 }
 
@@ -337,7 +426,7 @@ final class Child: MySQLModel, Migration {
     static func prepare(on connection: MySQLDatabase.Connection) -> Future<Void> {
         return Database.create(self, on: connection, closure: { builder in
             try addProperties(to: builder)
-            try builder.addReference(from: \.parentId, to: \Parent.id, actions: .update)
+            builder.reference(from: \.parentId, to: \Parent.id)
         })
     }
 }
