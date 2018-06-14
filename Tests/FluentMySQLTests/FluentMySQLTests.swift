@@ -1,5 +1,6 @@
 import FluentBenchmark
 import FluentMySQL
+import Fluent
 import XCTest
 
 class FluentMySQLTests: XCTestCase {
@@ -248,6 +249,76 @@ class FluentMySQLTests: XCTestCase {
         XCTAssertEqual(c?.name, "B")
     }
 
+    func testContains() throws {
+        struct User: MySQLModel, MySQLMigration {
+            var id: Int?
+            var name: String
+            var age: Int
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        // create
+        let tanner1 = User(id: nil, name: "tanner", age: 23)
+        _ = try tanner1.save(on: conn).wait()
+        let tanner2 = User(id: nil, name: "ner", age: 23)
+        _ = try tanner2.save(on: conn).wait()
+        let tanner3 = User(id: nil, name: "tan", age: 23)
+        _ = try tanner3.save(on: conn).wait()
+        
+        let tas = try User.query(on: conn).filter(\.name =~~ "ta").count().wait()
+        if tas != 2 {
+            XCTFail("tas == \(tas)")
+        }
+        let ers = try User.query(on: conn).filter(\.name ~~= "er").count().wait()
+        if ers != 2 {
+            XCTFail("ers == \(tas)")
+        }
+        let annes = try User.query(on: conn).filter(\.name ~~ "anne").count().wait()
+        if annes != 1 {
+            XCTFail("annes == \(tas)")
+        }
+        let ns = try User.query(on: conn).filter(\.name ~~ "n").count().wait()
+        if ns != 3 {
+            XCTFail("ns == \(tas)")
+        }
+        
+        let nertan = try User.query(on: conn).filter(\.name ~~ ["ner", "tan"]).count().wait()
+        if nertan != 2 {
+            XCTFail("nertan == \(tas)")
+        }
+        
+        let notner = try User.query(on: conn).filter(\.name !~ ["ner"]).count().wait()
+        if notner != 2 {
+            XCTFail("nertan == \(tas)")
+        }
+    }
+    
+    func testSort() throws {
+        struct User: MySQLModel, MySQLMigration, Equatable {
+            var id: Int?
+            var name: String
+            var age: Int
+        }
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+        
+        var a = User(id: nil, name: "A", age: 90)
+        a = try a.save(on: conn).wait()
+        var z = User(id: nil, name: "Z", age: 10)
+        z = try z.save(on: conn).wait()
+        
+        let usersByName = try User.query(on: conn).sort(\.name, .descending).all().wait()
+        let usersByAge = try User.query(on: conn).sort(\.age, .descending).all().wait()
+        XCTAssertNotEqual(usersByName, usersByAge)
+    }
+    
     static let allTests = [
         ("testSchema", testSchema),
         ("testModels", testModels),
@@ -259,13 +330,13 @@ class FluentMySQLTests: XCTestCase {
         ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
         ("testJSONType", testJSONType),
-//        ("testContains", testContains),
         ("testBugs", testBugs),
         ("testGH93", testGH93),
         ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
         ("testLifecycle", testLifecycle),
+        ("testContains", testContains),
     ]
 }
 

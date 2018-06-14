@@ -1,20 +1,20 @@
-infix operator ~=
+infix operator ~~=
 /// Has prefix
-public func ~= <Result>(lhs: KeyPath<Result, String>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
+public func ~~= <Result>(lhs: KeyPath<Result, String>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
     return .make(lhs, .compare(.like), ["%" + rhs])
 }
 /// Has prefix
-public func ~= <Result>(lhs: KeyPath<Result, String?>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
+public func ~~= <Result>(lhs: KeyPath<Result, String?>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
     return .make(lhs, .compare(.like), ["%" + rhs])
 }
 
-infix operator =~
+infix operator =~~
 /// Has suffix.
-public func =~ <Result>(lhs: KeyPath<Result, String>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
+public func =~~ <Result>(lhs: KeyPath<Result, String>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
     return .make(lhs, .compare(.like), [rhs + "%"])
 }
 /// Has suffix.
-public func =~ <Result>(lhs: KeyPath<Result, String?>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
+public func =~~ <Result>(lhs: KeyPath<Result, String?>, rhs: String) -> FilterOperator<MySQLDatabase, Result> {
     return .make(lhs, .compare(.like), [rhs + "%"])
 }
 

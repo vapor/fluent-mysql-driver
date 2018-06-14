@@ -31,3 +31,6 @@ extension MySQLUUIDModel {
 /// A MySQL database UUID pivot.
 /// See `Fluent.Pivot`.
 public protocol MySQLUUIDPivot: Pivot, MySQLUUIDModel { }
+
+
+public protocol MySQLMigration: Migration where Self.Database == MySQLDatabase { }

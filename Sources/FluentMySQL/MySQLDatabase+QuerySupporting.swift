@@ -23,6 +23,8 @@ extension MySQLQuery {
         public var offset: Int?
         public var defaultRelation: Expression.BinaryOperator
         public var upsert: MySQLQuery.Insert.UpsertClause?
+        public var orderBy: [MySQLQuery.OrderBy]
+        
         public init(_ statement: Statement, table: TableName) {
             self.statement = statement
             self.table = table
@@ -34,6 +36,7 @@ extension MySQLQuery {
             self.offset = nil
             defaultRelation = .and
             self.upsert = nil
+            self.orderBy = []
         }
     }
 }
@@ -73,7 +76,7 @@ extension MySQLDatabase: QuerySupporting {
     public typealias QueryKey = MySQLQuery.Select.ResultColumn
     
     /// See `QuerySupporting`.
-    public typealias QuerySort = String
+    public typealias QuerySort = MySQLQuery.OrderBy
     
     /// See `QuerySupporting`.
     public typealias QuerySortDirection = MySQLQuery.Direction
@@ -122,7 +125,8 @@ extension MySQLDatabase: QuerySupporting {
                 distinct: nil,
                 columns: fluent.keys.isEmpty ? [.all(nil)] : fluent.keys,
                 tables: [table],
-                predicate: fluent.predicate
+                predicate: fluent.predicate,
+                orderBy: fluent.orderBy
             ))
         case .update:
             query = .update(.init(
@@ -371,8 +375,8 @@ extension MySQLDatabase: QuerySupporting {
         }
     }
     
-    public static func querySort(_ field: MySQLQuery.QualifiedColumnName, _ direction: MySQLQuery.Direction) -> String {
-        fatalError()
+    public static func querySort(_ column: MySQLQuery.QualifiedColumnName, _ direction: MySQLQuery.Direction) -> MySQLQuery.OrderBy {
+        return .init(expression: .column(column), direction: direction)
     }
     
     public static var querySortDirectionAscending: MySQLQuery.Direction {
@@ -383,7 +387,7 @@ extension MySQLDatabase: QuerySupporting {
         return .descending
     }
     
-    public static func querySortApply(_ sort: String, to query: inout MySQLQuery.FluentQuery) {
-        fatalError()
+    public static func querySortApply(_ orderBy: MySQLQuery.OrderBy, to query: inout MySQLQuery.FluentQuery) {
+        query.orderBy.append(orderBy)
     }
 }
