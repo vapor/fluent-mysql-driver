@@ -36,8 +36,8 @@ extension MySQLColumnDefinitionStaticRepresentable where Self: RawRepresentable,
 extension MySQLDataConvertible where Self: RawRepresentable, Self.RawValue: MySQLDataConvertible
 {
     /// See `MySQLDataConvertible.convertToMySQLData()`
-    public func convertToMySQLData() throws -> MySQLData {
-        return try rawValue.convertToMySQLData()
+    public func convertToMySQLData() -> MySQLData {
+        return rawValue.convertToMySQLData()
     }
 
     /// See `MySQLDataConvertible.convertFromMySQLData(_:)`

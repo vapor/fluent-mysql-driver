@@ -227,7 +227,7 @@ extension MySQLDatabase: QuerySupporting {
     public static func queryDataSet<E>(_ field: MySQLQuery.QualifiedColumnName, to data: E, on query: inout MySQLQuery.FluentQuery)
         where E: Encodable
     {
-        query.values[field.name.string] = try! .bind(data)
+        query.values[field.name.string] = .bind(data)
     }
     
     public static func queryDataApply(_ data: [String: MySQLQuery.Expression], to query: inout MySQLQuery.FluentQuery) {
@@ -273,7 +273,7 @@ extension MySQLDatabase: QuerySupporting {
     public static func queryFilterValue<E>(_ encodables: [E]) -> MySQLQuery.Expression
         where E: Encodable
     {
-        return try! .expressions(encodables.map { try .bind($0) })
+        return .expressions(encodables.map { .bind($0) })
     }
     
     public static var queryFilterValueNil: MySQLQuery.Expression {
