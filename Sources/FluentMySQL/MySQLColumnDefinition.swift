@@ -16,7 +16,7 @@ extension UUID: MySQLColumnDefinitionStaticRepresentable {
 extension Date: MySQLColumnDefinitionStaticRepresentable {
     /// See `MySQLColumnDefinitionStaticRepresentable.mySQLColumnDefinition`
     public static var mySQLColumnDefinition: MySQLColumnDefinition {
-        return .datetime(nil)
+        return .datetime(6)
     }
 }
 
