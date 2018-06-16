@@ -168,9 +168,9 @@ extension MySQLDatabase: QuerySupporting {
                 copy.fluentID = UUID() as? M.ID
             }
         case .didCreate:
-            if M.ID.self is Int.Type {
+            if let idType = M.ID.self as? UInt64Initializable.Type, copy.fluentID == nil {
                 // FIXME: support other Int types
-                copy.fluentID = conn.lastMetadata?.lastInsertID.flatMap(Int.init) as? M.ID
+                copy.fluentID = conn.lastMetadata?.lastInsertID.flatMap(idType.init) as? M.ID
             }
         default: break
         }
@@ -391,3 +391,12 @@ extension MySQLDatabase: QuerySupporting {
         query.orderBy.append(orderBy)
     }
 }
+
+internal protocol UInt64Initializable {
+    init(_ uint64: UInt64)
+}
+
+extension Int32: UInt64Initializable { }
+extension Int64: UInt64Initializable { }
+extension UInt32: UInt64Initializable { }
+extension UInt64: UInt64Initializable { }

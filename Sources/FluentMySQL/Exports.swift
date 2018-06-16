@@ -64,10 +64,10 @@ extension QueryBuilder where Result: Model, Result.Database == Database, Databas
 }
 
 extension Model where Database == MySQLDatabase {
-    public func create(orIgnore: Bool, on conn: DatabaseConnectable) throws -> Future<Self> {
+    public func create(orIgnore: Bool, on conn: DatabaseConnectable) -> Future<Self> {
         return Self.query(on: conn).create(orIgnore: orIgnore, self)
     }
-    public func create(orUpdate: Bool, on conn: DatabaseConnectable) throws -> Future<Self> {
+    public func create(orUpdate: Bool, on conn: DatabaseConnectable) -> Future<Self> {
         return Self.query(on: conn).create(orUpdate: orUpdate, self)
     }
 }
