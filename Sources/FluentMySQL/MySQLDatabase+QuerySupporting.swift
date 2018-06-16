@@ -396,7 +396,9 @@ internal protocol UInt64Initializable {
     init(_ uint64: UInt64)
 }
 
+extension Int: UInt64Initializable { }
 extension Int32: UInt64Initializable { }
 extension Int64: UInt64Initializable { }
 extension UInt32: UInt64Initializable { }
 extension UInt64: UInt64Initializable { }
+extension UInt: UInt64Initializable { }
