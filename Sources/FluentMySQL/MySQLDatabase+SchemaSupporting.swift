@@ -1,3 +1,5 @@
+import Crypto
+
 extension MySQLQuery {
     public struct FluentSchema {
         public enum Statement {
@@ -104,8 +106,9 @@ extension MySQLDatabase: SchemaSupporting {
     
     /// See `SchemaSupporting`.
     public static func schemaReference(from: MySQLQuery.QualifiedColumnName, to: MySQLQuery.QualifiedColumnName, onUpdate: MySQLQuery.ForeignKeyReference.Action?, onDelete: MySQLQuery.ForeignKeyReference.Action?) -> MySQLQuery.TableConstraint {
-        return .init(
-            name: "fk:" + from.readable + "+" + to.readable,
+        let uid = from.readable + "+" + to.readable
+        return try! .init(
+            name:  "fk:" + SHA1.hash(uid).hexEncodedString(),
             .foreignKey(.init(
                 columns: [from.name],
                 reference: .init(
@@ -122,8 +125,9 @@ extension MySQLDatabase: SchemaSupporting {
     
     /// See `SchemaSupporting`.
     public static func schemaUnique(on: [MySQLQuery.QualifiedColumnName]) -> MySQLQuery.TableConstraint {
-        return .init(
-        name: "uq:" + on.map { $0.readable }.joined(separator: "+"),
+        let uid = on.map { $0.readable }.joined(separator: "+")
+        return try! .init(
+            name: "uq:" + SHA1.hash(uid).hexEncodedString(),
             .unique(.init(
                 columns: on.map { .init(value: .column($0.name)) },
                 conflictResolution: nil
