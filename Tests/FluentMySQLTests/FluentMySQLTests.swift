@@ -351,6 +351,13 @@ class FluentMySQLTests: XCTestCase {
         defer { _ = try? Antidisestablishmentarianism.revert(on: conn).wait() }
     }
     
+    func testMySQLRawEnum() {
+        enum TestEnum: String, MySQLEnumType, CaseIterable {
+            static var allCases: [TestEnum] = [.foo, .bar]
+            case foo, bar
+        }
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testMySQLJoining",testMySQLJoining),
@@ -368,6 +375,7 @@ class FluentMySQLTests: XCTestCase {
         ("testLongName", testLongName),
         ("testCreateOrUpdate", testCreateOrUpdate),
         ("testCreateOrIgnore", testCreateOrIgnore),
+        ("testMySQLRawEnum", testMySQLRawEnum),
     ]
 }
 

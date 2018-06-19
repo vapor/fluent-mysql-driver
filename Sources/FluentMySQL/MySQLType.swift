@@ -28,7 +28,7 @@ public protocol MySQLEnumType: MySQLType, ReflectionDecodable, Codable, RawRepre
 /// `RawRepresentable` by a `MySQLColumnDefinitionStaticRepresentable` type.
 extension MySQLDataTypeStaticRepresentable where Self: RawRepresentable, Self.RawValue: MySQLDataTypeStaticRepresentable
 {
-    public static var mySQLDataType: MySQLDataType {
+    public static var mysqlDataType: MySQLDataType {
         return RawValue.mysqlDataType
     }
 }
