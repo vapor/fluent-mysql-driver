@@ -1,6 +1,6 @@
 /// A MySQL type can represent itself statically as a column definition for
 /// migrations and convert to / from native MySQL data.
-public typealias MySQLType = MySQLColumnDefinitionStaticRepresentable & MySQLDataConvertible
+public typealias MySQLType = MySQLDataTypeStaticRepresentable & MySQLDataConvertible
 
 // MARK: Enum
 /// This type-alias makes it easy to declare nested enum types for your `MySQLModel`.
@@ -26,9 +26,11 @@ public protocol MySQLEnumType: MySQLType, ReflectionDecodable, Codable, RawRepre
 
 /// Provides a default `MySQLColumnDefinitionStaticRepresentable` implementation where the type is also
 /// `RawRepresentable` by a `MySQLColumnDefinitionStaticRepresentable` type.
-extension MySQLColumnDefinitionStaticRepresentable where Self: RawRepresentable, Self.RawValue: MySQLColumnDefinitionStaticRepresentable
+extension MySQLDataTypeStaticRepresentable where Self: RawRepresentable, Self.RawValue: MySQLDataTypeStaticRepresentable
 {
-    public static var mySQLColumnDefinition: MySQLColumnDefinition { return RawValue.mySQLColumnDefinition }
+    public static var mySQLDataType: MySQLDataType {
+        return RawValue.mysqlDataType
+    }
 }
 
 /// Provides a default `MySQLDataConvertible` implementation where the type is also
