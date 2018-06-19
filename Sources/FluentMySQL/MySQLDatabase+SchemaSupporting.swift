@@ -1,69 +1,39 @@
 import Crypto
 
-extension MySQLQuery {
-    public struct FluentSchema {
-        public enum Statement {
-            case create
-            case alter
-            case drop
-        }
-        
-        public var statement: Statement
-        public var table: TableName
-        public var columns: [MySQLQuery.ColumnDefinition]
-        public var constraints: [MySQLQuery.TableConstraint]
-        public init(_ statement: Statement, table: TableName) {
-            self.statement = statement
-            self.table = table
-            self.columns = []
-            self.constraints = []
+extension MySQLDatabase: SQLConstraintIdentifierNormalizer {
+    public static func normalizeSQLConstraintIdentifier(_ identifier: String) -> String {
+        do {
+            return try SHA1.hash(identifier).hexEncodedString()
+        } catch {
+            print("[ERROR] [MySQL] Could not hash MySQL constraint identifier: \(error).")
+            return identifier
         }
     }
 }
 
 extension MySQLDatabase: SchemaSupporting {
     /// See `SchemaSupporting`.
-    public typealias Schema = MySQLQuery.FluentSchema
+    public typealias Schema = FluentMySQLSchema
     
     /// See `SchemaSupporting`.
-    public typealias SchemaAction = MySQLQuery.FluentSchema.Statement
+    public typealias SchemaAction = FluentMySQLSchemaStatement
     
     /// See `SchemaSupporting`.
-    public typealias SchemaField = MySQLQuery.ColumnDefinition
+    public typealias SchemaField = MySQLColumnDefinition
     
     /// See `SchemaSupporting`.
-    public typealias SchemaFieldType = MySQLQuery.TypeName
+    public typealias SchemaFieldType = MySQLDataType
     
     /// See `SchemaSupporting`.
-    public typealias SchemaConstraint = MySQLQuery.TableConstraint
+    public typealias SchemaConstraint = MySQLTableConstraint
     
     /// See `SchemaSupporting`.
-    public typealias SchemaReferenceAction = MySQLQuery.ForeignKeyReference.Action
+    public typealias SchemaReferenceAction = MySQLConflictResolution
     
     /// See `SchemaSupporting`.
-    public static var schemaActionCreate: MySQLQuery.FluentSchema.Statement {
-        return .create
-    }
-    
-    /// See `SchemaSupporting`.
-    public static var schemaActionUpdate: MySQLQuery.FluentSchema.Statement {
-        return .alter
-    }
-    
-    /// See `SchemaSupporting`.
-    public static var schemaActionDelete: MySQLQuery.FluentSchema.Statement {
-        return .drop
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaCreate(_ action: MySQLQuery.FluentSchema.Statement, _ entity: String) -> MySQLQuery.FluentSchema {
-        return .init(action, table: .init(name: entity))
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaField(for type: Any.Type, isIdentifier: Bool, _ field: MySQLQuery.QualifiedColumnName) -> MySQLQuery.ColumnDefinition {
+    public static func schemaField(for type: Any.Type, isIdentifier: Bool, _ field: MySQLColumnIdentifier) -> MySQLColumnDefinition {
         var type = type
-        var constraints: [MySQLQuery.ColumnConstraint] = []
+        var constraints: [MySQLColumnConstraint] = []
         
         if let optional = type as? AnyOptionalType.Type {
             type = optional.anyWrappedType
@@ -71,9 +41,9 @@ extension MySQLDatabase: SchemaSupporting {
             constraints.append(.notNull)
         }
         
-        let typeName: MySQLQuery.TypeName
-        if let mysql = type as? MySQLColumnDefinitionStaticRepresentable.Type {
-            typeName = mysql.mySQLColumnDefinition
+        let typeName: MySQLDataType
+        if let mysql = type as? MySQLDataTypeStaticRepresentable.Type {
+            typeName = mysql.mysqlDataType
         } else {
             typeName = .json
         }
@@ -81,99 +51,33 @@ extension MySQLDatabase: SchemaSupporting {
         if isIdentifier {
             constraints.append(.notNull)
             switch typeName {
-            case .tinyint, .smallint, .int, .bigint: constraints.append(.primaryKey(autoIncrement: true))
-            default: constraints.append(.primaryKey(autoIncrement: false))
+            case .tinyint, .smallint, .int, .bigint:
+                constraints.append(.primaryKey(default: .autoIncrement))
+            default:
+                constraints.append(.primaryKey(default: nil))
             }
         }
         
-        return .init(name: field.name, typeName: typeName, constraints: constraints)
+        return .columnDefinition(field, typeName, constraints)
     }
     
     /// See `SchemaSupporting`.
-    public static func schemaField(_ field: MySQLQuery.QualifiedColumnName, _ type: MySQLQuery.TypeName) -> MySQLQuery.ColumnDefinition {
-        return .init(name: field.name, typeName: type, constraints: [])
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaFieldCreate(_ field: MySQLQuery.ColumnDefinition, to query: inout MySQLQuery.FluentSchema) {
-        query.columns.append(field)
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaFieldDelete(_ field: MySQLQuery.QualifiedColumnName, to query: inout MySQLQuery.FluentSchema) {
-        fatalError("MySQL does not yet support deleting columns from tables.")
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaReference(from: MySQLQuery.QualifiedColumnName, to: MySQLQuery.QualifiedColumnName, onUpdate: MySQLQuery.ForeignKeyReference.Action?, onDelete: MySQLQuery.ForeignKeyReference.Action?) -> MySQLQuery.TableConstraint {
-        let uid = from.readable + "+" + to.readable
-        return try! .init(
-            name:  "fk:" + SHA1.hash(uid).hexEncodedString(),
-            .foreignKey(.init(
-                columns: [from.name],
-                reference: .init(
-                    foreignTable: .init(name: to.table!),
-                    foreignColumns: [to.name],
-                    onDelete: onDelete,
-                    onUpdate: onUpdate,
-                    match: nil,
-                    deferrence: nil
-                )
-            ))
-        )
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaUnique(on: [MySQLQuery.QualifiedColumnName]) -> MySQLQuery.TableConstraint {
-        let uid = on.map { $0.readable }.joined(separator: "+")
-        return try! .init(
-            name: "uq:" + SHA1.hash(uid).hexEncodedString(),
-            .unique(.init(
-                columns: on.map { .init(value: .column($0.name)) },
-                conflictResolution: nil
-            ))
-        )
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaConstraintCreate(_ constraint: MySQLQuery.TableConstraint, to query: inout MySQLQuery.FluentSchema) {
-        query.constraints.append(constraint)
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaConstraintDelete(_ constraint: MySQLQuery.TableConstraint, to query: inout MySQLQuery.FluentSchema) {
-        fatalError("MySQL does not support deleting constraints from tables.")
-    }
-    
-    /// See `SchemaSupporting`.
-    public static func schemaExecute(_ fluent: MySQLQuery.FluentSchema, on conn: MySQLConnection) -> Future<Void> {
+    public static func schemaExecute(_ fluent: FluentMySQLSchema, on conn: MySQLConnection) -> Future<Void> {
         let query: MySQLQuery
         switch fluent.statement {
-        case .create:
-            query = .createTable(.init(
-                temporary: false,
-                ifNotExists: false,
-                table: fluent.table,
-                source: .schema(.init(
-                    columns: fluent.columns,
-                    tableConstraints: fluent.constraints,
-                    withoutRowID: false
-                ))
-            ))
-        case .alter:
-            guard fluent.columns.count == 1 && fluent.constraints.count == 0 else {
-                /// See https://www.sqlite.org/lang_altertable.html
-                fatalError("MySQL only supports adding one (1) column in an ALTER query.")
-            }
-            query = .alterTable(.init(
-                table: fluent.table,
-                value: .addColumn(fluent.columns[0])
-            ))
-        case .drop:
-            query = .dropTable(.init(
-                table: fluent.table,
-                ifExists: false
-            ))
+        case ._createTable:
+            var createTable: MySQLCreateTable = .createTable(fluent.table)
+            createTable.columns = fluent.columns
+            createTable.tableConstraints = fluent.constraints
+            query = ._createTable(createTable)
+        case ._alterTable:
+            var alterTable: MySQLAlterTable = .alterTable(fluent.table)
+            alterTable.columns = fluent.columns
+            alterTable.constraints = fluent.constraints
+            query = ._alterTable(alterTable)
+        case ._dropTable:
+            let dropTable: MySQLDropTable = .dropTable(fluent.table)
+            query = ._dropTable(dropTable)
         }
         return conn.query(query).transform(to: ())
     }

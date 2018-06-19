@@ -20,6 +20,10 @@ class FluentMySQLTests: XCTestCase {
         database = MySQLDatabase(config: config)
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
     }
+
+    func testBenchmark() throws {
+        try benchmarker.runAll()
+    }
     
     func testVersion() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
@@ -27,30 +31,6 @@ class FluentMySQLTests: XCTestCase {
         
         let version = try conn.simpleQuery("SELECT version();").wait()
         print(version)
-    }
-
-    func testSchema() throws {
-        try benchmarker.benchmarkSchema()
-    }
-    
-    func testModels() throws {
-        try benchmarker.benchmarkModels_withSchema()
-    }
-    
-    func testRelations() throws {
-        try benchmarker.benchmarkRelations_withSchema()
-    }
-    
-    func testTimestampable() throws {
-        try benchmarker.benchmarkTimestampable_withSchema()
-    }
-    
-    func testTransactions() throws {
-        try benchmarker.benchmarkTransactions_withSchema()
-    }
-
-    func testChunking() throws {
-         try benchmarker.benchmarkChunking_withSchema()
     }
 
     func testMySQLJoining() throws {
@@ -102,7 +82,7 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
 
         let builder = A.query(on: conn)
-        builder.query.predicate &= MySQLQuery.Expression.binary("cola", .equal, .literal(.null))
+        builder.query.predicate &= MySQLExpression.binary("cola", .equal, .literal(.null))
         try XCTAssertEqual(builder.all().wait().count, 0)
     }
 
@@ -179,7 +159,7 @@ class FluentMySQLTests: XCTestCase {
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
 
-        let res = try conn.query(.raw("SELECT ? as emojis", ["👏🐬💧"])).wait()
+        let res = try conn.raw("SELECT ? as emojis").bind("👏🐬💧").all().wait()
         try XCTAssertEqual(String.convertFromMySQLData(res[0].firstValue(forColumn: "emojis")!), "👏🐬💧")
     }
 
@@ -211,10 +191,6 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert ignore into tablea values (1, 2);").wait()
         print(conn.lastMetadata?.affectedRows ?? 0)
     }
-
-    func testLifecycle() throws {
-        try benchmarker.benchmarkLifecycle_withSchema()
-    }
     
     func testCreateOrIgnore() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
@@ -238,13 +214,13 @@ class FluentMySQLTests: XCTestCase {
         defer { benchmarker.pool.releaseConnection(conn) }
         try User.prepare(on: conn).wait()
         defer { try! User.revert(on: conn).wait() }
-        
+
         let a = User(id: 1, name: "A", pet: .init(name: "A"))
         let b = User(id: 1, name: "B", pet: .init(name: "B"))
-        
+
         _ = try a.create(orUpdate: true, on: conn).wait()
         _ = try b.create(orUpdate: true, on: conn).wait()
-        
+
         let c = try User.find(1, on: conn).wait()
         XCTAssertEqual(c?.name, "B")
     }
@@ -269,11 +245,11 @@ class FluentMySQLTests: XCTestCase {
         let tanner3 = User(id: nil, name: "tan", age: 23)
         _ = try tanner3.save(on: conn).wait()
         
-        let tas = try User.query(on: conn).filter(\.name =~~ "ta").count().wait()
+        let tas = try User.query(on: conn).filter(\.name, .like, "ta%").count().wait()
         if tas != 2 {
             XCTFail("tas == \(tas)")
         }
-        let ers = try User.query(on: conn).filter(\.name ~~= "er").count().wait()
+        let ers = try User.query(on: conn).filter(\.name ~= "er").count().wait()
         if ers != 2 {
             XCTFail("ers == \(tas)")
         }
@@ -353,13 +329,30 @@ class FluentMySQLTests: XCTestCase {
         _ = try User.query(on: conn).filter(\.id ~~ [1, 2, 3]).all().wait()
     }
     
+    func testLongName() throws {
+        struct Antidisestablishmentarianism: MySQLModel, MySQLMigration {
+            var id: Int?
+            var antidisestablishmentarianismFoo: String
+            var antidisestablishmentarianismBar: String
+            
+            static func prepare(on conn: MySQLConnection) -> Future<Void> {
+                return MySQLDatabase.create(Antidisestablishmentarianism.self, on: conn) { builder in
+                    builder.field(for: \.id)
+                    builder.field(for: \.antidisestablishmentarianismFoo)
+                    builder.field(for: \.antidisestablishmentarianismBar)
+                    builder.unique(on: \.antidisestablishmentarianismFoo, \.antidisestablishmentarianismBar)
+                }
+            }
+        }
+        
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try Antidisestablishmentarianism.prepare(on: conn).wait()
+        defer { _ = try? Antidisestablishmentarianism.revert(on: conn).wait() }
+    }
+    
     static let allTests = [
-        ("testSchema", testSchema),
-        ("testModels", testModels),
-        ("testRelations", testRelations),
-        ("testTimestampable", testTimestampable),
-        ("testTransactions", testTransactions),
-        ("testChunking", testChunking),
+        ("testBenchmark", testBenchmark),
         ("testMySQLJoining",testMySQLJoining),
         ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
@@ -369,10 +362,12 @@ class FluentMySQLTests: XCTestCase {
         ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
-        ("testLifecycle", testLifecycle),
         ("testContains", testContains),
         ("testConcurrentQuery", testConcurrentQuery),
         ("testEmptySubset", testEmptySubset),
+        ("testLongName", testLongName),
+        ("testCreateOrUpdate", testCreateOrUpdate),
+        ("testCreateOrIgnore", testCreateOrIgnore),
     ]
 }
 
