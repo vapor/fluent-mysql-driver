@@ -191,10 +191,6 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert ignore into tablea values (1, 2);").wait()
         print(conn.lastMetadata?.affectedRows ?? 0)
     }
-
-    func testLifecycle() throws {
-        try benchmarker.benchmarkLifecycle_withSchema()
-    }
     
 //    func testCreateOrIgnore() throws {
 //        let conn = try benchmarker.pool.requestConnection().wait()
@@ -344,7 +340,6 @@ class FluentMySQLTests: XCTestCase {
         ("testIndexes", testIndexes),
         ("testGH61", testGH61),
         ("testGH76", testGH76),
-        ("testLifecycle", testLifecycle),
         ("testContains", testContains),
         ("testConcurrentQuery", testConcurrentQuery),
         ("testEmptySubset", testEmptySubset),
