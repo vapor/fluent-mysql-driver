@@ -20,6 +20,10 @@ class FluentMySQLTests: XCTestCase {
         database = MySQLDatabase(config: config)
         benchmarker = try! Benchmarker(database, on: eventLoop, onFail: XCTFail)
     }
+
+    func testBenchmark() throws {
+        try benchmarker.runAll()
+    }
     
     func testVersion() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
@@ -27,30 +31,6 @@ class FluentMySQLTests: XCTestCase {
         
         let version = try conn.simpleQuery("SELECT version();").wait()
         print(version)
-    }
-
-    func testSchema() throws {
-        try benchmarker.benchmarkSchema()
-    }
-    
-    func testModels() throws {
-        try benchmarker.benchmarkModels_withSchema()
-    }
-    
-    func testRelations() throws {
-        try benchmarker.benchmarkRelations_withSchema()
-    }
-    
-    func testTimestampable() throws {
-        try benchmarker.benchmarkTimestampable_withSchema()
-    }
-    
-    func testTransactions() throws {
-        try benchmarker.benchmarkTransactions_withSchema()
-    }
-
-    func testChunking() throws {
-         try benchmarker.benchmarkChunking_withSchema()
     }
 
     func testMySQLJoining() throws {
@@ -354,12 +334,7 @@ class FluentMySQLTests: XCTestCase {
     }
     
     static let allTests = [
-        ("testSchema", testSchema),
-        ("testModels", testModels),
-        ("testRelations", testRelations),
-        ("testTimestampable", testTimestampable),
-        ("testTransactions", testTransactions),
-        ("testChunking", testChunking),
+        ("testBenchmark", testBenchmark),
         ("testMySQLJoining",testMySQLJoining),
         ("testMySQLCustomSQL", testMySQLCustomSQL),
         ("testMySQLSet", testMySQLSet),
