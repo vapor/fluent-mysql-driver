@@ -70,6 +70,7 @@ extension MySQLDatabase: QuerySupporting {
             select.joins = fluent.joins
             select.predicate = fluent.predicate
             select.orderBy = fluent.orderBy
+            select.groupBy = fluent.groupBy
             select.limit = fluent.limit
             select.offset = fluent.offset
             query = .select(select)

@@ -24,6 +24,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
     public typealias SelectExpression = MySQLSelectExpression
     public typealias Join = MySQLJoin
     public typealias OrderBy = MySQLOrderBy
+    public typealias GroupBy = MySQLGroupBy
     public typealias Upsert = MySQLUpsert
 
     public var statement: Statement
@@ -34,6 +35,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
     public var joins: [Join]
     public var predicate: Expression?
     public var orderBy: [OrderBy]
+    public var groupBy: [GroupBy]
     public var limit: Int?
     public var offset: Int?
     public var upsert: MySQLUpsert?
@@ -49,6 +51,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
             joins: [],
             predicate: nil,
             orderBy: [],
+            groupBy: [],
             limit: nil,
             offset: nil,
             upsert: nil,
