@@ -24,6 +24,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
     public typealias SelectExpression = MySQLSelectExpression
     public typealias Join = MySQLJoin
     public typealias OrderBy = MySQLOrderBy
+    public typealias Upsert = MySQLUpsert
 
     public var statement: Statement
     public var table: TableIdentifier
@@ -34,6 +35,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
     public var orderBy: [OrderBy]
     public var limit: Int?
     public var offset: Int?
+    public var upsert: MySQLUpsert?
     public var defaultBinaryOperator: GenericSQLBinaryOperator
 
     public static func query(_ statement: Statement, _ table: TableIdentifier) -> FluentMySQLQuery {
@@ -47,6 +49,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
             orderBy: [],
             limit: nil,
             offset: nil,
+            upsert: nil,
             defaultBinaryOperator: .and
         )
     }

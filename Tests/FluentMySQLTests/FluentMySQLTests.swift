@@ -209,21 +209,21 @@ class FluentMySQLTests: XCTestCase {
 //        XCTAssertNotEqual(resa, resb)
 //    }
 //
-//    func testCreateOrUpdate() throws {
-//        let conn = try benchmarker.pool.requestConnection().wait()
-//        defer { benchmarker.pool.releaseConnection(conn) }
-//        try User.prepare(on: conn).wait()
-//        defer { try! User.revert(on: conn).wait() }
-//
-//        let a = User(id: 1, name: "A", pet: .init(name: "A"))
-//        let b = User(id: 1, name: "B", pet: .init(name: "B"))
-//
-//        _ = try a.create(orUpdate: true, on: conn).wait()
-//        _ = try b.create(orUpdate: true, on: conn).wait()
-//
-//        let c = try User.find(1, on: conn).wait()
-//        XCTAssertEqual(c?.name, "B")
-//    }
+    func testCreateOrUpdate() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+
+        let a = User(id: 1, name: "A", pet: .init(name: "A"))
+        let b = User(id: 1, name: "B", pet: .init(name: "B"))
+
+        _ = try a.create(orUpdate: true, on: conn).wait()
+        _ = try b.create(orUpdate: true, on: conn).wait()
+
+        let c = try User.find(1, on: conn).wait()
+        XCTAssertEqual(c?.name, "B")
+    }
 
     func testContains() throws {
         struct User: MySQLModel, MySQLMigration {
@@ -366,6 +366,7 @@ class FluentMySQLTests: XCTestCase {
         ("testConcurrentQuery", testConcurrentQuery),
         ("testEmptySubset", testEmptySubset),
         ("testLongName", testLongName),
+        ("testCreateOrUpdate", testCreateOrUpdate),
     ]
 }
 
