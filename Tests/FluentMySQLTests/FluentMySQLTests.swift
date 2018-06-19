@@ -329,6 +329,28 @@ class FluentMySQLTests: XCTestCase {
         _ = try User.query(on: conn).filter(\.id ~~ [1, 2, 3]).all().wait()
     }
     
+    func testLongName() throws {
+        struct Antidisestablishmentarianism: MySQLModel, MySQLMigration {
+            var id: Int?
+            var antidisestablishmentarianismFoo: String
+            var antidisestablishmentarianismBar: String
+            
+            static func prepare(on conn: MySQLConnection) -> Future<Void> {
+                return MySQLDatabase.create(Antidisestablishmentarianism.self, on: conn) { builder in
+                    builder.field(for: \.id)
+                    builder.field(for: \.antidisestablishmentarianismFoo)
+                    builder.field(for: \.antidisestablishmentarianismBar)
+                    builder.unique(on: \.antidisestablishmentarianismFoo, \.antidisestablishmentarianismBar)
+                }
+            }
+        }
+        
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try Antidisestablishmentarianism.prepare(on: conn).wait()
+        defer { _ = try? Antidisestablishmentarianism.revert(on: conn).wait() }
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testMySQLJoining",testMySQLJoining),
@@ -343,6 +365,7 @@ class FluentMySQLTests: XCTestCase {
         ("testContains", testContains),
         ("testConcurrentQuery", testConcurrentQuery),
         ("testEmptySubset", testEmptySubset),
+        ("testLongName", testLongName),
     ]
 }
 
