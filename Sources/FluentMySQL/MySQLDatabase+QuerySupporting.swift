@@ -60,6 +60,7 @@ extension MySQLDatabase: QuerySupporting {
                 values.append(row.value)
             }
             insert.values.append(values)
+            insert.ignore = fluent.ignore
             insert.upsert = fluent.upsert
             query = .insert(insert)
         case ._select:

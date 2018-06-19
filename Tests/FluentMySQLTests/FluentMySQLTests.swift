@@ -192,23 +192,23 @@ class FluentMySQLTests: XCTestCase {
         print(conn.lastMetadata?.affectedRows ?? 0)
     }
     
-//    func testCreateOrIgnore() throws {
-//        let conn = try benchmarker.pool.requestConnection().wait()
-//        defer { benchmarker.pool.releaseConnection(conn) }
-//        try User.prepare(on: conn).wait()
-//        defer { try! User.revert(on: conn).wait() }
-//
-//        let a = User(id: 1, name: "A", pet: .init(name: "A"))
-//        let b = User(id: 1, name: "B", pet: .init(name: "B"))
-//
-//        _ = try a.create(orIgnore: true, on: conn).wait()
-//        let resa = conn.lastMetadata?.affectedRows
-//        _ = try b.create(orIgnore: true, on: conn).wait()
-//        let resb = conn.lastMetadata?.affectedRows
-//
-//        XCTAssertNotEqual(resa, resb)
-//    }
-//
+    func testCreateOrIgnore() throws {
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        try User.prepare(on: conn).wait()
+        defer { try! User.revert(on: conn).wait() }
+
+        let a = User(id: 1, name: "A", pet: .init(name: "A"))
+        let b = User(id: 1, name: "B", pet: .init(name: "B"))
+
+        _ = try a.create(orIgnore: true, on: conn).wait()
+        let resa = conn.lastMetadata?.affectedRows
+        _ = try b.create(orIgnore: true, on: conn).wait()
+        let resb = conn.lastMetadata?.affectedRows
+
+        XCTAssertNotEqual(resa, resb)
+    }
+
     func testCreateOrUpdate() throws {
         let conn = try benchmarker.pool.requestConnection().wait()
         defer { benchmarker.pool.releaseConnection(conn) }
@@ -367,6 +367,7 @@ class FluentMySQLTests: XCTestCase {
         ("testEmptySubset", testEmptySubset),
         ("testLongName", testLongName),
         ("testCreateOrUpdate", testCreateOrUpdate),
+        ("testCreateOrIgnore", testCreateOrIgnore),
     ]
 }
 

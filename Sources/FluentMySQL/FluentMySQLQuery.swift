@@ -27,6 +27,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
     public typealias Upsert = MySQLUpsert
 
     public var statement: Statement
+    public var ignore: Bool
     public var table: TableIdentifier
     public var keys: [SelectExpression]
     public var values: [String : Expression]
@@ -41,6 +42,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
     public static func query(_ statement: Statement, _ table: TableIdentifier) -> FluentMySQLQuery {
         return .init(
             statement: statement,
+            ignore: false,
             table: table,
             keys: [],
             values: [:],
