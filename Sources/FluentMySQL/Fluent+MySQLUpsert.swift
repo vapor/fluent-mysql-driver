@@ -1,10 +1,10 @@
-extension _MySQLModel {
+extension Model where Database.Query == FluentMySQLQuery {
     public func create(orUpdate: Bool, on conn: DatabaseConnectable) -> Future<Self> {
         return Self.query(on: conn).create(orUpdate: orUpdate, self)
     }
 }
 
-extension QueryBuilder where Result: _MySQLModel, Result.Database == Database {
+extension QueryBuilder where Result: Model, Result.Database == Database, Result.Database.Query == FluentMySQLQuery {
     public func create(orUpdate: Bool, _ model: Result) -> Future<Result> {
         if orUpdate {
             let row = SQLQueryEncoder(MySQLExpression.self).encode(model)
