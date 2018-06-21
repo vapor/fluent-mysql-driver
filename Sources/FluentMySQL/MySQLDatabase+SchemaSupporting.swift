@@ -28,7 +28,7 @@ extension MySQLDatabase: SchemaSupporting {
     public typealias SchemaConstraint = MySQLTableConstraint
     
     /// See `SchemaSupporting`.
-    public typealias SchemaReferenceAction = MySQLConflictResolution
+    public typealias SchemaReferenceAction = MySQLForeignKeyAction
     
     /// See `SchemaSupporting`.
     public static func schemaField(for type: Any.Type, isIdentifier: Bool, _ field: MySQLColumnIdentifier) -> MySQLColumnDefinition {
