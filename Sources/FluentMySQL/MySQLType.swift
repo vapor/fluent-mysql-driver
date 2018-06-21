@@ -45,11 +45,7 @@ extension MySQLDataConvertible where Self: RawRepresentable, Self.RawValue: MySQ
     /// See `MySQLDataConvertible.convertFromMySQLData(_:)`
     public static func convertFromMySQLData(_ data: MySQLData) throws -> Self {
         guard let extractedCase = try self.init(rawValue: .convertFromMySQLData(data)) else {
-            throw MySQLError(
-                identifier: "rawValue",
-                reason: "Could not create `\(Self.self)` from: \(data)",
-                source: .capture()
-            )
+            throw MySQLError(identifier: "rawValue", reason: "Could not create `\(Self.self)` from: \(data)")
         }
         return extractedCase
     }

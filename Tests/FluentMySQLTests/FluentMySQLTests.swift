@@ -135,7 +135,7 @@ class FluentMySQLTests: XCTestCase {
                     builder.field(for: \.id)
                     builder.field(for: \.title)
                     builder.field(for: \.strap)
-                    builder.field(for: \.content, type: .varchar(64, nil, nil))
+                    builder.field(for: \.content, type: .varchar(64))
                     builder.field(for: \.category)
                     builder.field(for: \.slug)
                     builder.field(for: \.date)
