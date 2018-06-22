@@ -358,6 +358,50 @@ class FluentMySQLTests: XCTestCase {
         }
     }
     
+    func testColumnPositioning() throws {
+        struct CustomOrder: MySQLModel {
+            var id: Int?
+            var a: Int
+            var b: Int
+        }
+
+        struct CreateCustomOrder: MySQLMigration {
+            static func prepare(on conn: MySQLConnection) -> Future<Void> {
+                return MySQLDatabase.create(CustomOrder.self, on: conn) { builder in
+                    builder.field(for: \.id)
+                    builder.field(for: \.a)
+                }
+            }
+            
+            static func revert(on conn: MySQLConnection) -> Future<Void> {
+                return MySQLDatabase.delete(CustomOrder.self, on: conn)
+            }
+        }
+        
+        struct AddColumnBToCustomOrder: MySQLMigration {
+            static func prepare(on conn: MySQLConnection) -> Future<Void> {
+                return MySQLDatabase.update(CustomOrder.self, on: conn) { builder in
+                    builder.field(for: \.b)
+                    builder.order(\.b, after: \.id)
+                }
+            }
+            
+            static func revert(on conn: MySQLConnection) -> Future<Void> {
+                return MySQLDatabase.update(CustomOrder.self, on: conn) { builder in
+                    builder.deleteField(for: \.b)
+                }
+            }
+        }
+
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        defer { _ = try? CreateCustomOrder.revert(on: conn).wait() }
+        try CreateCustomOrder.prepare(on: conn).wait()
+        defer { _ = try? AddColumnBToCustomOrder.revert(on: conn).wait() }
+        try AddColumnBToCustomOrder.prepare(on: conn).wait()
+        print("hi")
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testMySQLJoining",testMySQLJoining),
@@ -376,6 +420,7 @@ class FluentMySQLTests: XCTestCase {
         ("testCreateOrUpdate", testCreateOrUpdate),
         ("testCreateOrIgnore", testCreateOrIgnore),
         ("testMySQLRawEnum", testMySQLRawEnum),
+        ("testColumnPositioning", testColumnPositioning),
     ]
 }
 

@@ -20,6 +20,7 @@ public struct FluentMySQLSchema: FluentSQLSchema {
     public var deleteColumns: [MySQLColumnIdentifier]
     public var constraints: [MySQLTableConstraint]
     public var deleteConstraints: [MySQLTableConstraint]
+    public var columnPositions: [ColumnDefinition.ColumnIdentifier: MySQLAlterTable.ColumnPosition]
 
     public static func schema(_ statement: Statement, _ table: TableIdentifier) -> FluentMySQLSchema {
         return .init(
@@ -28,7 +29,8 @@ public struct FluentMySQLSchema: FluentSQLSchema {
             columns: [],
             deleteColumns: [],
             constraints: [],
-            deleteConstraints: []
+            deleteConstraints: [],
+            columnPositions: [:]
         )
     }
 }

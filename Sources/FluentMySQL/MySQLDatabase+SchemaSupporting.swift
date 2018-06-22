@@ -74,6 +74,7 @@ extension MySQLDatabase: SchemaSupporting {
             var alterTable: MySQLAlterTable = .alterTable(fluent.table)
             alterTable.columns = fluent.columns
             alterTable.constraints = fluent.constraints
+            alterTable.columnPositions = fluent.columnPositions
             query = ._alterTable(alterTable)
         case ._dropTable:
             let dropTable: MySQLDropTable = .dropTable(fluent.table)
