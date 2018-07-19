@@ -82,7 +82,7 @@ class FluentMySQLTests: XCTestCase {
         _ = try conn.simpleQuery("insert into tablea values (4, 4);").wait()
 
         let builder = A.query(on: conn)
-        builder.query.predicate &= MySQLExpression.binary("cola", .equal, .literal(.null))
+        builder.query.predicate &= MySQLExpression.binary(.column(.column(nil, "cola")), .equal, .literal(.null))
         try XCTAssertEqual(builder.all().wait().count, 0)
     }
 
