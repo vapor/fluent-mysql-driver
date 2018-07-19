@@ -95,7 +95,7 @@ extension MySQLDatabase: QuerySupporting {
         var copy = model
         switch event {
         case .willCreate:
-            if M.ID.self is UUID.Type {
+            if M.ID.self is UUID.Type, copy.fluentID == nil {
                 copy.fluentID = UUID() as? M.ID
             }
         case .didCreate:
