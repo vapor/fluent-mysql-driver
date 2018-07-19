@@ -11,10 +11,10 @@ let package = Package(
         .package(url: "https://github.com/vapor/core.git", from: "3.0.0"),
 
         // Swift ORM framework (queries, models, and relations) for building NoSQL and SQL database integrations.
-        .package(url: "https://github.com/vapor/fluent.git", from: "3.0.0-rc"),
+        .package(url: "https://github.com/vapor/fluent.git", from: "3.0.0"),
 
         // 🐬 Pure Swift MySQL client built on non-blocking, event-driven sockets.
-        .package(url: "https://github.com/vapor/mysql.git", from: "3.0.0-rc"),
+        .package(url: "https://github.com/vapor/mysql.git", from: "3.0.0"),
     ],
     targets: [
         .target(name: "FluentMySQL", dependencies: ["Async", "FluentSQL", "MySQL"]),

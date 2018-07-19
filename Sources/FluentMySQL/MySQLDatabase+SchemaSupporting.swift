@@ -85,11 +85,11 @@ extension MySQLDatabase: SchemaSupporting {
     
     /// See `SchemaSupporting`.
     public static func enableReferences(on conn: MySQLConnection) -> Future<Void> {
-        return conn.future(())
+        return conn.raw("SET @@session.foreign_key_checks=1").run()
     }
     
     /// See `SchemaSupporting`.
     public static func disableReferences(on conn: MySQLConnection) -> Future<Void> {
-        return conn.future(())
+        return conn.raw("SET @@session.foreign_key_checks=0").run()
     }
 }
