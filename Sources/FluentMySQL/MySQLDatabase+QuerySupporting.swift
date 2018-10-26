@@ -48,7 +48,7 @@ extension MySQLDatabase: QuerySupporting {
             if let firstRow = fluent.values.first {
                 insert.columns.append(contentsOf: firstRow.columns())
                 fluent.values.forEach { value in
-                    let row = value.postgresExpression()
+                    let row = value.mysqlExpression()
                     insert.values.append(row)
                 }
             }
@@ -114,7 +114,7 @@ extension UInt64: UInt64Initializable { }
 extension UInt: UInt64Initializable { }
 
 extension Dictionary where Key == String, Value == FluentMySQLQuery.Expression {
-    func postgresExpression() -> [MySQLExpression] {
+    func mysqlExpression() -> [MySQLExpression] {
         return self.map { pair -> MySQLExpression in
             switch pair.value {
             case ._literal(let literal):
