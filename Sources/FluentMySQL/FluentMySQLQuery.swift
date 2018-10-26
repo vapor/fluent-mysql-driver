@@ -31,7 +31,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
     public var ignore: Bool
     public var table: TableIdentifier
     public var keys: [SelectExpression]
-    public var values: [String : Expression]
+    public var values: [[String : Expression]]
     public var joins: [Join]
     public var predicate: Expression?
     public var orderBy: [OrderBy]
@@ -47,7 +47,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
             ignore: false,
             table: table,
             keys: [],
-            values: [:],
+            values: [],
             joins: [],
             predicate: nil,
             orderBy: [],
