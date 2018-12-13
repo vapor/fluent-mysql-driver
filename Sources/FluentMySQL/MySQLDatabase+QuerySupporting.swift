@@ -66,6 +66,7 @@ extension MySQLDatabase: QuerySupporting {
         case ._select:
             var select: MySQLSelect = .select()
             select.columns = fluent.keys.isEmpty ? [.all] : fluent.keys
+            select.distinct = fluent.distinct
             select.tables = [fluent.table]
             select.joins = fluent.joins
             select.predicate = fluent.predicate

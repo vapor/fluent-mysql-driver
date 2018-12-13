@@ -19,6 +19,7 @@ public enum FluentMySQLQueryStatement: FluentSQLQueryStatement {
 
 public struct FluentMySQLQuery: FluentSQLQuery {
     public typealias Statement = FluentMySQLQueryStatement
+    public typealias Distinct = MySQLDistinct
     public typealias TableIdentifier = MySQLTableIdentifier
     public typealias Expression = MySQLExpression
     public typealias SelectExpression = MySQLSelectExpression
@@ -29,6 +30,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
 
     public var statement: Statement
     public var ignore: Bool
+    public var distinct: Distinct?
     public var table: TableIdentifier
     public var keys: [SelectExpression]
     public var values: [String : Expression]
@@ -45,6 +47,7 @@ public struct FluentMySQLQuery: FluentSQLQuery {
         return .init(
             statement: statement,
             ignore: false,
+            distinct: nil,
             table: table,
             keys: [],
             values: [:],
