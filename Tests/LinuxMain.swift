@@ -1,10 +1,8 @@
-#if os(Linux)
-
 import XCTest
-@testable import FluentMySQLTests
 
-XCTMain([
-    testCase(FluentMySQLTests.allTests)
-])
+import FluentMySQLDriverTests
 
-#endif
+var tests = [XCTestCaseEntry]()
+tests += FluentMySQLDriverTests.__allTests()
+
+XCTMain(tests)
