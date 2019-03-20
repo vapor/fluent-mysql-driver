@@ -1,23 +1,17 @@
-// swift-tools-version:4.0
+// swift-tools-version:5.0
 import PackageDescription
 
 let package = Package(
-    name: "FluentMySQL",
+    name: "fluent-mysql-driver",
     products: [
-        .library(name: "FluentMySQL", targets: ["FluentMySQL"]),
+        .library(name: "FluentMySQLDriver", targets: ["FluentMySQLDriver"]),
     ],
     dependencies: [
-        // 🌎 Utility package containing tools for byte manipulation, Codable, OS APIs, and debugging.
-        .package(url: "https://github.com/vapor/core.git", from: "3.0.0"),
-
-        // Swift ORM framework (queries, models, and relations) for building NoSQL and SQL database integrations.
-        .package(url: "https://github.com/vapor/fluent.git", from: "3.0.0"),
-
-        // 🐬 Pure Swift MySQL client built on non-blocking, event-driven sockets.
-        .package(url: "https://github.com/vapor/mysql.git", from: "3.0.0"),
+        .package(url: "https://github.com/vapor/fluent-kit.git", .branch("model-instance")),
+        .package(url: "https://github.com/vapor/mysql.git", .branch("4")),
     ],
     targets: [
-        .target(name: "FluentMySQL", dependencies: ["Async", "FluentSQL", "MySQL"]),
-        .testTarget(name: "FluentMySQLTests", dependencies: ["FluentBenchmark", "FluentMySQL"]),
+        .target(name: "FluentMySQLDriver", dependencies: ["FluentKit", "FluentSQL", "MySQLKit"]),
+        .testTarget(name: "FluentMySQLDriverTests", dependencies: ["FluentBenchmark", "FluentMySQLDriver"]),
     ]
 )
