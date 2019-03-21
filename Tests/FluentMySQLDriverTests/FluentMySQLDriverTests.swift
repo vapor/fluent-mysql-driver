@@ -3,7 +3,10 @@ import FluentMySQLDriver
 import XCTest
 
 final class FluentMySQLDriverTests: XCTestCase {
-    var benchmarker: FluentBenchmarker!
+    var benchmarker: FluentBenchmarker {
+        return .init(database: self.pool)
+    }
+    var pool: ConnectionPool<MySQLConnectionSource>!
     
     func testAll() throws {
         try self.benchmarker.testAll()
@@ -46,8 +49,6 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
     
     func testMigrator() throws {
-        fatalError("test")
-        return;
         try self.benchmarker.testMigrator()
     }
     
@@ -108,7 +109,11 @@ final class FluentMySQLDriverTests: XCTestCase {
             tlsConfiguration: nil
         )
         let db = MySQLConnectionSource(configuration: configuration, on: eventLoop)
-        let pool = ConnectionPool(config: .init(maxConnections: 1), source: db)
-        self.benchmarker = FluentBenchmarker(database: pool)
+        self.pool = ConnectionPool(config: .init(maxConnections: 1), source: db)
+    }
+    
+    override func tearDown() {
+        try! self.pool.close().wait()
+        self.pool = nil
     }
 }
