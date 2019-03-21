@@ -10,7 +10,7 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
     
     func testCreate() throws {
-        try! self.benchmarker.testCreate()
+        try self.benchmarker.testCreate()
     }
     
     func testRead() throws {
@@ -46,6 +46,8 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
     
     func testMigrator() throws {
+        fatalError("test")
+        return;
         try self.benchmarker.testMigrator()
     }
     

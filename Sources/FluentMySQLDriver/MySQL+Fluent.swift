@@ -28,7 +28,11 @@ extension ConnectionPool: Database where Source.Connection: Database {
     }
     
     public func execute(_ schema: DatabaseSchema) -> EventLoopFuture<Void> {
-        return self.withConnection { $0.execute(schema) }
+        print("schema")
+        return self.withConnection {
+            print($0)
+            return $0.execute(schema)
+        }
     }
     
     public func execute(_ query: DatabaseQuery, _ onOutput: @escaping (DatabaseOutput) throws -> ()) -> EventLoopFuture<Void> {
