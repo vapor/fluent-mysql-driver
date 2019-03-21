@@ -93,7 +93,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
         let hostname: String
         #if os(Linux)
-        hostname = "psql"
+        hostname = "mysql"
         #else
         hostname = "localhost"
         #endif
