@@ -8,10 +8,18 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/fluent-kit.git", .branch("master")),
-        .package(url: "https://github.com/vapor/mysql.git", .branch("master")),
+        .package(url: "https://github.com/vapor/nio-mysql.git", .branch("master")),
+        .package(url: "https://github.com/vapor/sql.git", .branch("master")),
+        .package(url: "https://github.com/vapor/nio-kit.git", .branch("master")),
     ],
     targets: [
-        .target(name: "FluentMySQLDriver", dependencies: ["FluentKit", "FluentSQL", "MySQLKit"]),
+        .target(name: "FluentMySQLDriver", dependencies: [
+            "FluentKit",
+            "FluentSQL",
+            "NIOKit",
+            "NIOMySQL",
+            "SQLKit"
+        ]),
         .testTarget(name: "FluentMySQLDriverTests", dependencies: ["FluentBenchmark", "FluentMySQLDriver"]),
     ]
 )

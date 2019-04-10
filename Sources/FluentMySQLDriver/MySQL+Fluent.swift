@@ -1,4 +1,5 @@
 import FluentSQL
+import NIOMySQL
 
 extension DatabaseID {
     public static var mysql: DatabaseID {
@@ -81,11 +82,6 @@ extension MySQLConnection: Database {
         return self.sqlQuery(SQLSchemaConverter(delegate: MySQLConverterDelegate()).convert(schema)) { row in
             fatalError("unexpected output")
         }
-    }
-    
-    public func close() -> EventLoopFuture<Void> {
-        #warning("TODO: implement connectionPool.close()")
-        return self.eventLoop.makeSucceededFuture(())
     }
 }
 
