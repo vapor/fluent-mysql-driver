@@ -1,5 +1,5 @@
 import SQLKit
-import NIOKit
+import AsyncKit
 
 public struct MySQLConfiguration {
     public let address: () throws -> SocketAddress
@@ -90,17 +90,6 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
     }
 }
 
-extension MySQLConnection: ConnectionPoolItem { }
-
-extension MySQLRow: SQLRow {
-    public func decode<D>(column: String, as type: D.Type) throws -> D where D : Decodable {
-        guard let data = self.column(column) else {
-            fatalError()
-        }
-        return try MySQLDataDecoder().decode(D.self, from: data)
-    }
-}
-
 public struct SQLRaw: SQLExpression {
     public var string: String
     public init(_ string: String) {
@@ -140,39 +129,3 @@ public struct MySQLDialect: SQLDialect {
         return SQLRaw("AUTO_INCREMENT")
     }
 }
-
-extension MySQLConnection: SQLDatabase { }
-
-extension MySQLDatabase where Self: SQLDatabase {
-    public func sqlQuery(_ query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
-        var serializer = SQLSerializer(dialect: MySQLDialect())
-        query.serialize(to: &serializer)
-        return self.query(serializer.sql, serializer.binds.map { encodable in
-            return try! MySQLDataEncoder().encode(encodable)
-        }, onRow: { row in
-            try! onRow(row)
-        })
-    }
-}
-
-#warning("TODO: move to SQLKit?")
-extension ConnectionPool: SQLDatabase where Source.Connection: SQLDatabase {
-    public func sqlQuery(_ query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
-        return self.withConnection { $0.sqlQuery(query, onRow) }
-    }
-}
-
-
-#warning("TODO: move to NIOPostgres?")
-//extension ConnectionPool: PostgresDatabase where Source.Connection: PostgresDatabase {
-//    public var eventLoop: EventLoop {
-//        return self.source.eventLoop
-//    }
-//    
-//    public func send(_ request: PostgresRequestHandler) -> EventLoopFuture<Void> {
-//        return self.withConnection { $0.send(request) }
-//    }
-//}
-
-#warning("TODO: move to SQLKit?")
-
