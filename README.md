@@ -15,6 +15,6 @@
         <img src="https://circleci.com/gh/vapor/fluent-mysql.svg?style=shield" alt="Continuous Integration">
     </a>
     <a href="https://swift.org">
-        <img src="http://img.shields.io/badge/swift-5-brightgreen.svg" alt="Swift 5">
+        <img src="http://img.shields.io/badge/swift-5.1-brightgreen.svg" alt="Swift 5.1">
     </a>
 </p>
