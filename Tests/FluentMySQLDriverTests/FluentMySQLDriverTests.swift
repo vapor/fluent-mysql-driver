@@ -126,13 +126,19 @@ final class FluentMySQLDriverTests: XCTestCase {
         #else
         hostname = "localhost"
         #endif
+        let tlsConfiguration: TLSConfiguration?
+        #if TEST_TLS
+        tlsConfiguration = .forClient(certificateVerification: .none)
+        #else
+        tlsConfiguration = nil
+        #endif
         let configuration = MySQLConfiguration(
             hostname: hostname,
             port: 3306,
             username: "vapor_username",
             password: "vapor_password",
             database: "vapor_database",
-            tlsConfiguration: nil
+            tlsConfiguration: tlsConfiguration
         )
         let db = MySQLConnectionSource(configuration: configuration, on: eventLoop)
         self.pool = ConnectionPool(config: .init(maxConnections: 1), source: db)
