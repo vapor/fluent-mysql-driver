@@ -1,4 +1,4 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.1
 import PackageDescription
 
 let package = Package(
@@ -8,17 +8,13 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/fluent-kit.git", .branch("master")),
-        .package(url: "https://github.com/vapor/nio-mysql.git", .branch("master")),
-        .package(url: "https://github.com/vapor/sql.git", .branch("master")),
-        .package(url: "https://github.com/vapor/nio-kit.git", .branch("master")),
+        .package(url: "https://github.com/vapor/mysql-kit.git", .branch("master")),
     ],
     targets: [
         .target(name: "FluentMySQLDriver", dependencies: [
             "FluentKit",
             "FluentSQL",
-            "NIOKit",
-            "NIOMySQL",
-            "SQLKit"
+            "MySQLKit"
         ]),
         .testTarget(name: "FluentMySQLDriverTests", dependencies: ["FluentBenchmark", "FluentMySQLDriver"]),
     ]
