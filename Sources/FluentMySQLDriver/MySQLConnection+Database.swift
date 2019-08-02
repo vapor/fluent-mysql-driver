@@ -24,10 +24,6 @@ extension MySQLConnection: Database {
 
     public func execute(_ schema: DatabaseSchema) -> EventLoopFuture<Void> {
         let sql = SQLSchemaConverter(delegate: MySQLConverterDelegate()).convert(schema)
-        #warning("TODO: remove me")
-        var serializer = SQLSerializer(dialect: MySQLDialect())
-        sql.serialize(to: &serializer)
-        print(serializer.sql)
         return self.execute(sql: sql) { row in
             fatalError("unexpected output")
         }

@@ -7,8 +7,8 @@ let package = Package(
         .library(name: "FluentMySQLDriver", targets: ["FluentMySQLDriver"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/fluent-kit.git", .branch("master")),
-        .package(url: "https://github.com/vapor/mysql-kit.git", .branch("master")),
+        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.0.0-alpha.2"),
+        .package(url: "https://github.com/vapor/mysql-kit.git", from: "4.0.0-alpha.1"),
     ],
     targets: [
         .target(name: "FluentMySQLDriver", dependencies: [
