@@ -12,6 +12,7 @@ extension FluentMySQLDriverTests {
         ("testBatchCreate", testBatchCreate),
         ("testBatchUpdate", testBatchUpdate),
         ("testChunkedFetch", testChunkedFetch),
+        ("testClarityModel", testClarityModel),
         ("testCreate", testCreate),
         ("testDelete", testDelete),
         ("testEagerLoadChildren", testEagerLoadChildren),

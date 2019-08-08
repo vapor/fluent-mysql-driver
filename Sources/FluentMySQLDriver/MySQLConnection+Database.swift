@@ -13,12 +13,11 @@ extension MySQLConnection: Database {
         let binds = serializer.binds.map { encodable in
             return try! MySQLDataEncoder().encode(encodable)
         }
-        print("\(serializer.sql) \(binds)")
         return self.query(serializer.sql, binds, onRow: { row in
-            try! onOutput(row)
+            try onOutput(row)
         }, onMetadata: { metadata in
             let row = LastInsertRow(metadata: metadata)
-            try! onOutput(row)
+            try onOutput(row)
         })
     }
 
