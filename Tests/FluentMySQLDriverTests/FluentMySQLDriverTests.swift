@@ -2,6 +2,7 @@ import NIO
 import FluentBenchmark
 import FluentMySQLDriver
 import XCTest
+import Logging
 
 final class FluentMySQLDriverTests: XCTestCase {
     func testAll() throws {
@@ -112,32 +113,79 @@ final class FluentMySQLDriverTests: XCTestCase {
         try self.benchmarker.testUUIDModel()
     }
 
+    func testNewModelDecode() throws {
+        try self.benchmarker.testNewModelDecode()
+    }
+
+    func testSiblingsAttach() throws {
+        try self.benchmarker.testSiblingsAttach()
+    }
+
+    func testSiblingsEagerLoad() throws {
+        try self.benchmarker.testSiblingsEagerLoad()
+    }
+
     func testClarityModel() throws {
         final class Clarity: Model {
-            static let entity = "clarity"
-            @Field("id") var id: Int?
-            @Field("at") var at: Date
-            @Field("cloud_condition") var cloudCondition: Int
-            @Field("wind_condition") var windCondition: Int
-            @Field("rain_condition") var rainCondition: Int
-            @Field("day_condition") var daylightCondition: Int
-            @Field("sky_temperature") var skyTemperature: Double?
-            @Field("sensor_temperature") var sensorTemperature: Double?
-            @Field("ambient_temperature") var ambientTemperature: Double
-            @Field("dewpoint_temperature") var dewpointTemperature: Double
-            @Field("wind_speed") var windSpeed: Double?
-            @Field("humidity") var humidity: Double
-            @Field("daylight") var daylight: Int
-            @Field("rain") var rain: Bool
-            @Field("wet") var wet: Bool
-            @Field("heater") var heater: Double
-            @Field("close_requested") var closeRequested: Bool
+            static let schema = "clarities"
+
+            @ID(key: "id")
+            var id: Int?
+
+            @Field(key: "at")
+            var at: Date
+
+            @Field(key: "cloud_condition")
+            var cloudCondition: Int
+
+            @Field(key: "wind_condition")
+            var windCondition: Int
+
+            @Field(key: "rain_condition")
+            var rainCondition: Int
+
+            @Field(key: "day_condition")
+            var daylightCondition: Int
+
+            @Field(key: "sky_temperature")
+            var skyTemperature: Double?
+
+            @Field(key: "sensor_temperature")
+            var sensorTemperature: Double?
+
+            @Field(key: "ambient_temperature")
+            var ambientTemperature: Double
+
+            @Field(key: "dewpoint_temperature")
+            var dewpointTemperature: Double
+
+            @Field(key: "wind_speed")
+            var windSpeed: Double?
+
+            @Field(key: "humidity")
+            var humidity: Double
+
+            @Field(key: "daylight")
+            var daylight: Int
+
+            @Field(key: "rain")
+            var rain: Bool
+
+            @Field(key: "wet")
+            var wet: Bool
+
+            @Field(key: "heater")
+            var heater: Double
+
+            @Field(key: "close_requested")
+            var closeRequested: Bool
+
             init() { }
         }
 
         struct CreateClarity: Migration {
             func prepare(on database: Database) -> EventLoopFuture<Void> {
-                return Clarity.schema(on: database)
+                return database.schema("clarities")
                     .field("id", .int, .identifier(auto: true))
                     .field("at", .datetime, .required)
                     .field("cloud_condition", .int, .required)
@@ -159,7 +207,7 @@ final class FluentMySQLDriverTests: XCTestCase {
             }
 
             func revert(on database: Database) -> EventLoopFuture<Void> {
-                return Clarity.schema(on: database).delete()
+                return database.schema("clarities").delete()
             }
         }
 
@@ -215,6 +263,7 @@ final class FluentMySQLDriverTests: XCTestCase {
 
     
     override func setUp() {
+        XCTAssert(isLoggingConfigured)
         let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
         let hostname: String
         #if os(Linux)
@@ -245,3 +294,12 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.pool = nil
     }
 }
+
+let isLoggingConfigured: Bool = {
+    LoggingSystem.bootstrap { label in
+        var handler = StreamLogHandler.standardOutput(label: label)
+        handler.logLevel = .debug
+        return handler
+    }
+    return true
+}()
