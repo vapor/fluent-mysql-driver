@@ -401,6 +401,50 @@ class FluentMySQLTests: XCTestCase {
         try AddColumnBToCustomOrder.prepare(on: conn).wait()
         print("hi")
     }
+
+
+    func testConstraintAddDelete() throws {
+        struct Foo: MySQLModel {
+            var id: Int?
+            var a: Int
+        }
+
+        struct Add: MySQLMigration {
+            static func prepare(on conn: MySQLConnection) -> EventLoopFuture<Void> {
+                return MySQLDatabase.create(Foo.self, on: conn) { updater in
+                    updater.field(for: \.id)
+                    updater.field(for: \.a)
+                    updater.unique(on: \.a)
+                }
+            }
+
+            static func revert(on conn: MySQLConnection) -> EventLoopFuture<Void> {
+                return MySQLDatabase.delete(Foo.self, on: conn)
+            }
+        }
+        struct Remove: MySQLMigration {
+            static func prepare(on conn: MySQLConnection) -> EventLoopFuture<Void> {
+                return MySQLDatabase.update(Foo.self, on: conn) { updater in
+                    updater.deleteUnique(from: \.a)
+                }
+            }
+
+            static func revert(on conn: MySQLConnection) -> EventLoopFuture<Void> {
+                return MySQLDatabase.update(Foo.self, on: conn) { updater in
+                    updater.unique(on: \.a)
+                }
+            }
+        }
+
+
+        let conn = try benchmarker.pool.requestConnection().wait()
+        defer { benchmarker.pool.releaseConnection(conn) }
+        conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
+        defer { _ = try? Add.revert(on: conn).wait() }
+        try Add.prepare(on: conn).wait()
+        defer { _ = try? Remove.revert(on: conn).wait() }
+        try Remove.prepare(on: conn).wait()
+    }
     
     static let allTests = [
         ("testBenchmark", testBenchmark),
@@ -421,6 +465,7 @@ class FluentMySQLTests: XCTestCase {
         ("testCreateOrIgnore", testCreateOrIgnore),
         ("testMySQLRawEnum", testMySQLRawEnum),
         ("testColumnPositioning", testColumnPositioning),
+        ("testConstraintAddDelete", testConstraintAddDelete)
     ]
 }
 
