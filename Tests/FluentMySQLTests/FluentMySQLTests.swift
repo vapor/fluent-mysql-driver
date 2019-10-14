@@ -445,7 +445,7 @@ class FluentMySQLTests: XCTestCase {
         defer { _ = try? Remove.revert(on: conn).wait() }
         try Remove.prepare(on: conn).wait()
     }
-    
+
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testMySQLJoining",testMySQLJoining),
