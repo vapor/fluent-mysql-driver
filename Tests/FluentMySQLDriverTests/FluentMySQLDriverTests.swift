@@ -265,25 +265,15 @@ final class FluentMySQLDriverTests: XCTestCase {
     override func setUp() {
         XCTAssert(isLoggingConfigured)
         let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
-        let hostname: String
-        #if os(Linux)
-        hostname = "mysql"
-        #else
-        hostname = "localhost"
-        #endif
-        let tlsConfiguration: TLSConfiguration?
-        #if TEST_TLS
-        tlsConfiguration = .forClient(certificateVerification: .none)
-        #else
-        tlsConfiguration = nil
-        #endif
         let configuration = MySQLConfiguration(
-            hostname: hostname,
-            port: 3306,
+            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
+            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
             username: "vapor_username",
             password: "vapor_password",
             database: "vapor_database",
-            tlsConfiguration: tlsConfiguration
+            tlsConfiguration: env("MYSQL_TLS").flatMap { _ in
+                .forClient(certificateVerification: .none)
+            }
         )
         let db = MySQLConnectionSource(configuration: configuration, on: eventLoop)
         self.pool = ConnectionPool(config: .init(maxConnections: 1), source: db)
@@ -293,6 +283,10 @@ final class FluentMySQLDriverTests: XCTestCase {
         try! self.pool.close().wait()
         self.pool = nil
     }
+}
+
+func env(_ name: String) -> String? {
+    return ProcessInfo.processInfo.environment[name]
 }
 
 let isLoggingConfigured: Bool = {
