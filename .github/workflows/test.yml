@@ -18,6 +18,7 @@ jobs:
     - uses: actions/checkout@master
     - run: swift test
       env:
+        MYSQL_HOSTNAME: mysql
         MYSQL_TLS: true
   mysql-5_7:
     container: 
@@ -34,3 +35,5 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - run: swift test
+      env:
+        MYSQL_HOSTNAME: mysql
