@@ -8,17 +8,17 @@ extension DatabaseID {
 }
 
 extension Databases {
-    public mutating func mysql(
+    public func mysql(
         configuration: MySQLConfiguration,
-        poolConfiguration: ConnectionPoolConfig = .init(),
+        poolConfiguration: ConnectionPoolConfiguration = .init(),
         as id: DatabaseID = .mysql,
-        isDefault: Bool = true
+        isDefault: Bool = true,
+        on eventLoopGroup: EventLoopGroup
     ) {
         let db = MySQLConnectionSource(
-            configuration: configuration,
-            on: self.eventLoop
+            configuration: configuration
         )
-        let pool = ConnectionPool(config: poolConfiguration, source: db)
-        self.add(pool, as: id, isDefault: isDefault)
+        let pool = ConnectionPool(configuration: poolConfiguration, source: db, on: eventLoopGroup)
+        self.add(MySQLDatabaseDriver(pool: pool), as: id, isDefault: isDefault)
     }
 }

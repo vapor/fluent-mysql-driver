@@ -3,7 +3,10 @@
 @_exported import struct Foundation.URL
 
 @_exported import class AsyncKit.ConnectionPool
-@_exported import struct AsyncKit.ConnectionPoolConfig
+@_exported import struct AsyncKit.ConnectionPoolConfiguration
+
+@_exported import struct MySQLKit.MySQLConfiguration
+@_exported import struct MySQLKit.MySQLConnectionSource
 
 @_exported import class MySQLNIO.MySQLConnection
 @_exported import enum MySQLNIO.MySQLError
