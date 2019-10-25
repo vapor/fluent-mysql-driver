@@ -211,8 +211,8 @@ final class FluentMySQLDriverTests: XCTestCase {
             }
         }
 
-        defer { try? CreateClarity().revert(on: self.pool).wait() }
-        try CreateClarity().prepare(on: self.pool).wait()
+        defer { try? CreateClarity().revert(on: self.db).wait() }
+        try CreateClarity().prepare(on: self.db).wait()
 
         let now = Date()
         do {
@@ -233,10 +233,10 @@ final class FluentMySQLDriverTests: XCTestCase {
             clarity.wet = true
             clarity.heater = 10
             clarity.closeRequested = false
-            try clarity.create(on: self.pool).wait()
+            try clarity.create(on: self.db).wait()
         }
         do {
-            let clarity = try Clarity.query(on: self.pool).first().wait()!
+            let clarity = try Clarity.query(on: self.db).first().wait()!
             XCTAssertEqual(clarity.at.description, now.description)
             XCTAssertEqual(clarity.cloudCondition, 1)
             XCTAssertEqual(clarity.windCondition, 2)
@@ -257,15 +257,19 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
 
     var benchmarker: FluentBenchmarker {
-        return .init(database: self.pool)
+        return .init(database: self.db)
     }
-    var pool: ConnectionPool<MySQLConnectionSource>!
+    var eventLoopGroup: EventLoopGroup!
+    var dbs: Databases!
+    var db: Database {
+        return self.dbs.default()
+    }
 
-    
     override func setUp() {
         XCTAssert(isLoggingConfigured)
-        let eventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
-        let configuration = MySQLConfiguration(
+        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        self.dbs = Databases()
+        dbs.mysql(configuration: .init(
             hostname: env("MYSQL_HOSTNAME") ?? "localhost",
             port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
             username: "vapor_username",
@@ -274,14 +278,13 @@ final class FluentMySQLDriverTests: XCTestCase {
             tlsConfiguration: env("MYSQL_TLS").flatMap { _ in
                 .forClient(certificateVerification: .none)
             }
-        )
-        let db = MySQLConnectionSource(configuration: configuration, on: eventLoop)
-        self.pool = ConnectionPool(config: .init(maxConnections: 1), source: db)
+        ), poolConfiguration: .init(maxConnections: 1), on: self.eventLoopGroup)
+        #warning("TODO: support more connections by making fluent benchmarker concurrent")
     }
     
     override func tearDown() {
-        try! self.pool.close().wait()
-        self.pool = nil
+        self.dbs.shutdown()
+        try! self.eventLoopGroup.syncShutdownGracefully()
     }
 }
 
