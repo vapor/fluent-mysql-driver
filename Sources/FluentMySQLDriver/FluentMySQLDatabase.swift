@@ -3,7 +3,7 @@ import MySQLKit
 import AsyncKit
 
 struct _FluentMySQLDatabase {
-    let pool: EventLoopConnectionPool<MySQLConnectionSource>
+    let database: MySQLDatabase
     let context: DatabaseContext
 }
 
@@ -17,10 +17,14 @@ extension _FluentMySQLDatabase: Database {
         } catch {
             return self.eventLoop.makeFailedFuture(error)
         }
-        return self.pool.withConnection(logger: self.logger) {
-            $0.logging(to: self.logger)
-                .query(serialized.sql, serialized.binds, onRow: onRow)
-        }
+        return self.query(serialized.sql, serialized.binds, onRow: onRow, onMetadata: { metadata in
+            switch query.action {
+            case .create:
+                onRow(LastInsertRow(metadata: metadata))
+            default:
+                break
+            }
+        })
     }
 
     func execute(schema: DatabaseSchema) -> EventLoopFuture<Void> {
@@ -32,11 +36,14 @@ extension _FluentMySQLDatabase: Database {
         } catch {
             return self.eventLoop.makeFailedFuture(error)
         }
-        return self.pool.withConnection(logger: self.logger) {
-            $0.logging(to: self.logger)
-                .query(serialized.sql, serialized.binds, onRow: {
-                    fatalError("unexpected row: \($0)")
-                })
+        return self.query(serialized.sql, serialized.binds, onRow: {
+            fatalError("unexpected row: \($0)")
+        })
+    }
+    
+    func withConnection<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        self.database.withConnection {
+            closure(_FluentMySQLDatabase(database: $0, context: self.context))
         }
     }
 }
@@ -46,22 +53,18 @@ extension _FluentMySQLDatabase: SQLDatabase {
         sql query: SQLExpression,
         _ onRow: @escaping (SQLRow) -> ()
     ) -> EventLoopFuture<Void> {
-        self.pool.withConnection(logger: self.logger) {
-            $0.logging(to: self.logger)
-                .sql()
-                .execute(sql: query, onRow)
-        }
+        self.sql().execute(sql: query, onRow)
     }
 }
 
 extension _FluentMySQLDatabase: MySQLDatabase {
     func send(_ command: MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
-        self.pool.withConnection(logger: logger) {
-            $0.send(command, logger: logger)
-        }
+        self.database.send(command, logger: logger)
     }
     
-    
+    func withConnection<T>(_ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        self.database.withConnection(closure)
+    }
 }
 
 private struct LastInsertRow: DatabaseRow {

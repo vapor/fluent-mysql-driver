@@ -67,7 +67,7 @@ struct _FluentMySQLDriver: DatabaseDriver {
     
     func makeDatabase(with context: DatabaseContext) -> Database {
         _FluentMySQLDatabase(
-            pool: self.pool.pool(for: context.eventLoop),
+            database: self.pool.pool(for: context.eventLoop).database(logger: context.logger),
             context: context
         )
     }
