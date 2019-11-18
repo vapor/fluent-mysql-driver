@@ -9,36 +9,34 @@ struct _FluentMySQLDatabase {
 
 extension _FluentMySQLDatabase: Database {
     func execute(query: DatabaseQuery, onRow: @escaping (DatabaseRow) -> ()) -> EventLoopFuture<Void> {
-        let sql = SQLQueryConverter(delegate: MySQLConverterDelegate())
+        let expression = SQLQueryConverter(delegate: MySQLConverterDelegate())
             .convert(query)
-        let serialized: (sql: String, binds: [MySQLData])
+        let (sql, binds) = self.serialize(expression)
         do {
-            serialized = try mysqlSerialize(sql)
+            return try self.query(sql, binds.map { try MySQLDataEncoder().encode($0) }, onRow: onRow, onMetadata: { metadata in
+                switch query.action {
+                case .create:
+                    onRow(LastInsertRow(metadata: metadata))
+                default:
+                    break
+                }
+            })
         } catch {
             return self.eventLoop.makeFailedFuture(error)
         }
-        return self.query(serialized.sql, serialized.binds, onRow: onRow, onMetadata: { metadata in
-            switch query.action {
-            case .create:
-                onRow(LastInsertRow(metadata: metadata))
-            default:
-                break
-            }
-        })
     }
 
     func execute(schema: DatabaseSchema) -> EventLoopFuture<Void> {
-        let sql = SQLSchemaConverter(delegate: MySQLConverterDelegate())
+        let expression = SQLSchemaConverter(delegate: MySQLConverterDelegate())
             .convert(schema)
-        let serialized: (sql: String, binds: [MySQLData])
+        let (sql, binds) = self.serialize(expression)
         do {
-            serialized = try mysqlSerialize(sql)
+            return try self.query(sql, binds.map { try MySQLDataEncoder().encode($0) }, onRow: {
+                fatalError("unexpected row: \($0)")
+            })
         } catch {
             return self.eventLoop.makeFailedFuture(error)
         }
-        return self.query(serialized.sql, serialized.binds, onRow: {
-            fatalError("unexpected row: \($0)")
-        })
     }
     
     func withConnection<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
@@ -49,6 +47,10 @@ extension _FluentMySQLDatabase: Database {
 }
 
 extension _FluentMySQLDatabase: SQLDatabase {
+    var dialect: SQLDialect {
+        MySQLDialect()
+    }
+    
     public func execute(
         sql query: SQLExpression,
         _ onRow: @escaping (SQLRow) -> ()
@@ -89,14 +91,4 @@ private struct LastInsertRow: DatabaseRow {
         default: throw FluentError.missingField(name: field)
         }
     }
-}
-
-private func mysqlSerialize(_ sql: SQLExpression) throws -> (String, [MySQLData]) {
-    var serializer = SQLSerializer(dialect: MySQLDialect())
-    sql.serialize(to: &serializer)
-    let binds: [MySQLData]
-    binds = try serializer.binds.map { encodable in
-        return try MySQLDataEncoder().encode(encodable)
-    }
-    return (serializer.sql, binds)
 }
