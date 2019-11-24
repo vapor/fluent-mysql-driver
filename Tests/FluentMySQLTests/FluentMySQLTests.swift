@@ -12,8 +12,8 @@ class FluentMySQLTests: XCTestCase {
         let config = MySQLDatabaseConfig(
             hostname: "localhost",
             port: 3306,
-            username: "vapor_username",
-            password: "vapor_password",
+            username: "root",
+            password: "root",
             database: "vapor_database",
             transport: .cleartext
         )
@@ -219,10 +219,14 @@ class FluentMySQLTests: XCTestCase {
         let b = User(id: 1, name: "B", pet: .init(name: "B"))
 
         _ = try a.create(orUpdate: true, on: conn).wait()
-        _ = try b.create(orUpdate: true, on: conn).wait()
+        let a1 = try User.find(1, on: conn).wait()
+        sleep(2)
 
-        let c = try User.find(1, on: conn).wait()
-        XCTAssertEqual(c?.name, "B")
+        _ = try b.create(orUpdate: true, on: conn).wait()
+        let b1 = try User.find(1, on: conn).wait()
+        XCTAssertEqual(b1?.name, "B")
+        XCTAssertEqual(a1?.createdAt, b1?.createdAt)
+        XCTAssertGreaterThan(b1?.updatedAt?.timeIntervalSinceReferenceDate ?? 0, a1?.updatedAt?.timeIntervalSinceReferenceDate ?? 0)
     }
 
     func testContains() throws {
@@ -489,6 +493,11 @@ struct User: MySQLModel, Migration {
     var id: Int?
     var name: String
     var pet: Pet
+    var createdAt: Date?
+    var updatedAt: Date?
+
+    static let createdAtKey: TimestampKey? = \.createdAt
+    static let updatedAtKey: TimestampKey? = \.updatedAt
 }
 
 struct Pet: Codable {

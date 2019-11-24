@@ -7,9 +7,23 @@ extension Model where Database.Query == FluentMySQLQuery {
 extension QueryBuilder where Result: Model, Result.Database == Database, Result.Database.Query == FluentMySQLQuery {
     public func create(orUpdate: Bool, _ model: Result) -> Future<Result> {
         if orUpdate {
-            let row = SQLQueryEncoder(MySQLExpression.self).encode(model)
-            let values = row.map { row -> (MySQLIdentifier, MySQLExpression) in
-                return (.identifier(row.key), row.value)
+            var copy = model
+
+            // set timestamps
+            if Result.updatedAtKey != nil {
+                if Result.updatedAtKey != nil, copy.fluentUpdatedAt == nil {
+                    copy.fluentUpdatedAt = Date()
+                }
+            }
+
+            let row = SQLQueryEncoder(MySQLExpression.self).encode(copy)
+            let values = row.compactMap { row -> (MySQLIdentifier, MySQLExpression)? in
+                let identifier: MySQLIdentifier = .identifier(row.key)
+                // We don't want to delete `createdAt` for entries that got upserted
+                if Result.createdAtKey != nil && copy.fluentCreatedAt == nil && identifier.string == "createdAt" {
+                    return nil
+                }
+                return (identifier, row.value)
             }
             self.query.upsert = .upsert(values)
         }
