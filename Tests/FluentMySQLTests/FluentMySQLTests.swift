@@ -12,8 +12,8 @@ class FluentMySQLTests: XCTestCase {
         let config = MySQLDatabaseConfig(
             hostname: "localhost",
             port: 3306,
-            username: "root",
-            password: "root",
+            username: "vapor_username",
+            password: "vapor_password",
             database: "vapor_database",
             transport: .cleartext
         )
