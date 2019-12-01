@@ -15,12 +15,14 @@ extension QueryBuilder where Result: Model, Result.Database == Database, Result.
                     copy.fluentUpdatedAt = Date()
                 }
             }
+            let createdAtRowIdentifier = (try? Result.reflectProperty(forKey: \.fluentCreatedAt)?.path.first) ?? nil
 
             let row = SQLQueryEncoder(MySQLExpression.self).encode(copy)
             let values = row.compactMap { row -> (MySQLIdentifier, MySQLExpression)? in
                 let identifier: MySQLIdentifier = .identifier(row.key)
+
                 // We don't want to delete `createdAt` for entries that got upserted
-                if Result.createdAtKey != nil && copy.fluentCreatedAt == nil && identifier.string == "createdAt" {
+                if Result.createdAtKey != nil && copy.fluentCreatedAt == nil && identifier.string == createdAtRowIdentifier {
                     return nil
                 }
                 return (identifier, row.value)
