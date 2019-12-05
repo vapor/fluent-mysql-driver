@@ -15,8 +15,8 @@ jobs:
           MYSQL_PASSWORD: vapor_password
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - run: swift test
+    - uses: actions/checkout@v1
+    - run: swift test --enable-test-discovery --sanitize=thread
       env:
         MYSQL_HOSTNAME: mysql
         MYSQL_TLS: true
@@ -33,7 +33,7 @@ jobs:
           MYSQL_PASSWORD: vapor_password
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1
     - run: swift test
       env:
-        MYSQL_HOSTNAME: mysql
+        MYSQL_HOSTNAME: mysql --enable-test-discovery --sanitize=thread
