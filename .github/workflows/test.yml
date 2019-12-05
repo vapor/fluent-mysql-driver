@@ -34,6 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - run: swift test
+    - run: swift test --enable-test-discovery --sanitize=thread
       env:
-        MYSQL_HOSTNAME: mysql --enable-test-discovery --sanitize=thread
+        MYSQL_HOSTNAME: mysql
