@@ -101,8 +101,8 @@ final class FluentMySQLDriverTests: XCTestCase {
         try self.benchmarker.testTimestampable()
     }
 
-    func testLifecycleHooks() throws {
-        try self.benchmarker.testLifecycleHooks()
+    func testModelMiddleware() throws {
+        try self.benchmarker.testModelMiddleware()
     }
 
     func testSort() throws {
@@ -260,30 +260,30 @@ final class FluentMySQLDriverTests: XCTestCase {
         return .init(database: self.db)
     }
     var eventLoopGroup: EventLoopGroup!
+    var threadPool: NIOThreadPool!
     var dbs: Databases!
     var db: Database {
-        return self.dbs.default()
+        return self.dbs.database(logger: Logger(label: "codes.vapor.test"), on: self.eventLoopGroup.next())!
     }
 
     override func setUp() {
         XCTAssert(isLoggingConfigured)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        self.dbs = Databases()
-        dbs.mysql(configuration: .init(
+        self.threadPool = NIOThreadPool(numberOfThreads: 1)
+        self.dbs = Databases(threadPool: threadPool, on: self.eventLoopGroup)
+        self.dbs.use(.mysql(
             hostname: env("MYSQL_HOSTNAME") ?? "localhost",
             port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
             username: "vapor_username",
             password: "vapor_password",
             database: "vapor_database",
-            tlsConfiguration: env("MYSQL_TLS").flatMap { _ in
-                .forClient(certificateVerification: .none)
-            }
-        ), poolConfiguration: .init(maxConnections: 1), on: self.eventLoopGroup)
-        #warning("TODO: support more connections by making fluent benchmarker concurrent")
+            tlsConfiguration: .forClient(certificateVerification: .none)
+        ), as: .mysql)
     }
     
     override func tearDown() {
         self.dbs.shutdown()
+        try! self.threadPool.syncShutdownGracefully()
         try! self.eventLoopGroup.syncShutdownGracefully()
     }
 }

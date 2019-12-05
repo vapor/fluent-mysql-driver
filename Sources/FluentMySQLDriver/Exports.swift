@@ -2,9 +2,6 @@
 
 @_exported import struct Foundation.URL
 
-@_exported import class AsyncKit.ConnectionPool
-@_exported import struct AsyncKit.ConnectionPoolConfiguration
-
 @_exported import struct MySQLKit.MySQLConfiguration
 @_exported import struct MySQLKit.MySQLConnectionSource
 
@@ -16,3 +13,9 @@
 @_exported import struct MySQLNIO.MySQLRow
 
 @_exported import struct NIOSSL.TLSConfiguration
+
+extension DatabaseID {
+    public static var mysql: DatabaseID {
+        return .init(string: "mysql")
+    }
+}
