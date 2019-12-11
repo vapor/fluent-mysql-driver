@@ -125,6 +125,46 @@ final class FluentMySQLDriverTests: XCTestCase {
         try self.benchmarker.testSiblingsEagerLoad()
     }
 
+    func testParentGet() throws {
+        try self.benchmarker.testParentGet()
+    }
+
+    func testParentSerialization() throws {
+        try self.benchmarker.testParentSerialization()
+    }
+
+    func testMultipleJoinSameTable() throws {
+        try self.benchmarker.testMultipleJoinSameTable()
+    }
+
+    func testOptionalParent() throws {
+        try self.benchmarker.testOptionalParent()
+    }
+
+    func testFieldFilter() throws {
+        try self.benchmarker.testFieldFilter()
+    }
+
+    func testJoinedFieldFilter() throws {
+        try self.benchmarker.testJoinedFieldFilter()
+    }
+
+    func testSameChildrenFromKey() throws {
+        try self.benchmarker.testSameChildrenFromKey()
+    }
+
+    func testArray() throws {
+        try self.benchmarker.testArray()
+    }
+
+    func testPerformance() throws {
+        try self.benchmarker.testPerformance()
+    }
+
+    func testSoftDeleteWithQuery() throws {
+        try self.benchmarker.testSoftDeleteWithQuery()
+    }
+
     func testClarityModel() throws {
         final class Clarity: Model {
             static let schema = "clarities"
