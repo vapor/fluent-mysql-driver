@@ -20,7 +20,7 @@ extension DatabaseDriverFactory {
         username: String,
         password: String,
         database: String? = nil,
-        tlsConfiguration: TLSConfiguration? = nil,
+        tlsConfiguration: TLSConfiguration? = .forClient(),
         maxConnectionsPerEventLoop: Int = 1
     ) -> DatabaseDriverFactory {
         return .mysql(
