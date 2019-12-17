@@ -165,6 +165,10 @@ final class FluentMySQLDriverTests: XCTestCase {
         try self.benchmarker.testSoftDeleteWithQuery()
     }
 
+    func testDuplicatedUniquePropertyName() throws {
+        try self.benchmarker.testDuplicatedUniquePropertyName()
+    }
+
     func testClarityModel() throws {
         final class Clarity: Model {
             static let schema = "clarities"
