@@ -9,8 +9,10 @@ struct _FluentMySQLDatabase {
 
 extension _FluentMySQLDatabase: Database {
     func execute(query: DatabaseQuery, onRow: @escaping (DatabaseRow) -> ()) -> EventLoopFuture<Void> {
-        let expression = SQLQueryConverter(delegate: MySQLConverterDelegate())
-            .convert(query)
+        guard let expression = SQLQueryConverter(delegate: MySQLConverterDelegate()).convert(query) else {
+            return self.eventLoop.future()
+        }
+
         let (sql, binds) = self.serialize(expression)
         do {
             return try self.query(sql, binds.map { try MySQLDataEncoder().encode($0) }, onRow: onRow, onMetadata: { metadata in
