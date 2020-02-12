@@ -16,7 +16,7 @@ extension _FluentMySQLDatabase: Database {
             return try self.query(sql, binds.map { try MySQLDataEncoder().encode($0) }, onRow: onRow, onMetadata: { metadata in
                 switch query.action {
                 case .create:
-                    onRow(LastInsertRow(metadata: metadata))
+                    onRow(LastInsertRow(idKey: query.idKey, metadata: metadata))
                 default:
                     break
                 }
@@ -71,24 +71,41 @@ extension _FluentMySQLDatabase: MySQLDatabase {
 
 private struct LastInsertRow: DatabaseRow {
     var description: String {
-        return "\(self.metadata)"
+        "\(self.metadata)"
     }
 
+    let idKey: String
     let metadata: MySQLQueryMetadata
 
     func contains(field: String) -> Bool {
-        return field == "fluentID"
+        field == self.idKey
     }
 
-    func decode<T>(field: String, as type: T.Type, for database: Database) throws -> T where T : Decodable {
-        switch field {
-        case "fluentID":
-            if T.self is Int.Type {
-                return Int(self.metadata.lastInsertID!) as! T
-            } else {
-                fatalError()
-            }
-        default: throw FluentError.missingField(name: field)
+    func decode<T>(field: String, as type: T.Type, for database: Database) throws -> T
+        where T: Decodable
+    {
+        guard field == self.idKey else {
+            fatalError("Cannot decode field from last insert row: \(field).")
+        }
+        if let lastInsertIDInitializable = T.self as? LastInsertIDInitializable.Type {
+            return lastInsertIDInitializable.init(lastInsertID: self.metadata.lastInsertID!) as! T
+        } else {
+            fatalError("Unsupported database generated identifier type: \(T.self).")
         }
     }
 }
+
+protocol LastInsertIDInitializable {
+    init(lastInsertID: UInt64)
+}
+
+extension LastInsertIDInitializable where Self: FixedWidthInteger {
+    init(lastInsertID: UInt64) {
+        self = numericCast(lastInsertID)
+    }
+}
+
+extension UInt64: LastInsertIDInitializable { }
+extension UInt: LastInsertIDInitializable { }
+extension Int: LastInsertIDInitializable { }
+extension Int64: LastInsertIDInitializable { }
