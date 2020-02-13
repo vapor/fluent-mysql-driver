@@ -33,10 +33,6 @@ final class FluentMySQLDriverTests: XCTestCase {
         try self.benchmarker.testEagerLoadParent()
     }
 
-    func testEagerLoadParentJoin() throws {
-        try self.benchmarker.testEagerLoadParentJoin()
-    }
-
     func testEagerLoadParentJSON() throws {
         try self.benchmarker.testEagerLoadParentJSON()
     }
@@ -167,6 +163,10 @@ final class FluentMySQLDriverTests: XCTestCase {
 
     func testDuplicatedUniquePropertyName() throws {
         try self.benchmarker.testDuplicatedUniquePropertyName()
+    }
+
+    func testTransaction() throws {
+        try self.benchmarker.testTransaction()
     }
 
     func testClarityModel() throws {

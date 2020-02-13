@@ -38,6 +38,23 @@ extension _FluentMySQLDatabase: Database {
             return self.eventLoop.makeFailedFuture(error)
         }
     }
+
+    func transaction<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        self.database.withConnection { conn in
+            conn.simpleQuery("START TRANSACTION").flatMap { _ in
+                let db = _FluentMySQLDatabase(database: conn, context: self.context)
+                return closure(db).flatMap { result in
+                    conn.simpleQuery("COMMIT").map { _ in
+                        result
+                    }
+                }.flatMapError { error in
+                    conn.simpleQuery("ROLLBACK").flatMapThrowing { _ in
+                        throw error
+                    }
+                }
+            }
+        }
+    }
     
     func withConnection<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.database.withConnection {
