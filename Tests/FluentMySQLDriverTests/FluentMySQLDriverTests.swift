@@ -169,6 +169,10 @@ final class FluentMySQLDriverTests: XCTestCase {
         try self.benchmarker.testTransaction()
     }
 
+    func testPagination() throws {
+        try self.benchmarker.testPagination()
+    }
+
     func testClarityModel() throws {
         final class Clarity: Model {
             static let schema = "clarities"
