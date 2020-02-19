@@ -61,8 +61,8 @@ final class FluentMySQLDriverTests: XCTestCase {
         try self.benchmarker.testBatchUpdate()
     }
 
-    func testNestedModel() throws {
-        try self.benchmarker.testNestedModel()
+    func testCompoundField() throws {
+        try self.benchmarker.testCompoundField()
     }
 
     func testAggregates() throws {
@@ -305,13 +305,13 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
 
     var benchmarker: FluentBenchmarker {
-        return .init(database: self.db)
+        return .init(databases: self.dbs)
     }
     var eventLoopGroup: EventLoopGroup!
     var threadPool: NIOThreadPool!
     var dbs: Databases!
     var db: Database {
-        return self.dbs.database(logger: Logger(label: "codes.vapor.test"), on: self.eventLoopGroup.next())!
+        self.benchmarker.database
     }
 
     override func setUp() {
