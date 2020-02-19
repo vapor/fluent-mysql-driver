@@ -16,7 +16,7 @@ extension _FluentMySQLDatabase: Database {
             return try self.query(sql, binds.map { try MySQLDataEncoder().encode($0) }, onRow: onRow, onMetadata: { metadata in
                 switch query.action {
                 case .create:
-                    onRow(LastInsertRow(idKey: query.idKey, metadata: metadata))
+                    onRow(LastInsertRow(metadata: metadata))
                 default:
                     break
                 }
@@ -91,17 +91,16 @@ private struct LastInsertRow: DatabaseRow {
         "\(self.metadata)"
     }
 
-    let idKey: String
     let metadata: MySQLQueryMetadata
 
-    func contains(field: String) -> Bool {
-        field == self.idKey
+    func contains(field: FieldKey) -> Bool {
+        field == .id
     }
 
-    func decode<T>(field: String, as type: T.Type, for database: Database) throws -> T
+    func decode<T>(field: FieldKey, as type: T.Type, for database: Database) throws -> T
         where T: Decodable
     {
-        guard field == self.idKey else {
+        guard field == .id else {
             fatalError("Cannot decode field from last insert row: \(field).")
         }
         if let lastInsertIDInitializable = T.self as? LastInsertIDInitializable.Type {
