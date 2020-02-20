@@ -39,6 +39,10 @@ extension _FluentMySQLDatabase: Database {
         }
     }
 
+    func execute(enum: DatabaseEnum) -> EventLoopFuture<Void> {
+        self.eventLoop.makeSucceededFuture(())
+    }
+
     func transaction<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.database.withConnection { conn in
             conn.simpleQuery("START TRANSACTION").flatMap { _ in
