@@ -13,16 +13,19 @@ extension _FluentMySQLDatabase: Database {
             .convert(query)
         let (sql, binds) = self.serialize(expression)
         do {
-            return try self.query(sql, binds.map { try MySQLDataEncoder().encode($0) }, onRow: onRow, onMetadata: { metadata in
-                switch query.action {
-                case .create:
-                    let row = LastInsertRow(
-                        metadata: metadata,
-                        customIDKey: query.customIDKey
-                    )
-                    onRow(row)
-                default:
-                    break
+            return try self.query(
+                sql, binds.map { try MySQLDataEncoder().encode($0) },
+                onRow: onRow,
+                onMetadata: { metadata in
+                    switch query.action {
+                    case .create:
+                        let row = LastInsertRow(
+                            metadata: metadata,
+                            customIDKey: query.customIDKey
+                        )
+                        onRow(row)
+                    default:
+                        break
                 }
             })
         } catch {

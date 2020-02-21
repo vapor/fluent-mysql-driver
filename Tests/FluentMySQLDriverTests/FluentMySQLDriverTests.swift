@@ -40,7 +40,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         final class Clarity: Model {
             static let schema = "clarities"
 
-            @ID(key: "id")
+            @ID(custom: .id, generatedBy: .database)
             var id: Int?
 
             @Field(key: "at")
@@ -176,6 +176,9 @@ final class FluentMySQLDriverTests: XCTestCase {
     var db: Database {
         self.benchmarker.database
     }
+    var mysql: MySQLDatabase {
+        self.db as! MySQLDatabase
+    }
 
     override func setUp() {
         XCTAssert(isLoggingConfigured)
@@ -190,6 +193,10 @@ final class FluentMySQLDriverTests: XCTestCase {
             database: "vapor_database",
             tlsConfiguration: .forClient(certificateVerification: .none)
         ), as: .mysql)
+        // clear db.
+        _ = try! self.mysql.simpleQuery("DROP DATABASE vapor_database").wait()
+        _ = try! self.mysql.simpleQuery("CREATE DATABASE vapor_database").wait()
+        _ = try! self.mysql.simpleQuery("USE vapor_database").wait()
     }
     
     override func tearDown() {
