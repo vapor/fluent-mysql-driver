@@ -8,17 +8,29 @@ struct _FluentMySQLDatabase {
 }
 
 extension _FluentMySQLDatabase: Database {
-    func execute(query: DatabaseQuery, onRow: @escaping (DatabaseRow) -> ()) -> EventLoopFuture<Void> {
+    func execute(
+        query: DatabaseQuery,
+        onOutput: @escaping (DatabaseOutput) -> ()
+    ) -> EventLoopFuture<Void> {
         let expression = SQLQueryConverter(delegate: MySQLConverterDelegate())
             .convert(query)
         let (sql, binds) = self.serialize(expression)
         do {
-            return try self.query(sql, binds.map { try MySQLDataEncoder().encode($0) }, onRow: onRow, onMetadata: { metadata in
-                switch query.action {
-                case .create:
-                    onRow(LastInsertRow(idKey: query.idKey, metadata: metadata))
-                default:
-                    break
+            return try self.query(
+                sql, binds.map { try MySQLDataEncoder().encode($0) },
+                onRow: { row in
+                    onOutput(row.databaseOutput())
+                },
+                onMetadata: { metadata in
+                    switch query.action {
+                    case .create:
+                        let row = LastInsertRow(
+                            metadata: metadata,
+                            customIDKey: query.customIDKey
+                        )
+                        onOutput(row)
+                    default:
+                        break
                 }
             })
         } catch {
@@ -37,6 +49,10 @@ extension _FluentMySQLDatabase: Database {
         } catch {
             return self.eventLoop.makeFailedFuture(error)
         }
+    }
+
+    func execute(enum: DatabaseEnum) -> EventLoopFuture<Void> {
+        self.eventLoop.makeSucceededFuture(())
     }
 
     func transaction<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
@@ -86,22 +102,26 @@ extension _FluentMySQLDatabase: MySQLDatabase {
     }
 }
 
-private struct LastInsertRow: DatabaseRow {
+private struct LastInsertRow: DatabaseOutput {
     var description: String {
         "\(self.metadata)"
     }
 
-    let idKey: String
     let metadata: MySQLQueryMetadata
+    let customIDKey: FieldKey?
 
-    func contains(field: String) -> Bool {
-        field == self.idKey
+    func schema(_ schema: String) -> DatabaseOutput {
+        self
     }
 
-    func decode<T>(field: String, as type: T.Type, for database: Database) throws -> T
+    func contains(_ field: FieldKey) -> Bool {
+        field == .id || field == self.customIDKey
+    }
+
+    func decode<T>(_ field: FieldKey, as type: T.Type) throws -> T
         where T: Decodable
     {
-        guard field == self.idKey else {
+        guard field == .id || field == self.customIDKey else {
             fatalError("Cannot decode field from last insert row: \(field).")
         }
         if let lastInsertIDInitializable = T.self as? LastInsertIDInitializable.Type {

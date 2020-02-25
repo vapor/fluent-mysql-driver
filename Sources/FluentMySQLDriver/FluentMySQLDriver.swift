@@ -1,10 +1,10 @@
 import AsyncKit
 
-extension DatabaseDriverFactory {
+extension DatabaseConfigurationFactory {
     public static func mysql(
         url: URL,
         maxConnectionsPerEventLoop: Int = 1
-    ) throws -> DatabaseDriverFactory {
+    ) throws -> Self {
         guard let configuration = MySQLConfiguration(url: url) else {
             throw FluentMySQLError.invalidURL(url)
         }
@@ -22,7 +22,7 @@ extension DatabaseDriverFactory {
         database: String? = nil,
         tlsConfiguration: TLSConfiguration? = .forClient(),
         maxConnectionsPerEventLoop: Int = 1
-    ) -> DatabaseDriverFactory {
+    ) -> Self {
         return .mysql(
             configuration: .init(
                 hostname: hostname,
@@ -39,18 +39,32 @@ extension DatabaseDriverFactory {
     public static func mysql(
         configuration: MySQLConfiguration,
         maxConnectionsPerEventLoop: Int = 1
-    ) -> DatabaseDriverFactory {
-        return DatabaseDriverFactory { databases in
-            let db = MySQLConnectionSource(
-                configuration: configuration
-            )
-            let pool = EventLoopGroupConnectionPool(
-                source: db,
+    ) -> Self {
+        return Self {
+            FluentMySQLConfiguration(
+                configuration: configuration,
                 maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
-                on: databases.eventLoopGroup
+                middleware: []
             )
-            return _FluentMySQLDriver(pool: pool)
         }
+    }
+}
+
+struct FluentMySQLConfiguration: DatabaseConfiguration {
+    let configuration: MySQLConfiguration
+    let maxConnectionsPerEventLoop: Int
+    var middleware: [AnyModelMiddleware]
+
+    func makeDriver(for databases: Databases) -> DatabaseDriver {
+        let db = MySQLConnectionSource(
+            configuration: configuration
+        )
+        let pool = EventLoopGroupConnectionPool(
+            source: db,
+            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            on: databases.eventLoopGroup
+        )
+        return _FluentMySQLDriver(pool: pool)
     }
 }
 

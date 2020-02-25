@@ -13,6 +13,7 @@ struct MySQLConverterDelegate: SQLConverterDelegate {
     }
 
     func nestedFieldExpression(_ column: String, _ path: [String]) -> SQLExpression {
-        return SQLRaw("JSON_EXTRACT(\(column), '$.\(path[0])')")
+        let path = path.joined(separator: ".")
+        return SQLRaw("JSON_EXTRACT(\(column), '$.\(path)')")
     }
 }
