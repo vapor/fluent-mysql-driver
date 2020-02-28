@@ -1,10 +1,10 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.2
 import PackageDescription
 
 let package = Package(
     name: "fluent-mysql-driver",
     platforms: [
-       .macOS(.v10_14)
+       .macOS(.v10_15)
     ],
     products: [
         .library(name: "FluentMySQLDriver", targets: ["FluentMySQLDriver"]),
@@ -16,11 +16,14 @@ let package = Package(
     ],
     targets: [
         .target(name: "FluentMySQLDriver", dependencies: [
-            "FluentKit",
-            "FluentSQL",
-            "Logging",
-            "MySQLKit"
+            .product(name: "FluentKit", package: "fluent-kit"),
+            .product(name: "FluentSQL", package: "fluent-kit"),
+            .product(name: "Logging", package: "swift-log"),
+            .product(name: "MySQLKit", package: "mysql-kit"),
         ]),
-        .testTarget(name: "FluentMySQLDriverTests", dependencies: ["FluentBenchmark", "FluentMySQLDriver"]),
+        .testTarget(name: "FluentMySQLDriverTests", dependencies: [
+            .product(name: "FluentBenchmark", package: "fluent-kit"),
+            .target(name: "FluentMySQLDriver"),
+        ]),
     ]
 )
