@@ -1,6 +1,6 @@
 <p align="center">
     <img 
-        src="https://user-images.githubusercontent.com/1342803/36770929-446759fc-1c1b-11e8-9a66-5594a66f15b9.png" 
+        src="https://user-images.githubusercontent.com/1342803/75593351-1176b880-5a53-11ea-96ac-b9212e7471e9.png" 
         height="64" 
         alt="Fluent MySQL"
     >
