@@ -2,7 +2,7 @@ name: test
 on:
 - pull_request
 jobs:
-  mysql-8_0:
+  fluent-mysql-driver-8_0:
     container: 
       image: vapor/swift:5.2
     services:
@@ -19,8 +19,7 @@ jobs:
     - run: swift test --enable-test-discovery --sanitize=thread
       env:
         MYSQL_HOSTNAME: mysql
-        MYSQL_TLS: true
-  mysql-5_7:
+  fluent-mysql-driver-5_7:
     container: 
       image: vapor/swift:5.2
     services:
