@@ -11,9 +11,4 @@ struct MySQLConverterDelegate: SQLConverterDelegate {
         default: return nil
         }
     }
-
-    func nestedFieldExpression(_ column: String, _ path: [String]) -> SQLExpression {
-        let path = path.joined(separator: ".")
-        return SQLRaw("JSON_EXTRACT(\(column), '$.\(path)')")
-    }
 }
