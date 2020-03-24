@@ -178,7 +178,9 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.db as! MySQLDatabase
     }
 
-    override func setUp() {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        
         XCTAssert(isLoggingConfigured)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.threadPool = NIOThreadPool(numberOfThreads: 1)
@@ -192,15 +194,17 @@ final class FluentMySQLDriverTests: XCTestCase {
             tlsConfiguration: .forClient(certificateVerification: .none)
         ), as: .mysql)
         // clear db.
-        _ = try! self.mysql.simpleQuery("DROP DATABASE vapor_database").wait()
-        _ = try! self.mysql.simpleQuery("CREATE DATABASE vapor_database").wait()
-        _ = try! self.mysql.simpleQuery("USE vapor_database").wait()
+        _ = try self.mysql.simpleQuery("DROP DATABASE vapor_database").wait()
+        _ = try self.mysql.simpleQuery("CREATE DATABASE vapor_database").wait()
+        _ = try self.mysql.simpleQuery("USE vapor_database").wait()
     }
     
-    override func tearDown() {
+    override func tearDownWithError() throws {
         self.dbs.shutdown()
-        try! self.threadPool.syncShutdownGracefully()
-        try! self.eventLoopGroup.syncShutdownGracefully()
+        try self.threadPool.syncShutdownGracefully()
+        try self.eventLoopGroup.syncShutdownGracefully()
+        
+        try super.tearDownWithError()
     }
 }
 
