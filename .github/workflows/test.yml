@@ -23,6 +23,8 @@ jobs:
     - run: mysql -u${{ matrix.username }} --batch <<<"GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username;"
     - uses: actions/checkout@v2
     - run: xcrun swift test --enable-test-discovery --sanitize=thread
+      env:
+        MYSQL_HOSTNAME: '127.0.0.1'
     - run: brew services stop ${{ matrix.formula }}
   fluent-mysql-driver_ubuntu:
     strategy:
