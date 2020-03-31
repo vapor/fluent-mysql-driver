@@ -4,6 +4,7 @@ on:
 jobs:
   fluent-mysql-driver_macos:
     strategy:
+      fail-fast: false
       matrix:
         formula: ['mysql', 'mysql@5.7', 'mariadb']
         include:
@@ -28,6 +29,7 @@ jobs:
     - run: brew services stop ${{ matrix.formula }}
   fluent-mysql-driver_ubuntu:
     strategy:
+      fail-fast: false
       matrix:
         os: ['xenial', 'bionic']
         image: ['mysql:8.0', 'mysql:5.7', 'mariadb:latest']
