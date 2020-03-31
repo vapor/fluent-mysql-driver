@@ -2,12 +2,38 @@ name: test
 on:
 - pull_request
 jobs:
-  fluent-mysql-driver-8_0:
+  fluent-mysql-driver_macos:
+    strategy:
+      matrix:
+        formula: [mysql, mysql@5.7, mariadb]
+        include:
+          - username: root
+          - formula: mariadb
+            username: runner
+    runs-on: macos-latest
+    steps:
+    - run: sudo xcode-select -s /Applications/Xcode_11.4.app/Contents/Developer
+    - run: brew install ${{ matrix.formula }}
+    - run: brew link --force ${{ matrix.formula }}
+      if: matrix.formula == mysql@5.7
+    - run: brew services start ${{ matrix.formula }}
+    - run: sleep 4 # give the server a chance to settle
+    - run: mysqladmin -u${{ matrix.username }} create vapor_database
+    - run: mysql -u${{ matrix.username }} --batch <<<"CREATE USER vapor_username IDENTIFIED BY 'vapor_password';"
+    - run: mysql -u${{ matrix.username }} --batch <<<"GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username;"
+    - uses: actions/checkout@v2
+    - run: xcrun swift test --enable-test-discovery --sanitize=thread
+    - run: brew services stop ${{ matrix.formula }}
+  fluent-mysql-driver_ubuntu:
+    strategy:
+      matrix:
+        os: [xenial, bionic]
+        image: [mysql:8.0, mysql:5.7, mariadb:latest]
     container: 
-      image: vapor/swift:5.2
+      image: vapor/swift:5.2-${{ matrix.os }}-ci
     services:
       mysql:
-        image: mysql:8.0
+        image: ${{ matrix.image }}
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
@@ -15,24 +41,7 @@ jobs:
           MYSQL_PASSWORD: vapor_password
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - run: swift test --enable-test-discovery --sanitize=thread
-      env:
-        MYSQL_HOSTNAME: mysql
-  fluent-mysql-driver-5_7:
-    container: 
-      image: vapor/swift:5.2
-    services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: vapor_database
-          MYSQL_USER: vapor_username
-          MYSQL_PASSWORD: vapor_password
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - run: swift test --enable-test-discovery --sanitize=thread
       env:
         MYSQL_HOSTNAME: mysql
