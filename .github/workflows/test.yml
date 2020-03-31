@@ -27,8 +27,8 @@ jobs:
   fluent-mysql-driver_ubuntu:
     strategy:
       matrix:
-        os: [xenial, bionic]
-        image: [mysql:8.0, mysql:5.7, mariadb:latest]
+        os: ['xenial', 'bionic']
+        image: ['mysql:8.0', 'mysql:5.7', 'mariadb:latest']
     container: 
       image: vapor/swift:5.2-${{ matrix.os }}-ci
     services:
