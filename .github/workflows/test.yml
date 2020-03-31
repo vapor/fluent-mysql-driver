@@ -5,17 +5,17 @@ jobs:
   fluent-mysql-driver_macos:
     strategy:
       matrix:
-        formula: [mysql, mysql@5.7, mariadb]
+        formula: ['mysql', 'mysql@5.7', 'mariadb']
         include:
           - username: root
-          - formula: mariadb
+          - formula: 'mariadb'
             username: runner
     runs-on: macos-latest
     steps:
     - run: sudo xcode-select -s /Applications/Xcode_11.4.app/Contents/Developer
     - run: brew install ${{ matrix.formula }}
     - run: brew link --force ${{ matrix.formula }}
-      if: matrix.formula == mysql@5.7
+      if: matrix.formula == 'mysql@5.7'
     - run: brew services start ${{ matrix.formula }}
     - run: sleep 4 # give the server a chance to settle
     - run: mysqladmin -u${{ matrix.username }} create vapor_database
