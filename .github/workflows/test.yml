@@ -19,8 +19,8 @@ jobs:
     - run: brew services start ${{ matrix.formula }}
     - run: sleep 4 # give the server a chance to settle
     - run: mysqladmin -u${{ matrix.username }} create vapor_database
-    - run: mysql -u${{ matrix.username }} --batch <<<"CREATE USER vapor_username IDENTIFIED BY 'vapor_password';"
-    - run: mysql -u${{ matrix.username }} --batch <<<"GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username;"
+    - run: mysql -u${{ matrix.username }} --batch <<<"CREATE USER vapor_username@localhost IDENTIFIED BY 'vapor_password';"
+    - run: mysql -u${{ matrix.username }} --batch <<<"GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username@localhost;"
     - uses: actions/checkout@v2
     - run: xcrun swift test --enable-test-discovery --sanitize=thread
       env:
