@@ -205,8 +205,8 @@ final class FluentMySQLDriverTests: XCTestCase {
         try falseValue.save(on: self.db).wait()
 
         XCTAssertEqual(try Clarity.query(on: self.db).count().wait(), 2)
-        XCTAssertEqual(try Clarity.query(on: self.db).filter(\.$rain == true).count().wait(), 1)
-        XCTAssertEqual(try Clarity.query(on: self.db).filter(\.$rain == false).count().wait(), 1)
+        XCTAssertEqual(try Clarity.query(on: self.db).filter(\.$rain == true).first().wait()?.id, trueValue.id)
+        XCTAssertEqual(try Clarity.query(on: self.db).filter(\.$rain == false).first().wait()?.id, falseValue.id)
     }
 
     func testDateDecoding() throws {
