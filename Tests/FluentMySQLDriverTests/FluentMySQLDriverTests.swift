@@ -204,9 +204,15 @@ final class FluentMySQLDriverTests: XCTestCase {
         try trueValue.save(on: self.db).wait()
         try falseValue.save(on: self.db).wait()
 
-        XCTAssertEqual(try Clarity.query(on: self.db).count().wait(), 2)
-        XCTAssertEqual(try Clarity.query(on: self.db).filter(\.$rain == true).first().wait()?.id, trueValue.id)
-        XCTAssertEqual(try Clarity.query(on: self.db).filter(\.$rain == false).first().wait()?.id, falseValue.id)
+        try XCTAssertEqual(Clarity.query(on: self.db).count().wait(), 2)
+        try XCTAssertEqual(
+            Clarity.query(on: self.db).filter(\.$rain == true).first().wait()?.id,
+            trueValue.id
+        )
+        try  XCTAssertEqual(
+            Clarity.query(on: self.db).filter(\.$rain == false).first().wait()?.id,
+            falseValue.id
+        )
     }
 
     func testDateDecoding() throws {
@@ -242,8 +248,12 @@ final class FluentMySQLDriverTests: XCTestCase {
         defer { try? CreateClarity().revert(on: self.db).wait() }
         try CreateClarity().prepare(on: self.db).wait()
 
-        let firstDate = Date()
-        let secondDate = Date(timeIntervalSinceNow: 100.0)
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)!
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let firstDate = formatter.date(from: "2020-01-01")!
+        let secondDate = formatter.date(from: "1994-05-23")!
         let trueValue = Clarity(date: firstDate)
         let falseValue = Clarity(date: secondDate)
 
