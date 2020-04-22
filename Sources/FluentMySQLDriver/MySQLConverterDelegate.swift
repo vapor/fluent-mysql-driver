@@ -6,7 +6,7 @@ struct MySQLConverterDelegate: SQLConverterDelegate {
         case .string: return SQLRaw("VARCHAR(255)")
         case .datetime: return SQLRaw("DATETIME(6)")
         case .uuid: return SQLRaw("VARBINARY(16)")
-        case .bool: return SQLRaw("BIT")
+        case .bool: return SQLRaw("BOOL")
         case .array: return SQLRaw("JSON")
         default: return nil
         }

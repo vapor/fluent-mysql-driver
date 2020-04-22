@@ -165,6 +165,107 @@ final class FluentMySQLDriverTests: XCTestCase {
         }
     }
 
+    func testBoolFilter() throws {
+        final class Clarity: Model {
+            static let schema = "clarities"
+
+            @ID(custom: .id, generatedBy: .database)
+            var id: Int?
+
+            @Field(key: "rain")
+            var rain: Bool
+
+            init() { }
+
+            init(rain: Bool) {
+                self.rain = rain
+            }
+        }
+
+        struct CreateClarity: Migration {
+            func prepare(on database: Database) -> EventLoopFuture<Void> {
+                return database.schema("clarities")
+                    .field("id", .int, .identifier(auto: true))
+                    .field("rain", .bool, .required)
+                    .create()
+            }
+
+            func revert(on database: Database) -> EventLoopFuture<Void> {
+                return database.schema("clarities").delete()
+            }
+        }
+
+        defer { try? CreateClarity().revert(on: self.db).wait() }
+        try CreateClarity().prepare(on: self.db).wait()
+
+        let trueValue = Clarity(rain: true)
+        let falseValue = Clarity(rain: false)
+
+        try trueValue.save(on: self.db).wait()
+        try falseValue.save(on: self.db).wait()
+
+        try XCTAssertEqual(Clarity.query(on: self.db).count().wait(), 2)
+        try XCTAssertEqual(
+            Clarity.query(on: self.db).filter(\.$rain == true).first().wait()?.id,
+            trueValue.id
+        )
+        try  XCTAssertEqual(
+            Clarity.query(on: self.db).filter(\.$rain == false).first().wait()?.id,
+            falseValue.id
+        )
+    }
+
+    func testDateDecoding() throws {
+        final class Clarity: Model {
+            static let schema = "clarities"
+
+            @ID(custom: .id, generatedBy: .database)
+            var id: Int?
+
+            @Field(key: "date")
+            var date: Date
+
+            init() { }
+
+            init(date: Date) {
+                self.date = date
+            }
+        }
+
+        struct CreateClarity: Migration {
+            func prepare(on database: Database) -> EventLoopFuture<Void> {
+                return database.schema("clarities")
+                    .field("id", .int, .identifier(auto: true))
+                    .field("date", .date, .required)
+                    .create()
+            }
+
+            func revert(on database: Database) -> EventLoopFuture<Void> {
+                return database.schema("clarities").delete()
+            }
+        }
+
+        defer { try? CreateClarity().revert(on: self.db).wait() }
+        try CreateClarity().prepare(on: self.db).wait()
+
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)!
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let firstDate = formatter.date(from: "2020-01-01")!
+        let secondDate = formatter.date(from: "1994-05-23")!
+        let trueValue = Clarity(date: firstDate)
+        let falseValue = Clarity(date: secondDate)
+
+        try trueValue.save(on: self.db).wait()
+        try falseValue.save(on: self.db).wait()
+
+        let receivedModels = try Clarity.query(on: self.db).all().wait()
+        XCTAssertEqual(receivedModels.count, 2)
+        XCTAssertEqual(receivedModels[0].date, firstDate)
+        XCTAssertEqual(receivedModels[1].date, secondDate)
+    }
+
     var benchmarker: FluentBenchmarker {
         return .init(databases: self.dbs)
     }
