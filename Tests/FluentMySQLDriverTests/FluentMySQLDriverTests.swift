@@ -266,6 +266,50 @@ final class FluentMySQLDriverTests: XCTestCase {
         XCTAssertEqual(receivedModels[1].date, secondDate)
     }
 
+    func testSetNil() throws {
+        final class Clarity: Model {
+            static let schema = "clarities"
+
+            @ID(custom: .id, generatedBy: .database)
+            var id: Int?
+
+            @OptionalField(key: "nullableValue")
+            var nullableValue: String?
+
+            init() { }
+
+            init(nullableValue: String?) {
+                self.nullableValue = nullableValue
+            }
+        }
+
+        struct CreateClarity: Migration {
+            func prepare(on database: Database) -> EventLoopFuture<Void> {
+                return database.schema("clarities")
+                    .field("id", .int, .identifier(auto: true))
+                    .field("nullableValue", .string)
+                    .create()
+            }
+
+            func revert(on database: Database) -> EventLoopFuture<Void> {
+                return database.schema("clarities").delete()
+            }
+        }
+
+        defer { try? CreateClarity().revert(on: self.db).wait() }
+        try CreateClarity().prepare(on: self.db).wait()
+
+        let value = Clarity(nullableValue: "Value")
+        try value.save(on: self.db).wait()
+
+        XCTAssertEqual(value.nullableValue, "Value")
+
+        value.nullableValue = nil
+        try value.save(on: self.db).wait()
+
+        XCTAssertEqual(try Clarity.query(on: self.db).first().wait()?.nullableValue, nil)
+    }
+
     var benchmarker: FluentBenchmarker {
         return .init(databases: self.dbs)
     }
