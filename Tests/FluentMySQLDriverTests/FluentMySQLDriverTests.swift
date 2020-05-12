@@ -267,7 +267,7 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
 
     var benchmarker: FluentBenchmarker {
-        return .init(databases: self.dbs)
+        return .init(databases: self.dbs, (.benchmarker1, .benchmarker2))
     }
     var eventLoopGroup: EventLoopGroup!
     var threadPool: NIOThreadPool!
@@ -286,6 +286,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.threadPool = NIOThreadPool(numberOfThreads: 1)
         self.dbs = Databases(threadPool: threadPool, on: self.eventLoopGroup)
+
         self.dbs.use(.mysql(
             hostname: env("MYSQL_HOSTNAME") ?? "localhost",
             port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
@@ -294,10 +295,53 @@ final class FluentMySQLDriverTests: XCTestCase {
             database: "vapor_database",
             tlsConfiguration: .forClient(certificateVerification: .none)
         ), as: .mysql)
+
+        self.dbs.use(.mysql(
+            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
+            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+            username: "vapor_username",
+            password: "vapor_password",
+            database: "vapor_benchmark1",
+            tlsConfiguration: .forClient(certificateVerification: .none)
+        ), as: .benchmarker1)
+
+        self.dbs.use(.mysql(
+            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
+            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+            username: "vapor_username",
+            password: "vapor_password",
+            database: "vapor_benchmark2",
+            tlsConfiguration: .forClient(certificateVerification: .none)
+        ), as: .benchmarker2)
+
         // clear db.
+        let database1 = try XCTUnwrap(
+            self.benchmarker.databases.database(
+                .benchmarker1,
+                logger: Logger(label: "test.fluent.benchmark1"),
+                on: self.eventLoopGroup.next()
+            ) as? MySQLDatabase
+        )
+
+        let database2 = try XCTUnwrap(
+            self.benchmarker.databases.database(
+                .benchmarker2,
+                logger: Logger(label: "test.fluent.benchmark2"),
+                on: self.eventLoopGroup.next()
+            ) as? MySQLDatabase
+        )
+
         _ = try self.mysql.simpleQuery("DROP DATABASE vapor_database").wait()
         _ = try self.mysql.simpleQuery("CREATE DATABASE vapor_database").wait()
         _ = try self.mysql.simpleQuery("USE vapor_database").wait()
+
+        _ = try database1.simpleQuery("DROP DATABASE vapor_benchmark1").wait()
+        _ = try database1.simpleQuery("CREATE DATABASE vapor_benchmark1").wait()
+        _ = try database1.simpleQuery("USE vapor_benchmark1").wait()
+
+        _ = try database2.simpleQuery("DROP DATABASE vapor_benchmark2").wait()
+        _ = try database2.simpleQuery("CREATE DATABASE vapor_benchmark2").wait()
+        _ = try database2.simpleQuery("USE vapor_benchmark2").wait()
     }
     
     override func tearDownWithError() throws {
@@ -307,6 +351,11 @@ final class FluentMySQLDriverTests: XCTestCase {
         
         try super.tearDownWithError()
     }
+}
+
+extension DatabaseID {
+    static let benchmarker1 = DatabaseID(string: "benchmarker1")
+    static let benchmarker2 = DatabaseID(string: "benchmarker2")
 }
 
 func env(_ name: String) -> String? {
