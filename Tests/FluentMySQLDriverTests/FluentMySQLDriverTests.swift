@@ -267,7 +267,7 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
 
     var benchmarker: FluentBenchmarker {
-        return .init(databases: self.dbs, (.benchmarker1, .benchmarker2))
+        return .init(databases: self.dbs)
     }
     var eventLoopGroup: EventLoopGroup!
     var threadPool: NIOThreadPool!
@@ -343,7 +343,7 @@ func env(_ name: String) -> String? {
 let isLoggingConfigured: Bool = {
     LoggingSystem.bootstrap { label in
         var handler = StreamLogHandler.standardOutput(label: label)
-        handler.logLevel = .debug
+        handler.logLevel = env("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) } ?? .debug
         return handler
     }
     return true
