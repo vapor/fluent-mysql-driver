@@ -40,7 +40,7 @@ jobs:
         timeout-minutes: 5
       - name: Set up MySQL databases and privileges
         run: |
-          for db in vapor_{database,benchmark{1,2}}; do mysql <<<"CREATE DATABASE $db; GRANT ALL PRIVILEGES ON $db.* TO vapor_username@'%';"; done
+          for db in vapor_{database,migration_extra}; do mysql <<<"CREATE DATABASE $db; GRANT ALL PRIVILEGES ON $db.* TO vapor_username@'%';"; done
       - name: Check out code
         uses: actions/checkout@v2
       - name: Run tests with Thread Sanitizer
@@ -71,8 +71,7 @@ jobs:
           mysql -u${{ matrix.username }} --batch <<-'SQL'
               CREATE USER vapor_username@localhost IDENTIFIED BY 'vapor_password';
               CREATE DATABASE vapor_database; GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username@localhost;
-              CREATE DATABASE vapor_benchmark1; GRANT ALL PRIVILEGES ON vapor_benchmark1.* TO vapor_username@localhost;
-              CREATE DATABASE vapor_benchmark2; GRANT ALL PRIVILEGES ON vapor_benchmark2.* TO vapor_username@localhost;
+              CREATE DATABASE vapor_migration_extra; GRANT ALL PRIVILEGES ON vapor_migration_extra.* TO vapor_username@localhost;
           SQL
       - name: Check out code
         uses: actions/checkout@v2

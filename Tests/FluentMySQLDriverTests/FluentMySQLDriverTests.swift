@@ -301,32 +301,15 @@ final class FluentMySQLDriverTests: XCTestCase {
             port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
             username: "vapor_username",
             password: "vapor_password",
-            database: "vapor_benchmark1",
+            database: "vapor_migration_extra",
             tlsConfiguration: .forClient(certificateVerification: .none)
-        ), as: .benchmarker1)
-
-        self.dbs.use(.mysql(
-            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
-            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
-            username: "vapor_username",
-            password: "vapor_password",
-            database: "vapor_benchmark2",
-            tlsConfiguration: .forClient(certificateVerification: .none)
-        ), as: .benchmarker2)
+        ), as: .migrationExtra)
 
         // clear db.
-        let database1 = try XCTUnwrap(
+        let databaseExtra = try XCTUnwrap(
             self.benchmarker.databases.database(
-                .benchmarker1,
-                logger: Logger(label: "test.fluent.benchmark1"),
-                on: self.eventLoopGroup.next()
-            ) as? MySQLDatabase
-        )
-
-        let database2 = try XCTUnwrap(
-            self.benchmarker.databases.database(
-                .benchmarker2,
-                logger: Logger(label: "test.fluent.benchmark2"),
+                .migrationExtra,
+                logger: Logger(label: "test.fluent.migration_extra"),
                 on: self.eventLoopGroup.next()
             ) as? MySQLDatabase
         )
@@ -335,13 +318,9 @@ final class FluentMySQLDriverTests: XCTestCase {
         _ = try self.mysql.simpleQuery("CREATE DATABASE vapor_database").wait()
         _ = try self.mysql.simpleQuery("USE vapor_database").wait()
 
-        _ = try database1.simpleQuery("DROP DATABASE vapor_benchmark1").wait()
-        _ = try database1.simpleQuery("CREATE DATABASE vapor_benchmark1").wait()
-        _ = try database1.simpleQuery("USE vapor_benchmark1").wait()
-
-        _ = try database2.simpleQuery("DROP DATABASE vapor_benchmark2").wait()
-        _ = try database2.simpleQuery("CREATE DATABASE vapor_benchmark2").wait()
-        _ = try database2.simpleQuery("USE vapor_benchmark2").wait()
+        _ = try databaseExtra.simpleQuery("DROP DATABASE vapor_migration_extra").wait()
+        _ = try databaseExtra.simpleQuery("CREATE DATABASE vapor_migration_extra").wait()
+        _ = try databaseExtra.simpleQuery("USE vapor_migration_extra").wait()
     }
     
     override func tearDownWithError() throws {
@@ -354,8 +333,7 @@ final class FluentMySQLDriverTests: XCTestCase {
 }
 
 extension DatabaseID {
-    static let benchmarker1 = DatabaseID(string: "benchmarker1")
-    static let benchmarker2 = DatabaseID(string: "benchmarker2")
+    static let migrationExtra = DatabaseID(string: "migration_extra")
 }
 
 func env(_ name: String) -> String? {
