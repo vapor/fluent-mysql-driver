@@ -286,6 +286,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         self.threadPool = NIOThreadPool(numberOfThreads: 1)
         self.dbs = Databases(threadPool: threadPool, on: self.eventLoopGroup)
+
         self.dbs.use(.mysql(
             hostname: env("MYSQL_HOSTNAME") ?? "localhost",
             port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
@@ -294,10 +295,32 @@ final class FluentMySQLDriverTests: XCTestCase {
             database: "vapor_database",
             tlsConfiguration: .forClient(certificateVerification: .none)
         ), as: .mysql)
+
+        self.dbs.use(.mysql(
+            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
+            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+            username: "vapor_username",
+            password: "vapor_password",
+            database: "vapor_migration_extra",
+            tlsConfiguration: .forClient(certificateVerification: .none)
+        ), as: .migrationExtra)
+
         // clear db.
+        let databaseExtra = try XCTUnwrap(
+            self.benchmarker.databases.database(
+                .migrationExtra,
+                logger: Logger(label: "test.fluent.migration_extra"),
+                on: self.eventLoopGroup.next()
+            ) as? MySQLDatabase
+        )
+
         _ = try self.mysql.simpleQuery("DROP DATABASE vapor_database").wait()
         _ = try self.mysql.simpleQuery("CREATE DATABASE vapor_database").wait()
         _ = try self.mysql.simpleQuery("USE vapor_database").wait()
+
+        _ = try databaseExtra.simpleQuery("DROP DATABASE vapor_migration_extra").wait()
+        _ = try databaseExtra.simpleQuery("CREATE DATABASE vapor_migration_extra").wait()
+        _ = try databaseExtra.simpleQuery("USE vapor_migration_extra").wait()
     }
     
     override func tearDownWithError() throws {
@@ -309,6 +332,10 @@ final class FluentMySQLDriverTests: XCTestCase {
     }
 }
 
+extension DatabaseID {
+    static let migrationExtra = DatabaseID(string: "migration_extra")
+}
+
 func env(_ name: String) -> String? {
     return ProcessInfo.processInfo.environment[name]
 }
@@ -316,7 +343,7 @@ func env(_ name: String) -> String? {
 let isLoggingConfigured: Bool = {
     LoggingSystem.bootstrap { label in
         var handler = StreamLogHandler.standardOutput(label: label)
-        handler.logLevel = .debug
+        handler.logLevel = env("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) } ?? .debug
         return handler
     }
     return true
