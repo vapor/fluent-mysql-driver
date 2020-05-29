@@ -4,49 +4,64 @@ defaults:
   run:
     shell: bash
 jobs:
-  PR-tests-linux:
+  linux:
     strategy:
       fail-fast: false
       matrix:
-        dbimage: ['mysql:5.7', 'mysql:8.0', 'mariadb:latest']
-        runner: [
-          'swift:5.2-xenial', 'swift:5.2-bionic',
-          'swiftlang/swift:nightly-5.2-xenial', 'swiftlang/swift:nightly-5.2-bionic',
-          'swiftlang/swift:nightly-5.3-xenial', 'swiftlang/swift:nightly-5.3-bionic',
-          'swiftlang/swift:nightly-master-xenial', 'swiftlang/swift:nightly-master-bionic',
-          'swiftlang/swift:nightly-master-focal',
-          'swiftlang/swift:nightly-master-centos8',
-          'swiftlang/swift:nightly-master-amazonlinux2'
-        ]
+        dbimage:
+          - mysql:5.7
+          - mysql:8.0
+          - mariadb:latest
+        runner:
+          # 5.2 Stable
+          - swift:5.2-xenial
+          - swift:5.2-bionic
+          # 5.2 Unstable
+          - swiftlang/swift:nightly-5.2-xenial
+          - swiftlang/swift:nightly-5.2-bionic
+          # 5.3 Unstable
+          - swiftlang/swift:nightly-5.3-xenial
+          - swiftlang/swift:nightly-5.3-bionic
+          # Master Unsable
+          - swiftlang/swift:nightly-master-xenial
+          - swiftlang/swift:nightly-master-bionic
+          - swiftlang/swift:nightly-master-focal
+          - swiftlang/swift:nightly-master-centos8
+          - swiftlang/swift:nightly-master-amazonlinux2
         include:
-          - installcmd: 'apt-get -q update && apt-get -q install -y mysql-client'
-          - { 'runner': 'swiftlang/swift:nightly-master-centos8', 'installcmd': 'dnf install -y zlib-devel mysql' }
-          - { 'runner': 'swiftlang/swift:nightly-master-amazonlinux2', 'installcmd': 'yum install -y zlib-devel mysql' }
+          - runner: swiftlang/swift:nightly-master-centos8
+            installcmd: dnf install -y zlib-devel
+          - runner: swiftlang/swift:nightly-master-amazonlinux2
+            installcmd: yum install -y zlib-devel
         exclude:
-          - { 'runner': 'swiftlang/swift:nightly-master-amazonlinux2', 'dbimage': 'mysql:8.0' }
+          - runner: swiftlang/swift:nightly-master-amazonlinux2
+            dbimage: mysql:8.0
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
-      mysql:
+      mysql-a:
         image: ${{ matrix.dbimage }}
-        env: { MYSQL_ALLOW_EMPTY_PASSWORD: true, MYSQL_USER: vapor_username, MYSQL_PASSWORD: vapor_password }
+        env: 
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+      mysql-b:
+        image: ${{ matrix.dbimage }}
+        env: 
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
     steps:
       - name: Install dependencies
         run: ${{ matrix.installcmd }}
-      - name: Preconfigure MySQL client
-        run: printf '[client]\nhost=mysql\n\n[mysql]\nbatch\n' >>/etc/my.cnf
-      - name: Wait for MySQL server to be ready
-        run: until echo | mysql; do sleep 1; done
-        timeout-minutes: 5
-      - name: Set up MySQL databases and privileges
-        run: |
-          for db in vapor_{database,migration_extra}; do mysql <<<"CREATE DATABASE $db; GRANT ALL PRIVILEGES ON $db.* TO vapor_username@'%';"; done
       - name: Check out code
         uses: actions/checkout@v2
       - name: Run tests with Thread Sanitizer
         run: swift test --enable-test-discovery --sanitize=thread
-        env: { 'MYSQL_HOSTNAME': 'mysql' }
-  PR-tests-macos:
+        env:
+          MYSQL_HOSTNAME_A: mysql-a
+          MYSQL_HOSTNAME_B: mysql-b
+  macOS:
     strategy:
       fail-fast: false
       matrix:
