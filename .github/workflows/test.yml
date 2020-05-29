@@ -1,5 +1,6 @@
 name: Test Matrix
-on: ['pull_request']
+on: 
+  - pull_request
 defaults:
   run:
     shell: bash
@@ -42,15 +43,17 @@ jobs:
       mysql-a:
         image: ${{ matrix.dbimage }}
         env: 
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
+          MYSQL_DATABASE: vapor_database
       mysql-b:
         image: ${{ matrix.dbimage }}
         env: 
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
+          MYSQL_DATABASE: vapor_database
     steps:
       - name: Install dependencies
         run: ${{ matrix.installcmd }}
@@ -85,11 +88,15 @@ jobs:
         run: |
           mysql -u${{ matrix.username }} --batch <<-'SQL'
               CREATE USER vapor_username@localhost IDENTIFIED BY 'vapor_password';
-              CREATE DATABASE vapor_database; GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username@localhost;
-              CREATE DATABASE vapor_migration_extra; GRANT ALL PRIVILEGES ON vapor_migration_extra.* TO vapor_username@localhost;
+              CREATE DATABASE vapor_database_a; GRANT ALL PRIVILEGES ON vapor_database_a.* TO vapor_username@localhost;
+              CREATE DATABASE vapor_database_b; GRANT ALL PRIVILEGES ON vapor_database_b.* TO vapor_username@localhost;
           SQL
       - name: Check out code
         uses: actions/checkout@v2
       - name: Run tests with Thread Sanitizer
         run: swift test --enable-test-discovery --sanitize=thread
-        env: { 'MYSQL_HOSTNAME': '127.0.0.1' }
+        env: 
+          MYSQL_HOSTNAME_A: '127.0.0.1'
+          MYSQL_HOSTNAME_B: '127.0.0.1'
+          MYSQL_DATABASE_A: vapor_database_a
+          MYSQL_DATABASE_B: vapor_database_b
