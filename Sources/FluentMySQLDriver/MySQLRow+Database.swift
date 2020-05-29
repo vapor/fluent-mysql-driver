@@ -16,10 +16,6 @@ private struct _MySQLDatabaseOutput: DatabaseOutput {
         self.row.column(self.columnName(key)) != nil
     }
 
-    func nested(_ key: FieldKey) throws -> DatabaseOutput {
-        fatalError("Nested fields not yet supported.")
-    }
-
     func decodeNil(_ key: FieldKey) throws -> Bool {
         if let data = self.row.column((self.columnName(key))) {
             return data.buffer == nil

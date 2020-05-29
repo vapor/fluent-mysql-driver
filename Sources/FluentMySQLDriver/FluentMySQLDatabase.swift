@@ -118,10 +118,6 @@ private struct LastInsertRow: DatabaseOutput {
         self
     }
 
-    func nested(_ key: FieldKey) throws -> DatabaseOutput {
-        fatalError("Nested fields not supported.")
-    }
-
     func decodeNil(_ key: FieldKey) throws -> Bool {
         false
     }
