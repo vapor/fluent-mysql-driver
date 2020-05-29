@@ -10,6 +10,7 @@ final class FluentMySQLDriverTests: XCTestCase {
     func testArray() throws { try self.benchmarker.testArray() }
     func testBatch() throws { try self.benchmarker.testBatch() }
     func testChildren() throws { try self.benchmarker.testChildren() }
+    func testCodable() throws { try self.benchmarker.testCodable() }
     func testChunk() throws { try self.benchmarker.testChunk() }
     func testCRUD() throws { try self.benchmarker.testCRUD() }
     func testEagerLoad() throws { try self.benchmarker.testEagerLoad() }
@@ -26,6 +27,7 @@ final class FluentMySQLDriverTests: XCTestCase {
     func testParent() throws { try self.benchmarker.testParent() }
     func testPerformance() throws { try self.benchmarker.testPerformance() }
     func testRange() throws { try self.benchmarker.testRange() }
+    func testSchema() throws { try self.benchmarker.testSchema() }
     func testSet() throws { try self.benchmarker.testSet() }
     func testSiblings() throws { try self.benchmarker.testSiblings() }
     func testSoftDelete() throws { try self.benchmarker.testSoftDelete() }
@@ -287,40 +289,35 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.threadPool = NIOThreadPool(numberOfThreads: 1)
         self.dbs = Databases(threadPool: threadPool, on: self.eventLoopGroup)
 
+        let databaseA = env("MYSQL_DATABASE_A") ?? "vapor_database"
+        let databaseB = env("MYSQL_DATABASE_B") ?? "vapor_database"
         self.dbs.use(.mysql(
-            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
-            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+            hostname: env("MYSQL_HOSTNAME_A") ?? "localhost",
+            port: env("MYSQL_PORT_A").flatMap(Int.init) ?? 3306,
             username: "vapor_username",
             password: "vapor_password",
-            database: "vapor_database",
+            database: databaseA,
             tlsConfiguration: .forClient(certificateVerification: .none)
-        ), as: .mysql)
+        ), as: .a)
 
         self.dbs.use(.mysql(
-            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
-            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+            hostname: env("MYSQL_HOSTNAME_B") ?? "localhost",
+            port: env("MYSQL_PORT_B").flatMap(Int.init) ?? 3306,
             username: "vapor_username",
             password: "vapor_password",
-            database: "vapor_migration_extra",
+            database: databaseB,
             tlsConfiguration: .forClient(certificateVerification: .none)
-        ), as: .migrationExtra)
+        ), as: .b)
 
-        // clear db.
-        let databaseExtra = try XCTUnwrap(
-            self.benchmarker.databases.database(
-                .migrationExtra,
-                logger: Logger(label: "test.fluent.migration_extra"),
-                on: self.eventLoopGroup.next()
-            ) as? MySQLDatabase
-        )
-
-        _ = try self.mysql.simpleQuery("DROP DATABASE vapor_database").wait()
-        _ = try self.mysql.simpleQuery("CREATE DATABASE vapor_database").wait()
-        _ = try self.mysql.simpleQuery("USE vapor_database").wait()
-
-        _ = try databaseExtra.simpleQuery("DROP DATABASE vapor_migration_extra").wait()
-        _ = try databaseExtra.simpleQuery("CREATE DATABASE vapor_migration_extra").wait()
-        _ = try databaseExtra.simpleQuery("USE vapor_migration_extra").wait()
+        // clear dbs
+        let a = self.dbs.database(.a, logger: Logger(label: "test.fluent.a"), on: self.eventLoopGroup.next())! as! MySQLDatabase
+        _ = try a.simpleQuery("DROP DATABASE \(databaseA)").wait()
+        _ = try a.simpleQuery("CREATE DATABASE \(databaseA)").wait()
+        _ = try a.simpleQuery("USE \(databaseA)").wait()
+        let b = self.dbs.database(.b, logger: Logger(label: "test.fluent.b"), on: self.eventLoopGroup.next())! as! MySQLDatabase
+        _ = try b.simpleQuery("DROP DATABASE \(databaseB)").wait()
+        _ = try b.simpleQuery("CREATE DATABASE \(databaseB)").wait()
+        _ = try b.simpleQuery("USE \(databaseB)").wait()
     }
     
     override func tearDownWithError() throws {
@@ -333,7 +330,8 @@ final class FluentMySQLDriverTests: XCTestCase {
 }
 
 extension DatabaseID {
-    static let migrationExtra = DatabaseID(string: "migration_extra")
+    static let a = DatabaseID(string: "mysql_a")
+    static let b = DatabaseID(string: "mysql_b")
 }
 
 func env(_ name: String) -> String? {

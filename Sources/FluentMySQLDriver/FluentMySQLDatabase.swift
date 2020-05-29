@@ -5,6 +5,7 @@ import AsyncKit
 struct _FluentMySQLDatabase {
     let database: MySQLDatabase
     let context: DatabaseContext
+    let inTransaction: Bool
 }
 
 extension _FluentMySQLDatabase: Database {
@@ -56,9 +57,12 @@ extension _FluentMySQLDatabase: Database {
     }
 
     func transaction<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        self.database.withConnection { conn in
+        guard !self.inTransaction else {
+            return closure(self)
+        }
+        return self.database.withConnection { conn in
             conn.simpleQuery("START TRANSACTION").flatMap { _ in
-                let db = _FluentMySQLDatabase(database: conn, context: self.context)
+                let db = _FluentMySQLDatabase(database: conn, context: self.context, inTransaction: true)
                 return closure(db).flatMap { result in
                     conn.simpleQuery("COMMIT").map { _ in
                         result
@@ -74,7 +78,7 @@ extension _FluentMySQLDatabase: Database {
     
     func withConnection<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.database.withConnection {
-            closure(_FluentMySQLDatabase(database: $0, context: self.context))
+            closure(_FluentMySQLDatabase(database: $0, context: self.context, inTransaction: self.inTransaction))
         }
     }
 }
@@ -114,15 +118,19 @@ private struct LastInsertRow: DatabaseOutput {
         self
     }
 
-    func contains(_ path: [FieldKey]) -> Bool {
-        path[0] == .id || path[0] == self.customIDKey
+    func decodeNil(_ key: FieldKey) throws -> Bool {
+        false
     }
 
-    func decode<T>(_ path: [FieldKey], as type: T.Type) throws -> T
+    func contains(_ key: FieldKey) -> Bool {
+        key == .id || key == self.customIDKey
+    }
+
+    func decode<T>(_ key: FieldKey, as type: T.Type) throws -> T
         where T: Decodable
     {
-        guard self.contains(path) else {
-            fatalError("Cannot decode field from last insert row: \(path).")
+        guard self.contains(key) else {
+            fatalError("Cannot decode field from last insert row: \(key).")
         }
         if let lastInsertIDInitializable = T.self as? LastInsertIDInitializable.Type {
             return lastInsertIDInitializable.init(lastInsertID: self.metadata.lastInsertID!) as! T

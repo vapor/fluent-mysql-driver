@@ -12,8 +12,16 @@ private struct _MySQLDatabaseOutput: DatabaseOutput {
         self.row.description
     }
 
-    func contains(_ path: [FieldKey]) -> Bool {
-        return self.row.column(self.columnName(path)) != nil
+    func contains(_ key: FieldKey) -> Bool {
+        self.row.column(self.columnName(key)) != nil
+    }
+
+    func decodeNil(_ key: FieldKey) throws -> Bool {
+        if let data = self.row.column((self.columnName(key))) {
+            return data.buffer == nil
+        } else {
+            return true
+        }
     }
 
     func schema(_ schema: String) -> DatabaseOutput {
@@ -23,21 +31,18 @@ private struct _MySQLDatabaseOutput: DatabaseOutput {
         )
     }
 
-    func decode<T>(
-        _ path: [FieldKey],
-        as type: T.Type
-    ) throws -> T where T : Decodable {
-        try self.row.decode(column: self.columnName(path), as: T.self)
+    func decode<T>(_ key: FieldKey, as type: T.Type) throws -> T
+        where T: Decodable
+    {
+        try self.row.decode(column: self.columnName(key), as: T.self)
     }
 
 
-    private func columnName(_ path: [FieldKey]) -> String {
-        let field = path.map { $0.description }.joined(separator: "_")
+    private func columnName(_ key: FieldKey) -> String {
         if let schema = self.schema {
-            return "\(schema)_\(field)"
+            return "\(schema)_\(key.description)"
         } else {
-            return field
+            return key.description
         }
-
     }
 }
