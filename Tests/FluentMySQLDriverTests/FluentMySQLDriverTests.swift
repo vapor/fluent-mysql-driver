@@ -285,8 +285,8 @@ final class FluentMySQLDriverTests: XCTestCase {
         try super.setUpWithError()
         
         XCTAssert(isLoggingConfigured)
-        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        self.threadPool = NIOThreadPool(numberOfThreads: 1)
+        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
+        self.threadPool = NIOThreadPool(numberOfThreads: System.coreCount)
         self.dbs = Databases(threadPool: threadPool, on: self.eventLoopGroup)
 
         let databaseA = env("MYSQL_DATABASE_A") ?? "vapor_database"
@@ -294,8 +294,8 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.dbs.use(.mysql(
             hostname: env("MYSQL_HOSTNAME_A") ?? "localhost",
             port: env("MYSQL_PORT_A").flatMap(Int.init) ?? 3306,
-            username: "vapor_username",
-            password: "vapor_password",
+            username: env("MYSQL_USERNAME_A") ?? "vapor_username",
+            password: env("MYSQL_PASSWORD_A") ?? "vapor_password",
             database: databaseA,
             tlsConfiguration: .forClient(certificateVerification: .none)
         ), as: .a)
@@ -303,8 +303,8 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.dbs.use(.mysql(
             hostname: env("MYSQL_HOSTNAME_B") ?? "localhost",
             port: env("MYSQL_PORT_B").flatMap(Int.init) ?? 3306,
-            username: "vapor_username",
-            password: "vapor_password",
+            username: env("MYSQL_USERNAME_B") ?? "vapor_username",
+            password: env("MYSQL_PASSWORD_B") ?? "vapor_password",
             database: databaseB,
             tlsConfiguration: .forClient(certificateVerification: .none)
         ), as: .b)
