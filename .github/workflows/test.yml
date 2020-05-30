@@ -77,6 +77,8 @@ jobs:
           - username: root
           - { 'formula': 'mariadb', 'username': 'runner' }
     env:
+      MYSQL_HOSTNAME_A: 127.0.0.1
+      MYSQL_HOSTNAME_B: 127.0.0.1
       MYSQL_DATABASE_A: vapor_database_a
       MYSQL_DATABASE_B: vapor_database_b
     runs-on: macos-latest
