@@ -1,7 +1,25 @@
 version: '3'
 
 services:
-  mysql-8-a:
+  mariadb-a:
+    image: mariadb
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+      MYSQL_DATABASE: vapor_database
+      MYSQL_USER: vapor_username
+      MYSQL_PASSWORD: vapor_password
+    ports:
+      - 3306:3306
+  mariadb-b:
+    image: mariadb
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+      MYSQL_DATABASE: vapor_database
+      MYSQL_USER: vapor_username
+      MYSQL_PASSWORD: vapor_password
+    ports:
+      - 3307:3306
+  mysql-a:
     image: mysql:8.0
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "true"
@@ -10,7 +28,7 @@ services:
       MYSQL_PASSWORD: vapor_password
     ports:
       - 3306:3306
-  mysql-8-b:
+  mysql-b:
     image: mysql:8.0
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "true"
