@@ -298,7 +298,7 @@ final class FluentMySQLDriverTests: XCTestCase {
             password: env("MYSQL_PASSWORD_A") ?? "vapor_password",
             database: databaseA,
             tlsConfiguration: .forClient(certificateVerification: .none),
-            connectionPoolTimeout: .seconds(60)
+            connectionPoolTimeout: .seconds(200)
         ), as: .a)
 
         self.dbs.use(.mysql(
@@ -308,7 +308,7 @@ final class FluentMySQLDriverTests: XCTestCase {
             password: env("MYSQL_PASSWORD_B") ?? "vapor_password",
             database: databaseB,
             tlsConfiguration: .forClient(certificateVerification: .none),
-            connectionPoolTimeout: .seconds(60)
+            connectionPoolTimeout: .seconds(200)
         ), as: .b)
 
         // clear dbs
