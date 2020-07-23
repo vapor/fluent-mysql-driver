@@ -1,4 +1,4 @@
-name: Test Matrix
+name: test
 on: 
   - pull_request
 defaults:
@@ -15,28 +15,11 @@ jobs:
           - mariadb:latest
         runner:
           # 5.2 Stable
-          - swift:5.2-xenial
           - swift:5.2-bionic
           # 5.2 Unstable
-          - swiftlang/swift:nightly-5.2-xenial
           - swiftlang/swift:nightly-5.2-bionic
           # 5.3 Unstable
-          - swiftlang/swift:nightly-5.3-xenial
           - swiftlang/swift:nightly-5.3-bionic
-          # Master Unsable
-          - swiftlang/swift:nightly-master-xenial
-          - swiftlang/swift:nightly-master-bionic
-          - swiftlang/swift:nightly-master-focal
-          - swiftlang/swift:nightly-master-centos8
-          - swiftlang/swift:nightly-master-amazonlinux2
-        include:
-          - runner: swiftlang/swift:nightly-master-centos8
-            installcmd: dnf install -y zlib-devel
-          - runner: swiftlang/swift:nightly-master-amazonlinux2
-            installcmd: yum install -y zlib-devel
-        exclude:
-          - runner: swiftlang/swift:nightly-master-amazonlinux2
-            dbimage: mysql:8.0
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -55,13 +38,12 @@ jobs:
           MYSQL_PASSWORD: vapor_password
           MYSQL_DATABASE: vapor_database
     steps:
-      - name: Install dependencies
-        run: ${{ matrix.installcmd }}
       - name: Check out code
         uses: actions/checkout@v2
       - name: Run tests with Thread Sanitizer
         run: swift test --enable-test-discovery --sanitize=thread
         env:
+          LOG_LEVEL: info
           MYSQL_HOSTNAME_A: mysql-a
           MYSQL_HOSTNAME_B: mysql-b
   macOS:
@@ -71,7 +53,8 @@ jobs:
         formula: ['mysql@8.0', 'mysql@5.7', 'mariadb']
         include:
           - username: root
-          - { 'formula': 'mariadb', 'username': 'runner' }
+          - formula: mariadb
+            username: runner
     runs-on: macos-latest
     steps:
       - name: Select latest available Xcode
@@ -96,6 +79,7 @@ jobs:
       - name: Run tests with Thread Sanitizer
         run: swift test --enable-test-discovery --sanitize=thread
         env: 
+          LOG_LEVEL: info
           MYSQL_HOSTNAME_A: '127.0.0.1'
           MYSQL_HOSTNAME_B: '127.0.0.1'
           MYSQL_DATABASE_A: vapor_database_a

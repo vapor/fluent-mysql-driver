@@ -1,4 +1,5 @@
 import AsyncKit
+import struct NIO.TimeAmount
 
 extension DatabaseConfigurationFactory {
     public static func mysql(
@@ -6,7 +7,8 @@ extension DatabaseConfigurationFactory {
         username: String,
         password: String,
         database: String? = nil,
-        maxConnectionsPerEventLoop: Int = 1
+        maxConnectionsPerEventLoop: Int = 1,
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
     ) throws -> Self {
         let configuration = MySQLConfiguration(
             unixDomainSocketPath: unixDomainSocketPath,
@@ -16,29 +18,37 @@ extension DatabaseConfigurationFactory {
         )
         return .mysql(
             configuration: configuration,
-            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop
+            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            connectionPoolTimeout: connectionPoolTimeout
         )
     }
     public static func mysql(
         url urlString: String,
-        maxConnectionsPerEventLoop: Int = 1
+        maxConnectionsPerEventLoop: Int = 1,
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
     ) throws -> Self {
         guard let url = URL(string: urlString) else {
             throw FluentMySQLError.invalidURL(urlString)
         }
-        return try self.mysql(url: url, maxConnectionsPerEventLoop: maxConnectionsPerEventLoop)
+        return try self.mysql(
+            url: url, 
+            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            connectionPoolTimeout: connectionPoolTimeout
+        )
     }
 
     public static func mysql(
         url: URL,
-        maxConnectionsPerEventLoop: Int = 1
+        maxConnectionsPerEventLoop: Int = 1,
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
     ) throws -> Self {
         guard let configuration = MySQLConfiguration(url: url) else {
             throw FluentMySQLError.invalidURL(url.absoluteString)
         }
         return .mysql(
             configuration: configuration,
-            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop
+            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            connectionPoolTimeout: connectionPoolTimeout
         )
     }
 
@@ -49,7 +59,8 @@ extension DatabaseConfigurationFactory {
         password: String,
         database: String? = nil,
         tlsConfiguration: TLSConfiguration? = .forClient(),
-        maxConnectionsPerEventLoop: Int = 1
+        maxConnectionsPerEventLoop: Int = 1,
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
     ) -> Self {
         return .mysql(
             configuration: .init(
@@ -60,18 +71,21 @@ extension DatabaseConfigurationFactory {
                 database: database,
                 tlsConfiguration: tlsConfiguration
             ),
-            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop
+            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            connectionPoolTimeout: connectionPoolTimeout
         )
     }
 
     public static func mysql(
         configuration: MySQLConfiguration,
-        maxConnectionsPerEventLoop: Int = 1
+        maxConnectionsPerEventLoop: Int = 1,
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
     ) -> Self {
         return Self {
             FluentMySQLConfiguration(
                 configuration: configuration,
                 maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+                connectionPoolTimeout: connectionPoolTimeout,
                 middleware: []
             )
         }
@@ -81,15 +95,17 @@ extension DatabaseConfigurationFactory {
 struct FluentMySQLConfiguration: DatabaseConfiguration {
     let configuration: MySQLConfiguration
     let maxConnectionsPerEventLoop: Int
+    let connectionPoolTimeout: TimeAmount
     var middleware: [AnyModelMiddleware]
 
     func makeDriver(for databases: Databases) -> DatabaseDriver {
         let db = MySQLConnectionSource(
-            configuration: configuration
+            configuration: self.configuration
         )
         let pool = EventLoopGroupConnectionPool(
             source: db,
-            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            maxConnectionsPerEventLoop: self.maxConnectionsPerEventLoop,
+            requestTimeout: self.connectionPoolTimeout,
             on: databases.eventLoopGroup
         )
         return _FluentMySQLDriver(pool: pool)
