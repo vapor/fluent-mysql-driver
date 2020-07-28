@@ -268,6 +268,50 @@ final class FluentMySQLDriverTests: XCTestCase {
         XCTAssertEqual(receivedModels[1].date, secondDate)
     }
 
+    func testChar36UUID() throws {
+        final class Foo: Model {
+            static let schema = "foos"
+
+            @ID(key: .id)
+            var id: UUID?
+
+            @Field(key: "bar")
+            var _bar: String
+
+            var bar: UUID {
+                get {
+                    UUID(uuidString: self._bar)!
+                }
+                set {
+                    self._bar = newValue.uuidString
+                }
+            }
+
+            init() { }
+
+            init(id: UUID? = nil, bar: UUID) {
+                self.id = id
+                self.bar = bar
+            }
+        }
+
+        try self.db.schema("foos")
+            .id()
+            .field("bar", .sql(raw: "CHAR(36)"), .required)
+            .create()
+            .wait()
+        defer {
+            try! self.db.schema("foos").delete().wait()
+        }
+
+        let foo = Foo(bar: .init())
+        try foo.create(on: self.db).wait()
+        XCTAssertNotNil(foo.id)
+
+        let fetched = try Foo.find(foo.id, on: self.db).wait()
+        XCTAssertEqual(fetched?.bar, foo.bar)
+    }
+
     var benchmarker: FluentBenchmarker {
         return .init(databases: self.dbs)
     }
