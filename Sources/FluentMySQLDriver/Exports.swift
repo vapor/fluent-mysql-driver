@@ -4,6 +4,8 @@
 
 @_exported import struct MySQLKit.MySQLConfiguration
 @_exported import struct MySQLKit.MySQLConnectionSource
+@_exported import struct MySQLKit.MySQLDataEncoder
+@_exported import struct MySQLKit.MySQLDataDecoder
 
 @_exported import class MySQLNIO.MySQLConnection
 @_exported import enum MySQLNIO.MySQLError
