@@ -1,11 +1,12 @@
 extension MySQLRow {
-    internal func databaseOutput() -> DatabaseOutput {
-        _MySQLDatabaseOutput(row: self, schema: nil)
+    internal func databaseOutput(decoder: MySQLDataDecoder) -> DatabaseOutput {
+        _MySQLDatabaseOutput(row: self, decoder: decoder, schema: nil)
     }
 }
 
 private struct _MySQLDatabaseOutput: DatabaseOutput {
     let row: MySQLRow
+    let decoder: MySQLDataDecoder
     let schema: String?
 
     var description: String {
@@ -27,6 +28,7 @@ private struct _MySQLDatabaseOutput: DatabaseOutput {
     func schema(_ schema: String) -> DatabaseOutput {
         _MySQLDatabaseOutput(
             row: self.row,
+            decoder: self.decoder,
             schema: schema
         )
     }
@@ -34,7 +36,9 @@ private struct _MySQLDatabaseOutput: DatabaseOutput {
     func decode<T>(_ key: FieldKey, as type: T.Type) throws -> T
         where T: Decodable
     {
-        try self.row.decode(column: self.columnName(key), as: T.self)
+        try self.row
+            .sql(decoder: self.decoder)
+            .decode(column: self.columnName(key), as: T.self)
     }
 
 

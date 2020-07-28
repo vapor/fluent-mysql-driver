@@ -4,6 +4,8 @@ import AsyncKit
 
 struct _FluentMySQLDatabase {
     let database: MySQLDatabase
+    let encoder: MySQLDataEncoder
+    let decoder: MySQLDataDecoder
     let context: DatabaseContext
     let inTransaction: Bool
 }
@@ -18,9 +20,9 @@ extension _FluentMySQLDatabase: Database {
         let (sql, binds) = self.serialize(expression)
         do {
             return try self.query(
-                sql, binds.map { try MySQLDataEncoder().encode($0) },
+                sql, binds.map { try self.encoder.encode($0) },
                 onRow: { row in
-                    onOutput(row.databaseOutput())
+                    onOutput(row.databaseOutput(decoder: self.decoder))
                 },
                 onMetadata: { metadata in
                     switch query.action {
@@ -62,7 +64,13 @@ extension _FluentMySQLDatabase: Database {
         }
         return self.database.withConnection { conn in
             conn.simpleQuery("START TRANSACTION").flatMap { _ in
-                let db = _FluentMySQLDatabase(database: conn, context: self.context, inTransaction: true)
+                let db = _FluentMySQLDatabase(
+                    database: conn,
+                    encoder: self.encoder,
+                    decoder: self.decoder,
+                    context: self.context,
+                    inTransaction: true
+                )
                 return closure(db).flatMap { result in
                     conn.simpleQuery("COMMIT").map { _ in
                         result
@@ -78,7 +86,13 @@ extension _FluentMySQLDatabase: Database {
     
     func withConnection<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.database.withConnection {
-            closure(_FluentMySQLDatabase(database: $0, context: self.context, inTransaction: self.inTransaction))
+            closure(_FluentMySQLDatabase(
+                database: $0,
+                encoder: self.encoder,
+                decoder: self.decoder,
+                context: self.context,
+                inTransaction: self.inTransaction
+            ))
         }
     }
 }

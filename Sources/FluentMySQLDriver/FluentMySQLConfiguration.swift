@@ -8,7 +8,9 @@ extension DatabaseConfigurationFactory {
         password: String,
         database: String? = nil,
         maxConnectionsPerEventLoop: Int = 1,
-        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        encoder: MySQLDataEncoder = .init(),
+        decoder: MySQLDataDecoder = .init()
     ) throws -> Self {
         let configuration = MySQLConfiguration(
             unixDomainSocketPath: unixDomainSocketPath,
@@ -19,28 +21,36 @@ extension DatabaseConfigurationFactory {
         return .mysql(
             configuration: configuration,
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
-            connectionPoolTimeout: connectionPoolTimeout
+            connectionPoolTimeout: connectionPoolTimeout,
+            encoder: encoder,
+            decoder: decoder
         )
     }
     public static func mysql(
         url urlString: String,
         maxConnectionsPerEventLoop: Int = 1,
-        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        encoder: MySQLDataEncoder = .init(),
+        decoder: MySQLDataDecoder = .init()
     ) throws -> Self {
         guard let url = URL(string: urlString) else {
             throw FluentMySQLError.invalidURL(urlString)
         }
         return try self.mysql(
-            url: url, 
+            url: url,
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
-            connectionPoolTimeout: connectionPoolTimeout
+            connectionPoolTimeout: connectionPoolTimeout,
+            encoder: encoder,
+            decoder: decoder
         )
     }
 
     public static func mysql(
         url: URL,
         maxConnectionsPerEventLoop: Int = 1,
-        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        encoder: MySQLDataEncoder = .init(),
+        decoder: MySQLDataDecoder = .init()
     ) throws -> Self {
         guard let configuration = MySQLConfiguration(url: url) else {
             throw FluentMySQLError.invalidURL(url.absoluteString)
@@ -48,7 +58,9 @@ extension DatabaseConfigurationFactory {
         return .mysql(
             configuration: configuration,
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
-            connectionPoolTimeout: connectionPoolTimeout
+            connectionPoolTimeout: connectionPoolTimeout,
+            encoder: encoder,
+            decoder: decoder
         )
     }
 
@@ -60,7 +72,9 @@ extension DatabaseConfigurationFactory {
         database: String? = nil,
         tlsConfiguration: TLSConfiguration? = .forClient(),
         maxConnectionsPerEventLoop: Int = 1,
-        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        encoder: MySQLDataEncoder = .init(),
+        decoder: MySQLDataDecoder = .init()
     ) -> Self {
         return .mysql(
             configuration: .init(
@@ -72,20 +86,26 @@ extension DatabaseConfigurationFactory {
                 tlsConfiguration: tlsConfiguration
             ),
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
-            connectionPoolTimeout: connectionPoolTimeout
+            connectionPoolTimeout: connectionPoolTimeout,
+            encoder: encoder,
+            decoder: decoder
         )
     }
 
     public static func mysql(
         configuration: MySQLConfiguration,
         maxConnectionsPerEventLoop: Int = 1,
-        connectionPoolTimeout: NIO.TimeAmount = .seconds(10)
+        connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        encoder: MySQLDataEncoder = .init(),
+        decoder: MySQLDataDecoder = .init()
     ) -> Self {
         return Self {
             FluentMySQLConfiguration(
                 configuration: configuration,
                 maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
                 connectionPoolTimeout: connectionPoolTimeout,
+                encoder: encoder,
+                decoder: decoder,
                 middleware: []
             )
         }
@@ -96,6 +116,8 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
     let configuration: MySQLConfiguration
     let maxConnectionsPerEventLoop: Int
     let connectionPoolTimeout: TimeAmount
+    let encoder: MySQLDataEncoder
+    let decoder: MySQLDataDecoder
     var middleware: [AnyModelMiddleware]
 
     func makeDriver(for databases: Databases) -> DatabaseDriver {
@@ -108,6 +130,10 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
             requestTimeout: self.connectionPoolTimeout,
             on: databases.eventLoopGroup
         )
-        return _FluentMySQLDriver(pool: pool)
+        return _FluentMySQLDriver(
+            pool: pool,
+            encoder: self.encoder,
+            decoder: self.decoder
+        )
     }
 }
