@@ -5,7 +5,7 @@ extension DatabaseConfigurationFactory {
     public static func mysql(
         unixDomainSocketPath: String,
         username: String,
-        password: String,
+        password: String? = nil,
         database: String? = nil,
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
@@ -68,7 +68,7 @@ extension DatabaseConfigurationFactory {
         hostname: String,
         port: Int = 3306,
         username: String,
-        password: String,
+        password: String? = nil,
         database: String? = nil,
         tlsConfiguration: TLSConfiguration? = .forClient(),
         maxConnectionsPerEventLoop: Int = 1,
