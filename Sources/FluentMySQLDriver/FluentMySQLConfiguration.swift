@@ -15,7 +15,7 @@ extension DatabaseConfigurationFactory {
         let configuration = MySQLConfiguration(
             unixDomainSocketPath: unixDomainSocketPath,
             username: username,
-            password: password,
+            password: password ?? "",
             database: database
         )
         return .mysql(
@@ -81,7 +81,7 @@ extension DatabaseConfigurationFactory {
                 hostname: hostname,
                 port: port,
                 username: username,
-                password: password,
+                password: password ?? "",
                 database: database,
                 tlsConfiguration: tlsConfiguration
             ),
