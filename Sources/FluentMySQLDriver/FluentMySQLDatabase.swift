@@ -154,12 +154,12 @@ private struct LastInsertRow: DatabaseOutput {
     }
 }
 
-protocol LastInsertIDInitializable {
+public protocol LastInsertIDInitializable {
     init(lastInsertID: UInt64)
 }
 
 extension LastInsertIDInitializable where Self: FixedWidthInteger {
-    init(lastInsertID: UInt64) {
+    public init(lastInsertID: UInt64) {
         self = numericCast(lastInsertID)
     }
 }
