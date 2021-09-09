@@ -70,7 +70,7 @@ extension DatabaseConfigurationFactory {
         username: String,
         password: String,
         database: String? = nil,
-        tlsConfiguration: TLSConfiguration? = .forClient(),
+        tlsConfiguration: TLSConfiguration? = .makeClientConfiguration(),
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
         encoder: MySQLDataEncoder = .init(),

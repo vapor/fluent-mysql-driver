@@ -333,6 +333,8 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.threadPool = NIOThreadPool(numberOfThreads: System.coreCount)
         self.dbs = Databases(threadPool: threadPool, on: self.eventLoopGroup)
 
+        var tls = TLSConfiguration.makeClientConfiguration()
+        tls.certificateVerification = .none
         let databaseA = env("MYSQL_DATABASE_A") ?? "vapor_database"
         let databaseB = env("MYSQL_DATABASE_B") ?? "vapor_database"
         self.dbs.use(.mysql(
@@ -341,7 +343,7 @@ final class FluentMySQLDriverTests: XCTestCase {
             username: env("MYSQL_USERNAME_A") ?? "vapor_username",
             password: env("MYSQL_PASSWORD_A") ?? "vapor_password",
             database: databaseA,
-            tlsConfiguration: .forClient(certificateVerification: .none),
+            tlsConfiguration: tls,
             connectionPoolTimeout: .seconds(10)
         ), as: .a)
 
@@ -351,7 +353,7 @@ final class FluentMySQLDriverTests: XCTestCase {
             username: env("MYSQL_USERNAME_B") ?? "vapor_username",
             password: env("MYSQL_PASSWORD_B") ?? "vapor_password",
             database: databaseB,
-            tlsConfiguration: .forClient(certificateVerification: .none),
+            tlsConfiguration: tls,
             connectionPoolTimeout: .seconds(10)
         ), as: .b)
 
