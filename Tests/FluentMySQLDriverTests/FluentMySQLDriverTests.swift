@@ -1,11 +1,12 @@
 import NIO
 import FluentBenchmark
 import FluentMySQLDriver
+import SQLKit
 import XCTest
 import Logging
 
 final class FluentMySQLDriverTests: XCTestCase {
-    func testAll() throws { try self.benchmarker.testAll() }
+//    func testAll() throws { try self.benchmarker.testAll() }
     func testAggregate() throws { try self.benchmarker.testAggregate() }
     func testArray() throws { try self.benchmarker.testArray() }
     func testBatch() throws { try self.benchmarker.testBatch() }
@@ -32,9 +33,42 @@ final class FluentMySQLDriverTests: XCTestCase {
     func testSiblings() throws { try self.benchmarker.testSiblings() }
     func testSoftDelete() throws { try self.benchmarker.testSoftDelete() }
     func testSort() throws { try self.benchmarker.testSort() }
+    func testSQL() throws { try self.benchmarker.testSQL() }
     func testTimestamp() throws { try self.benchmarker.testTimestamp() }
     func testTransaction() throws { try self.benchmarker.testTransaction() }
     func testUnique() throws { try self.benchmarker.testUnique() }
+
+    func testDatabaseError() throws {
+        let sql = (self.db as! SQLDatabase)
+        do {
+            try sql.raw("asdf").run().wait()
+        } catch let error as DatabaseError where error.isSyntaxError {
+            // pass
+        } catch {
+            XCTFail("\(error)")
+        }
+        do {
+            try sql.create(table: "foo").column("name", type: .text, .unique).run().wait()
+            try sql.insert(into: "foo").columns("name").values("bar").run().wait()
+            try sql.insert(into: "foo").columns("name").values("bar").run().wait()
+        } catch let error as DatabaseError where error.isConstraintFailure {
+            // pass
+        } catch {
+            XCTFail("\(error)")
+        }
+        do {
+            try self.mysql.withConnection { conn in
+                conn.close().flatMap {
+                    conn.sql().insert(into: "foo").columns("name").values("bar").run()
+                }
+            }.wait()
+        } catch let error as DatabaseError where error.isConnectionClosed {
+            // pass
+        } catch let error {
+            let error = error
+            XCTFail("\(error)")
+        }
+    }
 
     func testClarityModel() throws {
         final class Clarity: Model {
