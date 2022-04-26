@@ -87,7 +87,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Run tests with Thread Sanitizer
-        run: swift test --sanitize=thread
+        run: swift test
         env: 
           LOG_LEVEL: info
           MYSQL_HOSTNAME_A: '127.0.0.1'
