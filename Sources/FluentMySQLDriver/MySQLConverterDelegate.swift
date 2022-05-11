@@ -31,9 +31,9 @@ struct MySQLConverterDelegate: SQLConverterDelegate {
                     dataType: dataType,
                     constraints: constraints.filter { constraint in
                         switch constraint {
-                        case .foreignKey(let schema, let field, let onDelete, let onUpdate):
+                        case .foreignKey(let schema, let space, let field, let onDelete, let onUpdate):
                             copy.createConstraints.append(.constraint(
-                                .foreignKey([name], schema, [field], onDelete: onDelete, onUpdate: onUpdate),
+                                .foreignKey([name], schema, space: space, [field], onDelete: onDelete, onUpdate: onUpdate),
                                 name: nil
                             ))
                             return false
