@@ -26,7 +26,7 @@ extension _FluentMySQLDatabase: Database {
                 },
                 onMetadata: { metadata in
                     switch query.action {
-                    case .create:
+                    case .create where query.customIDKey != .string(""):
                         let row = LastInsertRow(
                             metadata: metadata,
                             customIDKey: query.customIDKey
