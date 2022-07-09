@@ -12,7 +12,7 @@ extension DatabaseConfigurationFactory {
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init()
     ) throws -> Self {
-        let configuration = MySQLConfiguration(
+        var configuration = MySQLConfiguration(
             unixDomainSocketPath: unixDomainSocketPath,
             username: username,
             password: password,
@@ -52,7 +52,7 @@ extension DatabaseConfigurationFactory {
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init()
     ) throws -> Self {
-        guard let configuration = MySQLConfiguration(url: url) else {
+        guard var configuration = MySQLConfiguration(url: url) else {
             throw FluentMySQLError.invalidURL(url.absoluteString)
         }
         return .mysql(
