@@ -370,13 +370,13 @@ final class FluentMySQLDriverTests: XCTestCase {
 
         var tls = TLSConfiguration.makeClientConfiguration()
         tls.certificateVerification = .none
-        let databaseA = env("MYSQL_DATABASE_A") ?? "vapor_database"
-        let databaseB = env("MYSQL_DATABASE_B") ?? "vapor_database"
+        let databaseA = env("MYSQL_DATABASE_A") ?? "test_database"
+        let databaseB = env("MYSQL_DATABASE_B") ?? "test_database"
         self.dbs.use(.mysql(
             hostname: env("MYSQL_HOSTNAME_A") ?? "localhost",
             port: env("MYSQL_PORT_A").flatMap(Int.init) ?? 3306,
-            username: env("MYSQL_USERNAME_A") ?? "vapor_username",
-            password: env("MYSQL_PASSWORD_A") ?? "vapor_password",
+            username: env("MYSQL_USERNAME_A") ?? "test_username",
+            password: env("MYSQL_PASSWORD_A") ?? "test_password",
             database: databaseA,
             tlsConfiguration: tls,
             connectionPoolTimeout: .seconds(10)
@@ -385,22 +385,12 @@ final class FluentMySQLDriverTests: XCTestCase {
         self.dbs.use(.mysql(
             hostname: env("MYSQL_HOSTNAME_B") ?? "localhost",
             port: env("MYSQL_PORT_B").flatMap(Int.init) ?? 3306,
-            username: env("MYSQL_USERNAME_B") ?? "vapor_username",
-            password: env("MYSQL_PASSWORD_B") ?? "vapor_password",
+            username: env("MYSQL_USERNAME_B") ?? "test_username",
+            password: env("MYSQL_PASSWORD_B") ?? "test_password",
             database: databaseB,
             tlsConfiguration: tls,
             connectionPoolTimeout: .seconds(10)
         ), as: .b)
-
-        // clear dbs
-        let a = self.dbs.database(.a, logger: Logger(label: "test.fluent.a"), on: self.eventLoopGroup.next())! as! MySQLDatabase
-        _ = try a.simpleQuery("DROP DATABASE \(databaseA)").wait()
-        _ = try a.simpleQuery("CREATE DATABASE \(databaseA)").wait()
-        _ = try a.simpleQuery("USE \(databaseA)").wait()
-        let b = self.dbs.database(.b, logger: Logger(label: "test.fluent.b"), on: self.eventLoopGroup.next())! as! MySQLDatabase
-        _ = try b.simpleQuery("DROP DATABASE \(databaseB)").wait()
-        _ = try b.simpleQuery("CREATE DATABASE \(databaseB)").wait()
-        _ = try b.simpleQuery("USE \(databaseB)").wait()
     }
     
     override func tearDownWithError() throws {
