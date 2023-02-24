@@ -1,3 +1,7 @@
+import MySQLNIO
+import MySQLKit
+import FluentKit
+
 extension MySQLRow {
     internal func databaseOutput(decoder: MySQLDataDecoder) -> DatabaseOutput {
         _MySQLDatabaseOutput(row: self, decoder: decoder, schema: nil)

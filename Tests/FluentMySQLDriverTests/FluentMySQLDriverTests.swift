@@ -4,6 +4,9 @@ import FluentMySQLDriver
 import SQLKit
 import XCTest
 import Logging
+import MySQLKit
+import MySQLNIO
+import NIOSSL
 
 final class FluentMySQLDriverTests: XCTestCase {
 //    func testAll() throws { try self.benchmarker.testAll() }

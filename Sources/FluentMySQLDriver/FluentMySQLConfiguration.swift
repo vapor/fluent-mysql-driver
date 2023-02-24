@@ -1,5 +1,7 @@
 import AsyncKit
 import struct NIO.TimeAmount
+import FluentKit
+import MySQLKit
 
 extension DatabaseConfigurationFactory {
     public static func mysql(
