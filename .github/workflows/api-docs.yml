@@ -9,6 +9,6 @@ jobs:
      uses: vapor/api-docs/.github/workflows/build-and-deploy-docs-workflow.yml@main
      secrets: inherit
      with:
-       package_name: fluent-postgres-driver
-       modules: FluentPostgresDriver
-       pathsToInvalidate: /fluentpostgresdriver
+       package_name: fluent-mysql-driver
+       modules: FluentMySQLDriver
+       pathsToInvalidate: /fluentmysqldriver
