@@ -1,4 +1,7 @@
 import AsyncKit
+import FluentKit
+import MySQLKit
+import NIOCore
 
 struct _FluentMySQLDriver: DatabaseDriver {
     let pool: EventLoopGroupConnectionPool<MySQLConnectionSource>

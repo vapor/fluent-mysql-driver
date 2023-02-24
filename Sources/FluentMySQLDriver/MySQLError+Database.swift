@@ -1,3 +1,6 @@
+import MySQLNIO
+import FluentKit
+
 extension MySQLError: DatabaseError {
     public var isSyntaxError: Bool {
         switch self {

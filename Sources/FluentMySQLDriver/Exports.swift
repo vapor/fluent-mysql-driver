@@ -1,3 +1,5 @@
+#if !BUILDING_DOCC
+
 @_exported import FluentKit
 
 @_exported import struct Foundation.URL
@@ -15,6 +17,13 @@
 @_exported import struct MySQLNIO.MySQLRow
 
 @_exported import struct NIOSSL.TLSConfiguration
+
+#else 
+
+import FluentKit
+import MySQLKit
+
+#endif
 
 extension DatabaseID {
     public static var mysql: DatabaseID {

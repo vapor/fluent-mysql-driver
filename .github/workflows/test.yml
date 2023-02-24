@@ -158,3 +158,14 @@ jobs:
           MYSQL_HOSTNAME_B: '127.0.0.1'
           MYSQL_DATABASE_A: test_database_a
           MYSQL_DATABASE_B: test_database_b
+
+  test-exports:
+    name: Test exports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Vapor
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Build
+        run: swift build -Xswiftc -DBUILDING_DOCC
