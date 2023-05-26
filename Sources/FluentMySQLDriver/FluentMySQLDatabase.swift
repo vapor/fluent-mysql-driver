@@ -1,5 +1,6 @@
 import FluentSQL
 import MySQLKit
+import MySQLNIO
 import AsyncKit
 
 struct _FluentMySQLDatabase {
