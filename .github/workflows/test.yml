@@ -1,10 +1,13 @@
 name: test
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 on:
-  pull_request: { branches: ['*'] }
+  pull_request: { types: [opened, reopened, synchronize, ready_for_review] }
   push: { branches: [ main ] }
 
 env:
-  LOG_LEVEL: debug
+  LOG_LEVEL: info
   SWIFT_DETERMINISTIC_HASHING: 1
   MYSQL_HOSTNAME: 'mysql-a'
   MYSQL_HOSTNAME_A: 'mysql-a'
@@ -20,65 +23,19 @@ env:
   MYSQL_PASSWORD_B: 'test_password'
 
 jobs:
-
-  codecov:
-    strategy:
-      # For MySQL we have to run coverage baselines against multiple DB versions thanks to
-      # the driver's behavior changing notably depending on the server.
-      matrix: { dbimage: ['mysql:5.7', 'mysql:8.0', 'mariadb:10.7'] }
-    runs-on: ubuntu-latest
-    container: swift:5.7-jammy
-    services:
-      mysql-a:
-        image: ${{ matrix.dbimage }}
-        env: 
-          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
-          MYSQL_USER: test_username
-          MYSQL_PASSWORD: test_password
-          MYSQL_DATABASE: test_database
-      mysql-b:
-        image: ${{ matrix.dbimage }}
-        env: 
-          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
-          MYSQL_USER: test_username
-          MYSQL_PASSWORD: test_password
-          MYSQL_DATABASE: test_database
-    steps:
-      - name: Save MySQL version to env
-        run: |
-          echo MYSQL_VERSION='${{ matrix.dbimage }}' >> $GITHUB_ENV
-      - name: Check out package
-        uses: actions/checkout@v3
-      - name: Run local tests with coverage
-        run: swift test --enable-code-coverage
-      - name: Submit coverage report to Codecov.io
-        uses: vapor/swift-codecov-action@v0.2
-        with:
-          cc_flags: 'unittests'
-          cc_env_vars: 'SWIFT_VERSION,SWIFT_PLATFORM,RUNNER_OS,RUNNER_ARCH,MYSQL_VERSION'
-          cc_fail_ci_if_error: true
-          cc_verbose: true
-          cc_dry_run: false
-
-  # Check for API breakage versus main
   api-breakage:
-    if: github.event_name == 'pull_request'
+    if: ${{ !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
     container: swift:5.8-jammy
     steps:
       - name: Check out package
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      # https://github.com/actions/checkout/issues/766
-      - name: Mark the workspace as safe
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      - name: Check for API breaking changes
-        run: swift package diagnose-api-breaking-changes origin/main
+        with: { 'fetch-depth': 0 }
+      - name: Run API breakage check action
+        uses: vapor/ci/.github/actions/ci-swift-check-api-breakage@reusable-workflows
 
-  # Unit tests (Linux)
   linux-unit:
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ !(github.event.pull_request.draft || false) }}
     strategy:
       fail-fast: false
       matrix:
@@ -86,7 +43,7 @@ jobs:
           - mysql:5.7
           - mysql:8.0
           - mariadb:10.4
-          - mariadb:10.11
+          - mariadb:11
           - percona:8.0
         runner:
           - swift:5.6-focal
@@ -112,23 +69,33 @@ jobs:
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
     steps:
+      - name: Display versions
+        shell: bash
+        run: |
+          echo MYSQL_VERSION='${{ matrix.dbimage }}' >> $GITHUB_ENV
+          if [[ '${{ contains(matrix.container, 'nightly') }}' == 'true' ]]; then
+            SWIFT_PLATFORM="$(source /etc/os-release && echo "${ID}${VERSION_ID}")" SWIFT_VERSION="$(cat /.swift_tag)"
+            printf 'SWIFT_PLATFORM=%s\nSWIFT_VERSION=%s\n' "${SWIFT_PLATFORM}" "${SWIFT_VERSION}" >>"${GITHUB_ENV}"
+          fi
+          printf 'OS:  %s\nTag: %s\nVersion:\n' "${SWIFT_PLATFORM}-${RUNNER_ARCH}" "${SWIFT_VERSION}" && swift --version
       - name: Check out package
         uses: actions/checkout@v3
-      - name: Run tests with Thread Sanitizer
-        run: swift test --sanitize=thread
+      - name: Run tests with Thread Sanitizer and coverage
+        run: swift test --sanitize=thread --enable-code-coverage
+      - name: Submit coverage report to Codecov.io
+        uses: vapor/swift-codecov-action@v0.2
+        with:
+          cc_env_vars: 'SWIFT_VERSION,SWIFT_PLATFORM,RUNNER_OS,RUNNER_ARCH,MYSQL_VERSION'
 
-  # Unit tests (macOS)
   macos-unit:
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ !(github.event.pull_request.draft || false) }}
     strategy:
       fail-fast: false
       matrix:
-        formula:
-          - mysql@8.0
-        macos:
-          - macos-12
-        xcode:
-          - latest-stable
+        include:
+          - dbimage: mysql@8.0
+            macos: macos-13
+            xcode: latest-stable
     runs-on: ${{ matrix.macos }}
     steps:
       - name: Select latest available Xcode
@@ -136,9 +103,9 @@ jobs:
         with: 
           xcode-version: ${{ matrix.xcode }}
       - name: Install MySQL server from Homebrew
-        run: brew install ${{ matrix.formula }} && brew link --force ${{ matrix.formula }}
+        run: brew install ${{ matrix.dbimage }} && brew link --force ${{ matrix.dbimage }}
       - name: Start MySQL server
-        run: brew services start ${{ matrix.formula }}
+        run: brew services start ${{ matrix.dbimage }}
       - name: Wait for MySQL server to be ready
         run: until echo | mysql -uroot; do sleep 1; done
         timeout-minutes: 5
@@ -158,15 +125,3 @@ jobs:
           MYSQL_HOSTNAME_B: '127.0.0.1'
           MYSQL_DATABASE_A: test_database_a
           MYSQL_DATABASE_B: test_database_b
-
-  test-exports:
-    name: Test exports
-    runs-on: ubuntu-latest
-    container: swift:5.8-jammy
-    steps:
-      - name: Check out Vapor
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Build
-        run: swift build -Xswiftc -DBUILDING_DOCC

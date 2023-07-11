@@ -13,9 +13,9 @@ let package = Package(
         .library(name: "FluentMySQLDriver", targets: ["FluentMySQLDriver"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.27.0"),
-        .package(url: "https://github.com/vapor/mysql-kit.git", from: "4.0.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.43.0"),
+        .package(url: "https://github.com/vapor/mysql-kit.git", from: "4.7.1"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.2"),
     ],
     targets: [
         .target(name: "FluentMySQLDriver", dependencies: [
