@@ -1,4 +1,4 @@
-import AsyncKit
+@preconcurrency import AsyncKit
 import FluentKit
 import MySQLKit
 import NIOCore
@@ -8,11 +8,7 @@ struct _FluentMySQLDriver: DatabaseDriver {
     let encoder: MySQLDataEncoder
     let decoder: MySQLDataDecoder
     
-    var eventLoopGroup: EventLoopGroup {
-        self.pool.eventLoopGroup
-    }
-    
-    func makeDatabase(with context: DatabaseContext) -> Database {
+    func makeDatabase(with context: DatabaseContext) -> any Database {
         _FluentMySQLDatabase(
             database: self.pool.pool(for: context.eventLoop).database(logger: context.logger),
             encoder: self.encoder,

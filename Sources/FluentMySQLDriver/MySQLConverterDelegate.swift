@@ -1,7 +1,7 @@
 import FluentSQL
 
 struct MySQLConverterDelegate: SQLConverterDelegate {
-    func customDataType(_ dataType: DatabaseSchema.DataType) -> SQLExpression? {
+    func customDataType(_ dataType: DatabaseSchema.DataType) -> (any SQLExpression)? {
         switch dataType {
         case .string: return SQLRaw("VARCHAR(255)")
         case .datetime: return SQLRaw("DATETIME(6)")

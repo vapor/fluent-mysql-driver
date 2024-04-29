@@ -3,7 +3,7 @@ import MySQLKit
 import FluentKit
 
 extension MySQLRow {
-    internal func databaseOutput(decoder: MySQLDataDecoder) -> DatabaseOutput {
+    func databaseOutput(decoder: MySQLDataDecoder) -> any DatabaseOutput {
         _MySQLDatabaseOutput(row: self, decoder: decoder, schema: nil)
     }
 }
@@ -29,7 +29,7 @@ private struct _MySQLDatabaseOutput: DatabaseOutput {
         }
     }
 
-    func schema(_ schema: String) -> DatabaseOutput {
+    func schema(_ schema: String) -> any DatabaseOutput {
         _MySQLDatabaseOutput(
             row: self.row,
             decoder: self.decoder,
@@ -37,9 +37,7 @@ private struct _MySQLDatabaseOutput: DatabaseOutput {
         )
     }
 
-    func decode<T>(_ key: FieldKey, as type: T.Type) throws -> T
-        where T: Decodable
-    {
+    func decode<T: Decodable>(_ key: FieldKey, as type: T.Type) throws -> T {
         try self.row
             .sql(decoder: self.decoder)
             .decode(column: self.columnName(key), as: T.self)

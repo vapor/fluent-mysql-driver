@@ -122,7 +122,7 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
     let decoder: MySQLDataDecoder
     var middleware: [AnyModelMiddleware]
 
-    func makeDriver(for databases: Databases) -> DatabaseDriver {
+    func makeDriver(for databases: Databases) -> any DatabaseDriver {
         let db = MySQLConnectionSource(
             configuration: self.configuration
         )
