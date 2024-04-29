@@ -1,6 +1,7 @@
 import NIO
 import FluentBenchmark
-import FluentMySQLDriver
+import FluentSQL
+@testable import FluentMySQLDriver
 import SQLKit
 import XCTest
 import Logging
@@ -8,11 +9,52 @@ import MySQLKit
 import MySQLNIO
 import NIOSSL
 
+func XCTAssertEqualAsync<T>(
+    _ expression1: @autoclosure () async throws -> T,
+    _ expression2: @autoclosure () async throws -> T,
+    _ message: @autoclosure () -> String = "",
+    file: StaticString = #filePath, line: UInt = #line
+) async where T: Equatable {
+    do {
+        let expr1 = try await expression1(), expr2 = try await expression2()
+        return XCTAssertEqual(expr1, expr2, message(), file: file, line: line)
+    } catch {
+        return XCTAssertEqual(try { () -> Bool in throw error }(), false, message(), file: file, line: line)
+    }
+}
+
+func XCTAssertNilAsync(
+    _ expression: @autoclosure () async throws -> Any?,
+    _ message: @autoclosure () -> String = "",
+    file: StaticString = #filePath, line: UInt = #line
+) async {
+    do {
+        let result = try await expression()
+        return XCTAssertNil(result, message(), file: file, line: line)
+    } catch {
+        return XCTAssertNil(try { throw error }(), message(), file: file, line: line)
+    }
+}
+
+func XCTAssertThrowsErrorAsync<T>(
+    _ expression: @autoclosure () async throws -> T,
+    _ message: @autoclosure () -> String = "",
+    file: StaticString = #filePath, line: UInt = #line,
+    _ callback: (any Error) -> Void = { _ in }
+) async {
+    do {
+        _ = try await expression()
+        XCTAssertThrowsError({}(), message(), file: file, line: line, callback)
+    } catch {
+        XCTAssertThrowsError(try { throw error }(), message(), file: file, line: line, callback)
+    }
+}
+
 final class FluentMySQLDriverTests: XCTestCase {
-//    func testAll() throws { try self.benchmarker.testAll() }
     func testAggregate() throws { try self.benchmarker.testAggregate() }
     func testArray() throws { try self.benchmarker.testArray() }
     func testBatch() throws { try self.benchmarker.testBatch() }
+    func testChild() throws { try self.benchmarker.testChild() }
     func testChildren() throws { try self.benchmarker.testChildren() }
     func testCodable() throws { try self.benchmarker.testCodable() }
     func testChunk() throws { try self.benchmarker.testChunk() }
@@ -42,99 +84,60 @@ final class FluentMySQLDriverTests: XCTestCase {
     func testTransaction() throws { try self.benchmarker.testTransaction() }
     func testUnique() throws { try self.benchmarker.testUnique() }
 
-    func testDatabaseError() throws {
-        let sql = (self.db as! SQLDatabase)
-        do {
-            try sql.raw("asdf").run().wait()
-        } catch let error as DatabaseError where error.isSyntaxError {
-            // pass
-        } catch {
-            XCTFail("\(error)")
+    func testDatabaseError() async throws {
+        let sql = (self.db as! any SQLDatabase)
+        await XCTAssertThrowsErrorAsync(try await sql.raw("asdf").run()) {
+            XCTAssertTrue(($0 as? any DatabaseError)?.isSyntaxError ?? false, "\(String(reflecting: $0))")
+            XCTAssertFalse(($0 as? any DatabaseError)?.isConstraintFailure ?? true, "\(String(reflecting: $0))")
+            XCTAssertFalse(($0 as? any DatabaseError)?.isConnectionClosed ?? true, "\(String(reflecting: $0))")
         }
-        do {
-            try sql.create(table: "foo").column("name", type: .text, .unique).run().wait()
-            try sql.insert(into: "foo").columns("name").values("bar").run().wait()
-            try sql.insert(into: "foo").columns("name").values("bar").run().wait()
-        } catch let error as DatabaseError where error.isConstraintFailure {
-            // pass
-        } catch {
-            XCTFail("\(error)")
+        try await sql.drop(table: "foo").ifExists().run()
+        try await sql.create(table: "foo").column("name", type: .text, .unique).run()
+        try await sql.insert(into: "foo").columns("name").values("bar").run()
+        await XCTAssertThrowsErrorAsync(try await sql.insert(into: "foo").columns("name").values("bar").run()) {
+            XCTAssertTrue(($0 as? any DatabaseError)?.isConstraintFailure ?? false, "\(String(reflecting: $0))")
+            XCTAssertFalse(($0 as? any DatabaseError)?.isSyntaxError ?? true, "\(String(reflecting: $0))")
+            XCTAssertFalse(($0 as? any DatabaseError)?.isConnectionClosed ?? true, "\(String(reflecting: $0))")
         }
-        do {
-            try self.mysql.withConnection { conn in
-                conn.close().flatMap {
-                    conn.sql().insert(into: "foo").columns("name").values("bar").run()
-                }
-            }.wait()
-        } catch let error as DatabaseError where error.isConnectionClosed {
-            // pass
-        } catch let error {
-            let error = error
-            XCTFail("\(error)")
+        await XCTAssertThrowsErrorAsync(try await self.mysql.withConnection { conn in
+            conn.close().flatMap {
+                conn.sql().insert(into: "foo").columns("name").values("bar").run()
+            }
+        }.get()) {
+            XCTAssertTrue(($0 as? any DatabaseError)?.isConnectionClosed ?? false, "\(String(reflecting: $0))")
+            XCTAssertFalse(($0 as? any DatabaseError)?.isSyntaxError ?? true, "\(String(reflecting: $0))")
+            XCTAssertFalse(($0 as? any DatabaseError)?.isConstraintFailure ?? true, "\(String(reflecting: $0))")
         }
     }
 
-    func testClarityModel() throws {
-        final class Clarity: Model {
+    func testClarityModel() async throws {
+        final class Clarity: Model, @unchecked Sendable {
             static let schema = "clarities"
 
-            @ID(custom: .id, generatedBy: .database)
-            var id: Int?
+            @ID(custom: .id, generatedBy: .database) var id: Int?
+            @Field(key: "at") var at: Date
+            @Field(key: "cloud_condition") var cloudCondition: Int
+            @Field(key: "wind_condition") var windCondition: Int
+            @Field(key: "rain_condition") var rainCondition: Int
+            @Field(key: "day_condition") var daylightCondition: Int
+            @Field(key: "sky_temperature") var skyTemperature: Double?
+            @Field(key: "sensor_temperature") var sensorTemperature: Double?
+            @Field(key: "ambient_temperature") var ambientTemperature: Double
+            @Field(key: "dewpoint_temperature") var dewpointTemperature: Double
+            @Field(key: "wind_speed") var windSpeed: Double?
+            @Field(key: "humidity") var humidity: Double
+            @Field(key: "daylight") var daylight: Int
+            @Field(key: "rain") var rain: Bool
+            @Field(key: "wet") var wet: Bool
+            @Field(key: "heater") var heater: Double
+            @Field(key: "close_requested") var closeRequested: Bool
 
-            @Field(key: "at")
-            var at: Date
-
-            @Field(key: "cloud_condition")
-            var cloudCondition: Int
-
-            @Field(key: "wind_condition")
-            var windCondition: Int
-
-            @Field(key: "rain_condition")
-            var rainCondition: Int
-
-            @Field(key: "day_condition")
-            var daylightCondition: Int
-
-            @Field(key: "sky_temperature")
-            var skyTemperature: Double?
-
-            @Field(key: "sensor_temperature")
-            var sensorTemperature: Double?
-
-            @Field(key: "ambient_temperature")
-            var ambientTemperature: Double
-
-            @Field(key: "dewpoint_temperature")
-            var dewpointTemperature: Double
-
-            @Field(key: "wind_speed")
-            var windSpeed: Double?
-
-            @Field(key: "humidity")
-            var humidity: Double
-
-            @Field(key: "daylight")
-            var daylight: Int
-
-            @Field(key: "rain")
-            var rain: Bool
-
-            @Field(key: "wet")
-            var wet: Bool
-
-            @Field(key: "heater")
-            var heater: Double
-
-            @Field(key: "close_requested")
-            var closeRequested: Bool
-
-            init() { }
+            init() {}
         }
 
-        struct CreateClarity: Migration {
-            func prepare(on database: Database) -> EventLoopFuture<Void> {
-                return database.schema("clarities")
+        struct CreateClarity: AsyncMigration {
+            func prepare(on database: any Database) async throws {
+                try await database.schema("clarities")
                     .field("id", .int, .identifier(auto: true))
                     .field("at", .datetime, .required)
                     .field("cloud_condition", .int, .required)
@@ -155,16 +158,15 @@ final class FluentMySQLDriverTests: XCTestCase {
                     .create()
             }
 
-            func revert(on database: Database) -> EventLoopFuture<Void> {
-                return database.schema("clarities").delete()
+            func revert(on database: any Database) async throws {
+                try await database.schema("clarities").delete()
             }
         }
 
-        defer { try? CreateClarity().revert(on: self.db).wait() }
-        try CreateClarity().prepare(on: self.db).wait()
+        try await CreateClarity().prepare(on: self.db)
 
-        let now = Date()
         do {
+            let now = Date()
             let clarity = Clarity()
             clarity.at = now
             clarity.cloudCondition = 1
@@ -182,31 +184,34 @@ final class FluentMySQLDriverTests: XCTestCase {
             clarity.wet = true
             clarity.heater = 10
             clarity.closeRequested = false
-            try clarity.create(on: self.db).wait()
+            try await clarity.create(on: self.db)
+
+            let dbClarity = try await Clarity.query(on: self.db).first()
+            XCTAssertEqual(dbClarity?.at.description, now.description)
+            XCTAssertEqual(dbClarity?.cloudCondition, 1)
+            XCTAssertEqual(dbClarity?.windCondition, 2)
+            XCTAssertEqual(dbClarity?.rainCondition, 3)
+            XCTAssertEqual(dbClarity?.daylightCondition, 4)
+            XCTAssertEqual(dbClarity?.skyTemperature, nil)
+            XCTAssertEqual(dbClarity?.sensorTemperature, nil)
+            XCTAssertEqual(dbClarity?.ambientTemperature, 20.0)
+            XCTAssertEqual(dbClarity?.dewpointTemperature, -3.0)
+            XCTAssertEqual(dbClarity?.windSpeed, nil)
+            XCTAssertEqual(dbClarity?.humidity, 59.1)
+            XCTAssertEqual(dbClarity?.daylight, 12)
+            XCTAssertEqual(dbClarity?.rain, false)
+            XCTAssertEqual(dbClarity?.wet, true)
+            XCTAssertEqual(dbClarity?.heater, 10)
+            XCTAssertEqual(dbClarity?.closeRequested, false)
+        } catch {
+            try? await CreateClarity().revert(on: self.db)
+            throw error
         }
-        do {
-            let clarity = try Clarity.query(on: self.db).first().wait()!
-            XCTAssertEqual(clarity.at.description, now.description)
-            XCTAssertEqual(clarity.cloudCondition, 1)
-            XCTAssertEqual(clarity.windCondition, 2)
-            XCTAssertEqual(clarity.rainCondition, 3)
-            XCTAssertEqual(clarity.daylightCondition, 4)
-            XCTAssertEqual(clarity.skyTemperature, nil)
-            XCTAssertEqual(clarity.sensorTemperature, nil)
-            XCTAssertEqual(clarity.ambientTemperature, 20.0)
-            XCTAssertEqual(clarity.dewpointTemperature, -3.0)
-            XCTAssertEqual(clarity.windSpeed, nil)
-            XCTAssertEqual(clarity.humidity, 59.1)
-            XCTAssertEqual(clarity.daylight, 12)
-            XCTAssertEqual(clarity.rain, false)
-            XCTAssertEqual(clarity.wet, true)
-            XCTAssertEqual(clarity.heater, 10)
-            XCTAssertEqual(clarity.closeRequested, false)
-        }
+        try await CreateClarity().revert(on: self.db)
     }
 
-    func testBoolFilter() throws {
-        final class Clarity: Model {
+    func testBoolFilter() async throws {
+        final class Clarity: Model, @unchecked Sendable {
             static let schema = "clarities"
 
             @ID(custom: .id, generatedBy: .database)
@@ -215,48 +220,47 @@ final class FluentMySQLDriverTests: XCTestCase {
             @Field(key: "rain")
             var rain: Bool
 
-            init() { }
+            init() {}
 
             init(rain: Bool) {
                 self.rain = rain
             }
         }
 
-        struct CreateClarity: Migration {
-            func prepare(on database: Database) -> EventLoopFuture<Void> {
-                return database.schema("clarities")
+        struct CreateClarity: AsyncMigration {
+            func prepare(on database: any Database) async throws {
+                try await database.schema("clarities")
                     .field("id", .int, .identifier(auto: true))
                     .field("rain", .bool, .required)
                     .create()
             }
 
-            func revert(on database: Database) -> EventLoopFuture<Void> {
-                return database.schema("clarities").delete()
+            func revert(on database: any Database) async throws {
+                try await database.schema("clarities").delete()
             }
         }
 
-        defer { try? CreateClarity().revert(on: self.db).wait() }
-        try CreateClarity().prepare(on: self.db).wait()
+        try await CreateClarity().prepare(on: self.db)
 
-        let trueValue = Clarity(rain: true)
-        let falseValue = Clarity(rain: false)
+        do {
+            let trueValue = Clarity(rain: true)
+            let falseValue = Clarity(rain: false)
 
-        try trueValue.save(on: self.db).wait()
-        try falseValue.save(on: self.db).wait()
+            try await trueValue.save(on: self.db)
+            try await falseValue.save(on: self.db)
 
-        try XCTAssertEqual(Clarity.query(on: self.db).count().wait(), 2)
-        try XCTAssertEqual(
-            Clarity.query(on: self.db).filter(\.$rain == true).first().wait()?.id,
-            trueValue.id
-        )
-        try  XCTAssertEqual(
-            Clarity.query(on: self.db).filter(\.$rain == false).first().wait()?.id,
-            falseValue.id
-        )
+            await XCTAssertEqualAsync(try await Clarity.query(on: self.db).count(), 2)
+            await XCTAssertEqualAsync(try await Clarity.query(on: self.db).filter(\.$rain == true).first()?.id, trueValue.id)
+            await XCTAssertEqualAsync(try await Clarity.query(on: self.db).filter(\.$rain == false).first()?.id, falseValue.id)
+        } catch {
+            try? await CreateClarity().revert(on: self.db)
+            throw error
+        }
+        try await CreateClarity().revert(on: self.db)
     }
 
-    func testDateDecoding() throws {
-        final class Clarity: Model {
+    func testDateDecoding() async throws {
+        final class Clarity: Model, @unchecked Sendable {
             static let schema = "clarities"
 
             @ID(custom: .id, generatedBy: .database)
@@ -265,49 +269,54 @@ final class FluentMySQLDriverTests: XCTestCase {
             @Field(key: "date")
             var date: Date
 
-            init() { }
+            init() {}
 
             init(date: Date) {
                 self.date = date
             }
         }
 
-        struct CreateClarity: Migration {
-            func prepare(on database: Database) -> EventLoopFuture<Void> {
-                return database.schema("clarities")
+        struct CreateClarity: AsyncMigration {
+            func prepare(on database: any Database) async throws {
+                try await database.schema("clarities")
                     .field("id", .int, .identifier(auto: true))
                     .field("date", .date, .required)
                     .create()
             }
 
-            func revert(on database: Database) -> EventLoopFuture<Void> {
-                return database.schema("clarities").delete()
+            func revert(on database: any Database) async throws {
+                try await database.schema("clarities").delete()
             }
         }
 
-        defer { try? CreateClarity().revert(on: self.db).wait() }
-        try CreateClarity().prepare(on: self.db).wait()
+        try await CreateClarity().prepare(on: self.db)
+        
+        do {
+            let formatter = DateFormatter()
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)!
+            formatter.dateFormat = "yyyy-MM-dd"
 
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)!
-        formatter.dateFormat = "yyyy-MM-dd"
+            let firstDate = formatter.date(from: "2020-01-01")!
+            let secondDate = formatter.date(from: "1994-05-23")!
+            let trueValue = Clarity(date: firstDate)
+            let falseValue = Clarity(date: secondDate)
 
-        let firstDate = formatter.date(from: "2020-01-01")!
-        let secondDate = formatter.date(from: "1994-05-23")!
-        let trueValue = Clarity(date: firstDate)
-        let falseValue = Clarity(date: secondDate)
+            try await trueValue.save(on: self.db)
+            try await falseValue.save(on: self.db)
 
-        try trueValue.save(on: self.db).wait()
-        try falseValue.save(on: self.db).wait()
-
-        let receivedModels = try Clarity.query(on: self.db).all().wait()
-        XCTAssertEqual(receivedModels.count, 2)
-        XCTAssertEqual(receivedModels[0].date, firstDate)
-        XCTAssertEqual(receivedModels[1].date, secondDate)
+            let receivedModels = try await Clarity.query(on: self.db).all()
+            XCTAssertEqual(receivedModels.count, 2)
+            XCTAssertEqual(receivedModels[0].date, firstDate)
+            XCTAssertEqual(receivedModels[1].date, secondDate)
+        } catch {
+            try? await CreateClarity().revert(on: self.db)
+            throw error
+        }
+        try await CreateClarity().revert(on: self.db)
     }
 
-    func testChar36UUID() throws {
-        final class Foo: Model {
+    func testChar36UUID() async throws {
+        final class Foo: Model, @unchecked Sendable {
             static let schema = "foos"
 
             @ID(key: .id)
@@ -317,59 +326,138 @@ final class FluentMySQLDriverTests: XCTestCase {
             var _bar: String
 
             var bar: UUID {
-                get {
-                    UUID(uuidString: self._bar)!
-                }
-                set {
-                    self._bar = newValue.uuidString
-                }
+                get { UUID(uuidString: self._bar)! }
+                set { self._bar = newValue.uuidString }
             }
 
-            init() { }
+            init() {}
 
             init(id: UUID? = nil, bar: UUID) {
                 self.id = id
                 self.bar = bar
             }
         }
-
-        try self.db.schema("foos")
+        
+        try await self.mysql.sql().drop(table: "foos").ifExists().run()
+        try await self.db.schema("foos")
             .id()
             .field("bar", .sql(raw: "CHAR(36)"), .required)
             .create()
-            .wait()
-        defer {
-            try! self.db.schema("foos").delete().wait()
+
+        do {
+            let foo = Foo(bar: .init())
+            try await foo.create(on: self.db)
+            XCTAssertNotNil(foo.id)
+
+            let fetched = try await Foo.find(foo.id, on: self.db)
+            XCTAssertEqual(fetched?.bar, foo.bar)
+        } catch {
+            try? await self.db.schema("foos").delete()
         }
-
-        let foo = Foo(bar: .init())
-        try foo.create(on: self.db).wait()
-        XCTAssertNotNil(foo.id)
-
-        let fetched = try Foo.find(foo.id, on: self.db).wait()
-        XCTAssertEqual(fetched?.bar, foo.bar)
+        try await self.db.schema("foos").delete()
+    }
+    
+    func testBindingEncodeFailures() async throws {
+        struct FailingDataType: Codable, MySQLDataConvertible, Equatable {
+            init() {}
+            init?(mysqlData: MySQLData) { nil }
+            var mysqlData: MySQLData? { nil }
+        }
+        final class M: Model, @unchecked Sendable {
+            static let schema = "s"
+            @ID var id
+            @Field(key: "f") var f: FailingDataType
+            init() { self.f = .init() }
+        }
+        await XCTAssertThrowsErrorAsync(try await M.query(on: self.db).filter(\.$f == .init()).all()) {
+            XCTAssertNotNil($0 as? EncodingError, String(reflecting: $0))
+        }
+        
+        await XCTAssertThrowsErrorAsync(try await self.db.schema("s").field("f", .custom(SQLBind(FailingDataType()))).create()) {
+            XCTAssertNotNil($0 as? EncodingError, String(reflecting: $0))
+        }
+    }
+    
+    func testMiscSQLDatabaseSupport() async throws {
+        XCTAssertEqual((self.db as? any SQLDatabase)?.queryLogLevel, .debug)
+        await XCTAssertEqualAsync(try await (self.db as? any SQLDatabase)?.withSession { $0.dialect.name }, (self.db as? any SQLDatabase)?.dialect.name)
+        
+        final class M: Model, @unchecked Sendable {
+            static let schema = "s"
+            @ID var id
+            @OptionalField(key: "k") var k: Int?
+            init() {}
+        }
+        try await (self.db as? any SQLDatabase)?.drop(table: M.schema).ifExists().run()
+        try await (self.db as? any SQLDatabase)?.create(table: M.schema).column("id", type: .custom(SQLRaw("varbinary(16)")), .primaryKey(autoIncrement: false)).run()
+        await XCTAssertNilAsync(try await (self.db as? any SQLDatabase)?.select().column("id").from(M.schema).first(decodingFluent: M.self)?.k)
+        try await (self.db as? any SQLDatabase)?.drop(table: M.schema).run()
+    }
+    
+    func testLastInsertRow() {
+        XCTAssertNotNil(LastInsertRow(lastInsertID: 0, customIDKey: nil).description)
+        let row = LastInsertRow(lastInsertID: nil, customIDKey: nil)
+        XCTAssertNotNil(row.description)
+        XCTAssertEqual(row.schema("").description, row.description)
+        XCTAssertFalse(try row.decodeNil(.id))
+        XCTAssertThrowsError(try row.decode(.id, as: String.self)) {
+            guard case .typeMismatch(_, _) = $0 as? DecodingError else {
+                return XCTFail("Expected DecodingError.typeMismatch, but got \(String(reflecting: $0))")
+            }
+        }
+        XCTAssertThrowsError(try row.decode("foo", as: Int.self)) {
+            guard case .keyNotFound(let key, _) = $0 as? DecodingError else {
+                return XCTFail("Expected DecodingError.keyNotFound, but got \(String(reflecting: $0))")
+            }
+            XCTAssertEqual(key.stringValue, "foo")
+        }
+        XCTAssertThrowsError(try row.decode(.id, as: Int.self)) {
+            guard case .valueNotFound(_, _) = $0 as? DecodingError else {
+                return XCTFail("Expected DecodingError.valueNotFound, but got \(String(reflecting: $0))")
+            }
+        }
+    }
+    
+    func testNeverInvokedDatabaseOutputCodePath() async throws {
+        final class M: Model, @unchecked Sendable {
+            static let schema = "s"
+            @ID var id
+            init() {}
+        }
+        try await (self.db as? any SQLDatabase)?.drop(table: M.schema).ifExists().run()
+        try await self.db.schema(M.schema).id().create()
+        do {
+            try await M().create(on: self.db)
+            try await self.db.execute(query: M.query(on: self.db).field(\.$id).query, onOutput: { XCTAssert((try? $0.decodeNil("not a real key")) ?? false) }).get()
+        } catch {
+            try? await self.db.schema(M.schema).delete()
+            throw error
+        }
+        try await self.db.schema(M.schema).delete()
+    }
+    
+    func testMiscConfigMethods() {
+        XCTAssertNotNil(try DatabaseConfigurationFactory.mysql(unixDomainSocketPath: "/", username: "", password: ""))
+        XCTAssertNoThrow(try DatabaseConfigurationFactory.mysql(url: "mysql://user@host/db"))
+        XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: "notmysql://foo@bar"))
+        XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: "not$a$valid$url://"))
+        XCTAssertNoThrow(try DatabaseConfigurationFactory.mysql(url: URL(string: "mysql://user@host/db")!))
+        XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: URL(string: "notmysql://foo@bar")!))
+        XCTAssertEqual(DatabaseID.mysql.string, "mysql")
     }
 
-    var benchmarker: FluentBenchmarker {
-        return .init(databases: self.dbs)
-    }
-    var eventLoopGroup: EventLoopGroup!
-    var threadPool: NIOThreadPool!
+    var benchmarker: FluentBenchmarker { .init(databases: self.dbs) }
+    var eventLoopGroup: any EventLoopGroup { MultiThreadedEventLoopGroup.singleton }
+    var threadPool: NIOThreadPool { NIOThreadPool.singleton }
     var dbs: Databases!
-    var db: Database {
-        self.benchmarker.database
-    }
-    var mysql: MySQLDatabase {
-        self.db as! MySQLDatabase
-    }
+    var db: any Database { self.benchmarker.database }
+    var mysql: any MySQLDatabase { self.db as! any MySQLDatabase }
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         
         XCTAssert(isLoggingConfigured)
-        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
-        self.threadPool = NIOThreadPool(numberOfThreads: System.coreCount)
-        self.dbs = Databases(threadPool: threadPool, on: self.eventLoopGroup)
+        self.dbs = Databases(threadPool: self.threadPool, on: self.eventLoopGroup)
 
         var tls = TLSConfiguration.makeClientConfiguration()
         tls.certificateVerification = .none
@@ -398,8 +486,6 @@ final class FluentMySQLDriverTests: XCTestCase {
     
     override func tearDownWithError() throws {
         self.dbs.shutdown()
-        try self.threadPool.syncShutdownGracefully()
-        try self.eventLoopGroup.syncShutdownGracefully()
         
         try super.tearDownWithError()
     }
@@ -411,13 +497,13 @@ extension DatabaseID {
 }
 
 func env(_ name: String) -> String? {
-    return ProcessInfo.processInfo.environment[name]
+    ProcessInfo.processInfo.environment[name]
 }
 
 let isLoggingConfigured: Bool = {
     LoggingSystem.bootstrap { label in
         var handler = StreamLogHandler.standardOutput(label: label)
-        handler.logLevel = env("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) } ?? .debug
+        handler.logLevel = env("LOG_LEVEL").flatMap { .init(rawValue: $0) } ?? .info
         return handler
     }
     return true
