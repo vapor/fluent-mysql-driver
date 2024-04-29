@@ -1,6 +1,8 @@
 import FluentSQL
 
+/// An implementation of `SQLConverterDelegate` for MySQL .
 struct MySQLConverterDelegate: SQLConverterDelegate {
+    // See `SQLConverterDelegate.customDataType(_:)`.
     func customDataType(_ dataType: DatabaseSchema.DataType) -> (any SQLExpression)? {
         switch dataType {
         case .string: return SQLRaw("VARCHAR(255)")
@@ -12,6 +14,7 @@ struct MySQLConverterDelegate: SQLConverterDelegate {
         }
     }
 
+    // See `SQLConverterDelegate.beforeConvert(_:)`.
     func beforeConvert(_ schema: DatabaseSchema) -> DatabaseSchema {
         var copy = schema
         // convert field foreign keys to table-level foreign keys

@@ -17,6 +17,7 @@
 @_documentation(visibility: internal) @_exported import struct NIOSSL.TLSConfiguration
 
 extension DatabaseID {
+    /// A default `DatabaseID` to use for MySQL databases.
     public static var mysql: DatabaseID {
         .init(string: "mysql")
     }
