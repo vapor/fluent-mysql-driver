@@ -1,8 +1,8 @@
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/vapor/mysql-kit/assets/1130717/d5582d0a-f8b2-4fab-aeea-79b170bebc28">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/vapor/mysql-kit/assets/1130717/71d0fa71-5ded-492c-9657-4206f233419e">
-  <img src="https://github.com/vapor/mysql-kit/assets/1130717/71d0fa71-5ded-492c-9657-4206f233419e" height="96" alt="FluentMySQLDriver">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/vapor/fluent-mysql-driver/assets/1130717/2810939b-2d77-4d39-9485-8e11b8f5dab4">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/vapor/fluent-mysql-driver/assets/1130717/ab442fbf-baf1-4cfe-8639-23141fb26e5a">
+  <img src="https://github.com/vapor/fluent-mysql-driver/assets/1130717/ab442fbf-baf1-4cfe-8639-23141fb26e5a" height="96" alt="FluentMySQLDriver">
 </picture> 
 <br>
 <br>
