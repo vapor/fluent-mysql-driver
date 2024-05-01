@@ -11,4 +11,4 @@ jobs:
      with:
        package_name: fluent-mysql-driver
        modules: FluentMySQLDriver
-       pathsToInvalidate: /fluentmysqldriver
+       pathsToInvalidate: /fluentmysqldriver/*
