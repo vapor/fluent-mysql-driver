@@ -27,6 +27,6 @@ struct _FluentMySQLDriver: DatabaseDriver {
     
     // See `DatabaseDriver.shutdown()`.
     func shutdown() {
-        self.pool.shutdown()
+        try? self.pool.syncShutdownGracefully()
     }
 }
