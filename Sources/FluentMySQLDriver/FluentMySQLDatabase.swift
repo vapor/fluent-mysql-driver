@@ -93,16 +93,18 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
                     inTransaction: true
                 )
                 
-                if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "START TRANSACTION []") }
+                // N.B.: We cannot route the transaction start/finish queries through the SQLKit interface due to
+                // the limitations of MySQLNIO, so we have to use the MySQLNIO interface and log the queries manually.
+                if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "START TRANSACTION", "binds": []]) }
                 _ = try await conn.simpleQuery("START TRANSACTION").get()
                 do {
                     let result = try await closure(db)
                     
-                    if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "COMMIT []") }
+                    if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "COMMIT", "binds": []]) }
                     _ = try await conn.simpleQuery("COMMIT").get()
                     return result
                 } catch {
-                    if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "ROLLBACK []") }
+                    if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "ROLLBACK", "binds": []]) }
                     _ = try? await conn.simpleQuery("ROLLBACK").get()
                     throw error
                 }
