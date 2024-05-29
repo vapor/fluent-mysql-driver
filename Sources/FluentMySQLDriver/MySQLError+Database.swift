@@ -2,7 +2,7 @@ import MySQLNIO
 import FluentKit
 
 /// Conform `MySQLError` to `DatabaseError`.
-extension MySQLError: DatabaseError {
+extension MySQLNIO.MySQLError: FluentKit.DatabaseError {
     // See `DatabaseError.isSyntaxError`.
     public var isSyntaxError: Bool {
         switch self {

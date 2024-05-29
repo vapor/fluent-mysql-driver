@@ -2,6 +2,7 @@ import AsyncKit
 import struct NIO.TimeAmount
 import FluentKit
 import MySQLKit
+import Logging
 
 extension DatabaseConfigurationFactory {
     /// Create a database configuration factory for connecting to a server through a UNIX domain socket.
@@ -24,7 +25,8 @@ extension DatabaseConfigurationFactory {
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
         encoder: MySQLDataEncoder = .init(),
-        decoder: MySQLDataDecoder = .init()
+        decoder: MySQLDataDecoder = .init(),
+        sqlLogLevel: Logger.Level? = .debug
     ) throws -> Self {
         let configuration = MySQLConfiguration(
             unixDomainSocketPath: unixDomainSocketPath,
@@ -37,7 +39,8 @@ extension DatabaseConfigurationFactory {
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
             encoder: encoder,
-            decoder: decoder
+            decoder: decoder,
+            sqlLogLevel: sqlLogLevel
         )
     }
     
@@ -56,17 +59,19 @@ extension DatabaseConfigurationFactory {
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
         encoder: MySQLDataEncoder = .init(),
-        decoder: MySQLDataDecoder = .init()
+        decoder: MySQLDataDecoder = .init(),
+        sqlLogLevel: Logger.Level? = .debug
     ) throws -> Self {
         guard let url = URL(string: urlString) else {
             throw FluentMySQLError.invalidURL(urlString)
         }
-        return try self.mysql(
+        return try .mysql(
             url: url,
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
             encoder: encoder,
-            decoder: decoder
+            decoder: decoder,
+            sqlLogLevel: sqlLogLevel
         )
     }
 
@@ -85,7 +90,8 @@ extension DatabaseConfigurationFactory {
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
         encoder: MySQLDataEncoder = .init(),
-        decoder: MySQLDataDecoder = .init()
+        decoder: MySQLDataDecoder = .init(),
+        sqlLogLevel: Logger.Level? = .debug
     ) throws -> Self {
         guard let configuration = MySQLConfiguration(url: url) else {
             throw FluentMySQLError.invalidURL(url.absoluteString)
@@ -95,7 +101,8 @@ extension DatabaseConfigurationFactory {
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
             encoder: encoder,
-            decoder: decoder
+            decoder: decoder,
+            sqlLogLevel: sqlLogLevel
         )
     }
 
@@ -123,7 +130,8 @@ extension DatabaseConfigurationFactory {
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
         encoder: MySQLDataEncoder = .init(),
-        decoder: MySQLDataDecoder = .init()
+        decoder: MySQLDataDecoder = .init(),
+        sqlLogLevel: Logger.Level? = .debug
     ) -> Self {
         .mysql(
             configuration: .init(
@@ -137,7 +145,8 @@ extension DatabaseConfigurationFactory {
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
             encoder: encoder,
-            decoder: decoder
+            decoder: decoder,
+            sqlLogLevel: sqlLogLevel
         )
     }
 
@@ -155,7 +164,8 @@ extension DatabaseConfigurationFactory {
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
         encoder: MySQLDataEncoder = .init(),
-        decoder: MySQLDataDecoder = .init()
+        decoder: MySQLDataDecoder = .init(),
+        sqlLogLevel: Logger.Level? = .debug
     ) -> Self {
         Self {
             FluentMySQLConfiguration(
@@ -164,6 +174,7 @@ extension DatabaseConfigurationFactory {
                 connectionPoolTimeout: connectionPoolTimeout,
                 encoder: encoder,
                 decoder: decoder,
+                sqlLogLevel: sqlLogLevel,
                 middleware: []
             )
         }
@@ -187,6 +198,9 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
     /// A `MySQLDataDecoder` used to translate `MySQLData` values into output values in `SQLRow`s.
     let decoder: MySQLDataDecoder
     
+    /// A logging level used for logging queries.
+    let sqlLogLevel: Logger.Level?
+    
     // See `DatabaseConfiguration.middleware`.
     var middleware: [any AnyModelMiddleware]
     
@@ -201,10 +215,11 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
             requestTimeout: self.connectionPoolTimeout,
             on: databases.eventLoopGroup
         )
-        return _FluentMySQLDriver(
+        return FluentMySQLDriver(
             pool: pool,
             encoder: self.encoder,
-            decoder: self.decoder
+            decoder: self.decoder,
+            sqlLogLevel: self.sqlLogLevel
         )
     }
 }

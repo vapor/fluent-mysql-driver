@@ -6,7 +6,7 @@ import SQLKit
 import XCTest
 import Logging
 import MySQLKit
-import MySQLNIO
+@preconcurrency import MySQLNIO
 import NIOSSL
 
 func XCTAssertEqualAsync<T>(
@@ -341,7 +341,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         try await self.mysql.sql().drop(table: "foos").ifExists().run()
         try await self.db.schema("foos")
             .id()
-            .field("bar", .sql(raw: "CHAR(36)"), .required)
+            .field("bar", .sql(unsafeRaw: "CHAR(36)"), .required)
             .create()
 
         do {
@@ -370,6 +370,10 @@ final class FluentMySQLDriverTests: XCTestCase {
             init() { self.f = .init() }
         }
         await XCTAssertThrowsErrorAsync(try await M.query(on: self.db).filter(\.$f == .init()).all()) {
+            XCTAssertNotNil($0 as? EncodingError, String(reflecting: $0))
+        }
+
+        await XCTAssertThrowsErrorAsync(try await M().create(on: self.db)) {
             XCTAssertNotNil($0 as? EncodingError, String(reflecting: $0))
         }
         
@@ -441,9 +445,13 @@ final class FluentMySQLDriverTests: XCTestCase {
         XCTAssertNoThrow(try DatabaseConfigurationFactory.mysql(url: "mysql://user@host/db"))
         XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: "notmysql://foo@bar"))
         XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: "not$a$valid$url://"))
-        XCTAssertNoThrow(try DatabaseConfigurationFactory.mysql(url: URL(string: "mysql://user@host/db")!))
-        XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: URL(string: "notmysql://foo@bar")!))
+        XCTAssertNoThrow(try DatabaseConfigurationFactory.mysql(url: .init(string: "mysql://user@host/db")!))
+        XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: .init(string: "notmysql://foo@bar")!))
         XCTAssertEqual(DatabaseID.mysql.string, "mysql")
+    }
+    
+    func testNestedTransaction() async throws {
+        await XCTAssertEqualAsync(try await self.db.transaction { try await ($0 as! FluentMySQLDatabase).transaction { _ in 1 } }, 1)
     }
 
     var benchmarker: FluentBenchmarker { .init(databases: self.dbs) }

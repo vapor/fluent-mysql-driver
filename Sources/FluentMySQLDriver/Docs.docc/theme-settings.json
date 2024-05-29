@@ -12,7 +12,7 @@
       "logo-shape": { "dark": "#000", "light": "#fff" },
       "fill":       { "dark": "#000", "light": "#fff" }
     },
-    "icons": { "technology": "/mysqlkit/images/vapor-fluentmysqldriver-logo.svg" }
+    "icons": { "technology": "/fluentmysqldriver/images/vapor-fluentmysqldriver-logo.svg" }
   },
   "features": {
     "quickNavigation": { "enable": true },

@@ -14,7 +14,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.48.4"),
-        .package(url: "https://github.com/vapor/mysql-kit.git", from: "4.8.0"),
+        .package(url: "https://github.com/vapor/mysql-kit.git", from: "4.9.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.4"),
     ],
     targets: [
