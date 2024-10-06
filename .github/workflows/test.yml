@@ -50,9 +50,9 @@ jobs:
           - percona:8.0
         runner:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
-          - swift:5.8-focal
+          - swift:5.9-focal
           - swift:5.10-jammy
-          - swiftlang/swift:nightly-6.0-jammy
+          - swift:6.0-jammy
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -86,8 +86,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: macos-13
-            xcode-version: '~14.3'
           - macos-version: macos-14
             xcode-version: latest
     runs-on: ${{ matrix.macos-version }}

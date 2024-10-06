@@ -33,4 +33,8 @@ struct FluentMySQLDriver: DatabaseDriver {
     func shutdown() {
         try? self.pool.syncShutdownGracefully()
     }
+    
+    func shutdownAsync() async {
+        try? await self.pool.shutdownAsync()
+    }
 }

@@ -492,10 +492,10 @@ final class FluentMySQLDriverTests: XCTestCase {
         ), as: .b)
     }
     
-    override func tearDownWithError() throws {
-        self.dbs.shutdown()
+    override func tearDown() async throws {
+        await self.dbs.shutdownAsync()
         
-        try super.tearDownWithError()
+        try await super.tearDown()
     }
 }
 
