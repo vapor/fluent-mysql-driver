@@ -26,7 +26,7 @@ jobs:
   api-breakage:
     if: ${{ github.event_name == 'pull_request' && !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
-    container: swift:jammy
+    container: swift:noble
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,16 +43,16 @@ jobs:
       matrix:
         dbimage:
           - mysql:5.7
-          - mysql:8.0
           - mysql:8.3
+          - mysql:9.2
           - mariadb:10.4
           - mariadb:11
           - percona:8.0
         runner:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
-          - swift:5.9-focal
           - swift:5.10-jammy
-          - swift:6.0-jammy
+          - swift:6.0-noble
+          - swift:6.1-noble
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -86,8 +86,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: macos-14
-            xcode-version: latest
+          - macos-version: macos-15
+            xcode-version: latest-stable
     runs-on: ${{ matrix.macos-version }}
     steps:
       - name: Select latest available Xcode

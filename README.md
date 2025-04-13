@@ -1,9 +1,5 @@
 <p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/vapor/fluent-mysql-driver/assets/1130717/2810939b-2d77-4d39-9485-8e11b8f5dab4">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/vapor/fluent-mysql-driver/assets/1130717/ab442fbf-baf1-4cfe-8639-23141fb26e5a">
-  <img src="https://github.com/vapor/fluent-mysql-driver/assets/1130717/ab442fbf-baf1-4cfe-8639-23141fb26e5a" height="96" alt="FluentMySQLDriver">
-</picture> 
+<img src="https://design.vapor.codes/images/vapor-fluentmysqldriver.svg" height="96" alt="FluentMySQLDriver">
 <br>
 <br>
 <a href="https://docs.vapor.codes/4.0/"><img src="https://design.vapor.codes/images/readthedocs.svg" alt="Documentation"></a>
@@ -11,7 +7,7 @@
 <a href="LICENSE"><img src="https://design.vapor.codes/images/mitlicense.svg" alt="MIT License"></a>
 <a href="https://github.com/vapor/fluent-mysql-driver/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/vapor/fluent-mysql-driver/test.yml?event=push&style=plastic&logo=github&label=tests&logoColor=%23ccc" alt="Continuous Integration"></a>
 <a href="https://codecov.io/github/vapor/fluent-mysql-driver"><img src="https://img.shields.io/codecov/c/github/vapor/fluent-mysql-driver?style=plastic&logo=codecov&label=codecov"></a>
-<a href="https://swift.org"><img src="https://design.vapor.codes/images/swift58up.svg" alt="Swift 5.8+"></a>
+<a href="https://swift.org"><img src="https://design.vapor.codes/images/swift510up.svg" alt="Swift 5.10+"></a>
 </p>
 
 <br>
