@@ -1,62 +1,61 @@
+import AsyncKit
 import FluentSQL
 import MySQLKit
 @preconcurrency import MySQLNIO
-import AsyncKit
 
 /// A wrapper for a `MySQLDatabase` which provides `Database`, `SQLDatabase`, and forwarding `MySQLDatabase`
 /// conformances.
 struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
     /// The underlying database connection.
     let database: any MySQLDatabase
-    
+
     /// A `MySQLDataEncoder` used to translate bound query parameters into `MySQLData` values.
     let encoder: MySQLDataEncoder
 
     /// A `MySQLDataDecoder` used to translate `MySQLData` values into output values in `SQLRow`s.
     let decoder: MySQLDataDecoder
-    
+
     /// A logging level used for logging queries.
     let queryLogLevel: Logger.Level?
-    
+
     /// The `DatabaseContext` associated with this connection.
     let context: DatabaseContext
-    
+
     /// Whether this is a transaction-specific connection.
     let inTransaction: Bool
-    
+
     // See `Database.execute(query:onOutput:)`.
     func execute(
         query: DatabaseQuery,
-        onOutput: @escaping @Sendable (any DatabaseOutput) -> ()
+        onOutput: @escaping @Sendable (any DatabaseOutput) -> Void
     ) -> EventLoopFuture<Void> {
         let expression = SQLQueryConverter(delegate: MySQLConverterDelegate()).convert(query)
-        
-        if case .create = query.action, query.customIDKey != .string("") {
-            // We can't access the query metadata if we route through SQLKit, so we have to duplicate MySQLKit's logic
-            // in order to get the last insert ID without running an extra query.
-            let (sql, binds) = self.serialize(expression)
-        
-            if let queryLogLevel = self.queryLogLevel { self.logger.log(level: queryLogLevel, "\(sql) \(binds)") }
-            do {
-                return try self.query(
-                    sql, binds.map { try self.encoder.encode($0) },
-                    onRow: self.ignoreRow(_:),
-                    onMetadata: { onOutput(LastInsertRow(lastInsertID: $0.lastInsertID, customIDKey: query.customIDKey)) }
-                )
-            } catch {
-                return self.eventLoop.makeFailedFuture(error)
-            }
-        } else {
+
+        guard case .create = query.action, query.customIDKey != .string("") else {
             return self.execute(sql: expression, { onOutput($0.databaseOutput()) })
         }
+        // We can't access the query metadata if we route through SQLKit, so we have to duplicate MySQLKit's logic
+        // in order to get the last insert ID without running an extra query.
+        let (sql, binds) = self.serialize(expression)
+
+        if let queryLogLevel = self.queryLogLevel { self.logger.log(level: queryLogLevel, "\(sql) \(binds)") }
+        do {
+            return try self.query(
+                sql, binds.map { try self.encoder.encode($0) },
+                onRow: self.ignoreRow(_:),
+                onMetadata: { onOutput(LastInsertRow(lastInsertID: $0.lastInsertID, customIDKey: query.customIDKey)) }
+            )
+        } catch {
+            return self.eventLoop.makeFailedFuture(error)
+        }
     }
-    
+
     /// This is here because it allows for full test coverage; it serves no actual purpose functionally.
     @Sendable /*private*/ func ignoreRow(_: MySQLRow) {}
 
     /// This is here because it allows for full test coverage; it serves no actual purpose functionally.
     @Sendable /*private*/ func ignoreRow(_: any SQLRow) {}
-    
+
     // See `Database.execute(schema:)`.
     func execute(schema: DatabaseSchema) -> EventLoopFuture<Void> {
         let expression = SQLSchemaConverter(delegate: MySQLConverterDelegate()).convert(schema)
@@ -71,11 +70,9 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
 
     // See `Database.transaction(_:)`.
     func transaction<T>(_ closure: @escaping @Sendable (any Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        self.inTransaction ?
-            closure(self)  :
-            self.eventLoop.makeFutureWithTask { try await self.transaction { try await closure($0).get() } }
+        self.inTransaction ? closure(self) : self.eventLoop.makeFutureWithTask { try await self.transaction { try await closure($0).get() } }
     }
-    
+
     // See `Database.transaction(_:)`.
     func transaction<T>(_ closure: @escaping @Sendable (any Database) async throws -> T) async throws -> T {
         guard !self.inTransaction else {
@@ -92,53 +89,60 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
                     context: self.context,
                     inTransaction: true
                 )
-                
+
                 // N.B.: We cannot route the transaction start/finish queries through the SQLKit interface due to
                 // the limitations of MySQLNIO, so we have to use the MySQLNIO interface and log the queries manually.
-                if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "START TRANSACTION", "binds": []]) }
+                if let queryLogLevel = db.queryLogLevel {
+                    db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "START TRANSACTION", "binds": []])
+                }
                 _ = try await conn.simpleQuery("START TRANSACTION").get()
                 do {
                     let result = try await closure(db)
-                    
-                    if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "COMMIT", "binds": []]) }
+
+                    if let queryLogLevel = db.queryLogLevel {
+                        db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "COMMIT", "binds": []])
+                    }
                     _ = try await conn.simpleQuery("COMMIT").get()
                     return result
                 } catch {
-                    if let queryLogLevel = db.queryLogLevel { db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "ROLLBACK", "binds": []]) }
+                    if let queryLogLevel = db.queryLogLevel {
+                        db.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": "ROLLBACK", "binds": []])
+                    }
                     _ = try? await conn.simpleQuery("ROLLBACK").get()
                     throw error
                 }
             }
         }.get()
     }
-    
+
     // See `Database.withConnection(_:)`.
     func withConnection<T>(_ closure: @escaping @Sendable (any Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.withConnection {
-            closure(FluentMySQLDatabase(
-                database: $0,
-                encoder: self.encoder,
-                decoder: self.decoder,
-                queryLogLevel: self.queryLogLevel,
-                context: self.context,
-                inTransaction: self.inTransaction
-            ))
+            closure(
+                FluentMySQLDatabase(
+                    database: $0,
+                    encoder: self.encoder,
+                    decoder: self.decoder,
+                    queryLogLevel: self.queryLogLevel,
+                    context: self.context,
+                    inTransaction: self.inTransaction
+                ))
         }
     }
-    
+
     // See `SQLDatabase.dialect`.
     var dialect: any SQLDialect {
         self.sql(encoder: self.encoder, decoder: self.decoder, queryLogLevel: self.queryLogLevel).dialect
     }
-    
+
     // See `SQLDatabase.execute(sql:_:)`.
     func execute(
         sql query: any SQLExpression,
-        _ onRow: @escaping @Sendable (any SQLRow) -> ()
+        _ onRow: @escaping @Sendable (any SQLRow) -> Void
     ) -> EventLoopFuture<Void> {
         self.sql(encoder: self.encoder, decoder: self.decoder, queryLogLevel: self.queryLogLevel).execute(sql: query, onRow)
     }
-    
+
     // See `SQLDatabase.withSession(_:)`.
     func withSession<R>(_ closure: @escaping @Sendable (any SQLDatabase) async throws -> R) async throws -> R {
         try await self.withConnection { (conn: MySQLConnection) in
@@ -152,7 +156,7 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
     func send(_ command: any MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
         self.database.send(command, logger: logger)
     }
-    
+
     // See `MySQLDatabase.withConnection(_:)`.
     func withConnection<T>(_ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.database.withConnection(closure)
@@ -163,13 +167,13 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
 /*private*/ struct LastInsertRow: DatabaseOutput {
     // See `CustomStringConvertible.description`.
     var description: String { self.lastInsertID.map { "\($0)" } ?? "nil" }
-    
+
     /// The last inserted ID as of the creation of this row.
     let lastInsertID: UInt64?
-    
+
     /// If specified by the original query, an alternative to `FieldKey.id` to be considered valid.
     let customIDKey: FieldKey?
-    
+
     // See `DatabaseOutput.schema(_:)`.
     func schema(_ schema: String) -> any DatabaseOutput { self }
 
@@ -185,7 +189,8 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
             throw DecodingError.typeMismatch(T.self, .init(codingPath: [], debugDescription: "\(T.self) is not valid as a last insert ID"))
         }
         guard self.contains(key) else {
-            throw DecodingError.keyNotFound(SomeCodingKey(stringValue: key.description), .init(codingPath: [], debugDescription: "Metadata doesn't contain key \(key)"))
+            throw DecodingError.keyNotFound(
+                SomeCodingKey(stringValue: key.description), .init(codingPath: [], debugDescription: "Metadata doesn't contain key \(key)"))
         }
         guard let lastInsertID = self.lastInsertID else {
             throw DecodingError.valueNotFound(T.self, .init(codingPath: [], debugDescription: "Metadata had no last insert ID"))

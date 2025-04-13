@@ -1,13 +1,14 @@
-import NIO
 import FluentBenchmark
 import FluentSQL
-@testable import FluentMySQLDriver
-import SQLKit
-import XCTest
 import Logging
 import MySQLKit
 @preconcurrency import MySQLNIO
+import NIO
 import NIOSSL
+import SQLKit
+import XCTest
+
+@testable import FluentMySQLDriver
 
 func XCTAssertEqualAsync<T>(
     _ expression1: @autoclosure () async throws -> T,
@@ -16,7 +17,8 @@ func XCTAssertEqualAsync<T>(
     file: StaticString = #filePath, line: UInt = #line
 ) async where T: Equatable {
     do {
-        let expr1 = try await expression1(), expr2 = try await expression2()
+        let expr1 = try await expression1()
+        let expr2 = try await expression2()
         return XCTAssertEqual(expr1, expr2, message(), file: file, line: line)
     } catch {
         return XCTAssertEqual(try { () -> Bool in throw error }(), false, message(), file: file, line: line)
@@ -99,11 +101,13 @@ final class FluentMySQLDriverTests: XCTestCase {
             XCTAssertFalse(($0 as? any DatabaseError)?.isSyntaxError ?? true, "\(String(reflecting: $0))")
             XCTAssertFalse(($0 as? any DatabaseError)?.isConnectionClosed ?? true, "\(String(reflecting: $0))")
         }
-        await XCTAssertThrowsErrorAsync(try await self.mysql.withConnection { conn in
-            conn.close().flatMap {
-                conn.sql().insert(into: "foo").columns("name").values("bar").run()
-            }
-        }.get()) {
+        await XCTAssertThrowsErrorAsync(
+            try await self.mysql.withConnection { conn in
+                conn.close().flatMap {
+                    conn.sql().insert(into: "foo").columns("name").values("bar").run()
+                }
+            }.get()
+        ) {
             XCTAssertTrue(($0 as? any DatabaseError)?.isConnectionClosed ?? false, "\(String(reflecting: $0))")
             XCTAssertFalse(($0 as? any DatabaseError)?.isSyntaxError ?? true, "\(String(reflecting: $0))")
             XCTAssertFalse(($0 as? any DatabaseError)?.isConstraintFailure ?? true, "\(String(reflecting: $0))")
@@ -290,7 +294,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         }
 
         try await CreateClarity().prepare(on: self.db)
-        
+
         do {
             let formatter = DateFormatter()
             formatter.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -337,7 +341,7 @@ final class FluentMySQLDriverTests: XCTestCase {
                 self.bar = bar
             }
         }
-        
+
         try await self.mysql.sql().drop(table: "foos").ifExists().run()
         try await self.db.schema("foos")
             .id()
@@ -356,7 +360,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         }
         try await self.db.schema("foos").delete()
     }
-    
+
     func testBindingEncodeFailures() async throws {
         struct FailingDataType: Codable, MySQLDataConvertible, Equatable {
             init() {}
@@ -376,16 +380,17 @@ final class FluentMySQLDriverTests: XCTestCase {
         await XCTAssertThrowsErrorAsync(try await M().create(on: self.db)) {
             XCTAssertNotNil($0 as? EncodingError, String(reflecting: $0))
         }
-        
+
         await XCTAssertThrowsErrorAsync(try await self.db.schema("s").field("f", .custom(SQLBind(FailingDataType()))).create()) {
             XCTAssertNotNil($0 as? EncodingError, String(reflecting: $0))
         }
     }
-    
+
     func testMiscSQLDatabaseSupport() async throws {
         XCTAssertEqual((self.db as? any SQLDatabase)?.queryLogLevel, .debug)
-        await XCTAssertEqualAsync(try await (self.db as? any SQLDatabase)?.withSession { $0.dialect.name }, (self.db as? any SQLDatabase)?.dialect.name)
-        
+        await XCTAssertEqualAsync(
+            try await (self.db as? any SQLDatabase)?.withSession { $0.dialect.name }, (self.db as? any SQLDatabase)?.dialect.name)
+
         final class M: Model, @unchecked Sendable {
             static let schema = "s"
             @ID var id
@@ -393,11 +398,13 @@ final class FluentMySQLDriverTests: XCTestCase {
             init() {}
         }
         try await (self.db as? any SQLDatabase)?.drop(table: M.schema).ifExists().run()
-        try await (self.db as? any SQLDatabase)?.create(table: M.schema).column("id", type: .custom(SQLRaw("varbinary(16)")), .primaryKey(autoIncrement: false)).run()
+        try await (self.db as? any SQLDatabase)?.create(table: M.schema).column(
+            "id", type: .custom(SQLRaw("varbinary(16)")), .primaryKey(autoIncrement: false)
+        ).run()
         await XCTAssertNilAsync(try await (self.db as? any SQLDatabase)?.select().column("id").from(M.schema).first(decodingFluent: M.self)?.k)
         try await (self.db as? any SQLDatabase)?.drop(table: M.schema).run()
     }
-    
+
     func testLastInsertRow() {
         XCTAssertNotNil(LastInsertRow(lastInsertID: 0, customIDKey: nil).description)
         let row = LastInsertRow(lastInsertID: nil, customIDKey: nil)
@@ -421,7 +428,7 @@ final class FluentMySQLDriverTests: XCTestCase {
             }
         }
     }
-    
+
     func testNeverInvokedDatabaseOutputCodePath() async throws {
         final class M: Model, @unchecked Sendable {
             static let schema = "s"
@@ -432,14 +439,16 @@ final class FluentMySQLDriverTests: XCTestCase {
         try await self.db.schema(M.schema).id().create()
         do {
             try await M().create(on: self.db)
-            try await self.db.execute(query: M.query(on: self.db).field(\.$id).query, onOutput: { XCTAssert((try? $0.decodeNil("not a real key")) ?? false) }).get()
+            try await self.db.execute(
+                query: M.query(on: self.db).field(\.$id).query, onOutput: { XCTAssert((try? $0.decodeNil("not a real key")) ?? false) }
+            ).get()
         } catch {
             try? await self.db.schema(M.schema).delete()
             throw error
         }
         try await self.db.schema(M.schema).delete()
     }
-    
+
     func testMiscConfigMethods() {
         XCTAssertNotNil(try DatabaseConfigurationFactory.mysql(unixDomainSocketPath: "/", username: "", password: ""))
         XCTAssertNoThrow(try DatabaseConfigurationFactory.mysql(url: "mysql://user@host/db"))
@@ -449,7 +458,7 @@ final class FluentMySQLDriverTests: XCTestCase {
         XCTAssertThrowsError(try DatabaseConfigurationFactory.mysql(url: .init(string: "notmysql://foo@bar")!))
         XCTAssertEqual(DatabaseID.mysql.string, "mysql")
     }
-    
+
     func testNestedTransaction() async throws {
         await XCTAssertEqualAsync(try await self.db.transaction { try await ($0 as! FluentMySQLDatabase).transaction { _ in 1 } }, 1)
     }
@@ -463,7 +472,7 @@ final class FluentMySQLDriverTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        
+
         XCTAssert(isLoggingConfigured)
         self.dbs = Databases(threadPool: self.threadPool, on: self.eventLoopGroup)
 
@@ -471,30 +480,32 @@ final class FluentMySQLDriverTests: XCTestCase {
         tls.certificateVerification = .none
         let databaseA = env("MYSQL_DATABASE_A") ?? "test_database"
         let databaseB = env("MYSQL_DATABASE_B") ?? "test_database"
-        self.dbs.use(.mysql(
-            hostname: env("MYSQL_HOSTNAME_A") ?? "localhost",
-            port: env("MYSQL_PORT_A").flatMap(Int.init) ?? 3306,
-            username: env("MYSQL_USERNAME_A") ?? "test_username",
-            password: env("MYSQL_PASSWORD_A") ?? "test_password",
-            database: databaseA,
-            tlsConfiguration: tls,
-            connectionPoolTimeout: .seconds(10)
-        ), as: .a)
+        self.dbs.use(
+            .mysql(
+                hostname: env("MYSQL_HOSTNAME_A") ?? "localhost",
+                port: env("MYSQL_PORT_A").flatMap(Int.init) ?? 3306,
+                username: env("MYSQL_USERNAME_A") ?? "test_username",
+                password: env("MYSQL_PASSWORD_A") ?? "test_password",
+                database: databaseA,
+                tlsConfiguration: tls,
+                connectionPoolTimeout: .seconds(10)
+            ), as: .a)
 
-        self.dbs.use(.mysql(
-            hostname: env("MYSQL_HOSTNAME_B") ?? "localhost",
-            port: env("MYSQL_PORT_B").flatMap(Int.init) ?? 3306,
-            username: env("MYSQL_USERNAME_B") ?? "test_username",
-            password: env("MYSQL_PASSWORD_B") ?? "test_password",
-            database: databaseB,
-            tlsConfiguration: tls,
-            connectionPoolTimeout: .seconds(10)
-        ), as: .b)
+        self.dbs.use(
+            .mysql(
+                hostname: env("MYSQL_HOSTNAME_B") ?? "localhost",
+                port: env("MYSQL_PORT_B").flatMap(Int.init) ?? 3306,
+                username: env("MYSQL_USERNAME_B") ?? "test_username",
+                password: env("MYSQL_PASSWORD_B") ?? "test_password",
+                database: databaseB,
+                tlsConfiguration: tls,
+                connectionPoolTimeout: .seconds(10)
+            ), as: .b)
     }
-    
+
     override func tearDown() async throws {
         await self.dbs.shutdownAsync()
-        
+
         try await super.tearDown()
     }
 }

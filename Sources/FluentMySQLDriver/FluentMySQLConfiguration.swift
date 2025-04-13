@@ -1,8 +1,8 @@
 import AsyncKit
-import struct NIO.TimeAmount
 import FluentKit
-import MySQLKit
 import Logging
+import MySQLKit
+import struct NIO.TimeAmount
 
 extension DatabaseConfigurationFactory {
     /// Create a database configuration factory for connecting to a server through a UNIX domain socket.
@@ -43,7 +43,7 @@ extension DatabaseConfigurationFactory {
             sqlLogLevel: sqlLogLevel
         )
     }
-    
+
     /// Create a database configuration factory from an appropriately formatted URL string.
     ///
     /// - Parameters:
@@ -185,10 +185,10 @@ extension DatabaseConfigurationFactory {
 struct FluentMySQLConfiguration: DatabaseConfiguration {
     /// The underlying `MySQLConfiguration`.
     let configuration: MySQLConfiguration
-    
+
     /// The maximum number of database connections to add to each event loop's pool.
     let maxConnectionsPerEventLoop: Int
-    
+
     /// The timeout for queries on the connection pool's wait list.
     let connectionPoolTimeout: TimeAmount
 
@@ -197,13 +197,13 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
 
     /// A `MySQLDataDecoder` used to translate `MySQLData` values into output values in `SQLRow`s.
     let decoder: MySQLDataDecoder
-    
+
     /// A logging level used for logging queries.
     let sqlLogLevel: Logger.Level?
-    
+
     // See `DatabaseConfiguration.middleware`.
     var middleware: [any AnyModelMiddleware]
-    
+
     // See `DatabaseConfiguration.makeDriver(for:)`.
     func makeDriver(for databases: Databases) -> any DatabaseDriver {
         let db = MySQLConnectionSource(
