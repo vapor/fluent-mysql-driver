@@ -5,12 +5,12 @@ struct MySQLConverterDelegate: SQLConverterDelegate {
     // See `SQLConverterDelegate.customDataType(_:)`.
     func customDataType(_ dataType: DatabaseSchema.DataType) -> (any SQLExpression)? {
         switch dataType {
-        case .string: return SQLRaw("VARCHAR(255)")
-        case .datetime: return SQLRaw("DATETIME(6)")
-        case .uuid: return SQLRaw("VARBINARY(16)")
-        case .bool: return SQLRaw("BOOL")
-        case .array: return SQLRaw("JSON")
-        default: return nil
+        case .string: SQLRaw("VARCHAR(255)")
+        case .datetime: SQLRaw("DATETIME(6)")
+        case .uuid: SQLRaw("VARBINARY(16)")
+        case .bool: SQLRaw("BOOL")
+        case .array: SQLRaw("JSON")
+        default: nil
         }
     }
 
@@ -30,10 +30,11 @@ struct MySQLConverterDelegate: SQLConverterDelegate {
                     constraints: constraints.filter { constraint in
                         switch constraint {
                         case .foreignKey(let schema, let space, let field, let onDelete, let onUpdate):
-                            copy.createConstraints.append(.constraint(
-                                .foreignKey([name], schema, space: space, [field], onDelete: onDelete, onUpdate: onUpdate),
-                                name: nil
-                            ))
+                            copy.createConstraints.append(
+                                .constraint(
+                                    .foreignKey([name], schema, space: space, [field], onDelete: onDelete, onUpdate: onUpdate),
+                                    name: nil
+                                ))
                             return false
                         default:
                             return true
