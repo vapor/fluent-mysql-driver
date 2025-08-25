@@ -24,6 +24,8 @@ extension DatabaseConfigurationFactory {
         database: String? = nil,
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount? = nil,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init(),
         sqlLogLevel: Logger.Level? = .debug
@@ -38,6 +40,8 @@ extension DatabaseConfigurationFactory {
             configuration: configuration,
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
             encoder: encoder,
             decoder: decoder,
             sqlLogLevel: sqlLogLevel
@@ -58,6 +62,8 @@ extension DatabaseConfigurationFactory {
         url urlString: String,
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount? = nil,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init(),
         sqlLogLevel: Logger.Level? = .debug
@@ -69,6 +75,8 @@ extension DatabaseConfigurationFactory {
             url: url,
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
             encoder: encoder,
             decoder: decoder,
             sqlLogLevel: sqlLogLevel
@@ -89,6 +97,8 @@ extension DatabaseConfigurationFactory {
         url: URL,
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount? = nil,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init(),
         sqlLogLevel: Logger.Level? = .debug
@@ -100,6 +110,8 @@ extension DatabaseConfigurationFactory {
             configuration: configuration,
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
             encoder: encoder,
             decoder: decoder,
             sqlLogLevel: sqlLogLevel
@@ -129,6 +141,8 @@ extension DatabaseConfigurationFactory {
         tlsConfiguration: TLSConfiguration? = .makeClientConfiguration(),
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount? = nil,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init(),
         sqlLogLevel: Logger.Level? = .debug
@@ -144,6 +158,8 @@ extension DatabaseConfigurationFactory {
             ),
             maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
             connectionPoolTimeout: connectionPoolTimeout,
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
             encoder: encoder,
             decoder: decoder,
             sqlLogLevel: sqlLogLevel
@@ -163,6 +179,8 @@ extension DatabaseConfigurationFactory {
         configuration: MySQLConfiguration,
         maxConnectionsPerEventLoop: Int = 1,
         connectionPoolTimeout: NIO.TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount? = nil,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init(),
         sqlLogLevel: Logger.Level? = .debug
@@ -172,6 +190,8 @@ extension DatabaseConfigurationFactory {
                 configuration: configuration,
                 maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
                 connectionPoolTimeout: connectionPoolTimeout,
+                pruningInterval: pruneInterval,
+                maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
                 encoder: encoder,
                 decoder: decoder,
                 sqlLogLevel: sqlLogLevel,
@@ -191,6 +211,12 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
 
     /// The timeout for queries on the connection pool's wait list.
     let connectionPoolTimeout: TimeAmount
+
+    /// The idle pruning interval for the connection pool.
+    let pruningInterval: TimeAmount?
+
+    /// The connection idle timeout for the connection pool.
+    let maxIdleTimeBeforePruning: TimeAmount
 
     /// A `MySQLDataEncoder` used to translate bound query parameters into `MySQLData` values.
     let encoder: MySQLDataEncoder
@@ -213,6 +239,8 @@ struct FluentMySQLConfiguration: DatabaseConfiguration {
             source: db,
             maxConnectionsPerEventLoop: self.maxConnectionsPerEventLoop,
             requestTimeout: self.connectionPoolTimeout,
+            pruneInterval: self.pruningInterval,
+            maxIdleTimeBeforePruning: self.maxIdleTimeBeforePruning,
             on: databases.eventLoopGroup
         )
         return FluentMySQLDriver(

@@ -488,7 +488,9 @@ final class FluentMySQLDriverTests: XCTestCase {
                 password: env("MYSQL_PASSWORD_A") ?? "test_password",
                 database: databaseA,
                 tlsConfiguration: tls,
-                connectionPoolTimeout: .seconds(10)
+                connectionPoolTimeout: .seconds(10),
+                pruneInterval: .seconds(30),
+                maxIdleTimeBeforePruning: .seconds(60)
             ), as: .a)
 
         self.dbs.use(
@@ -499,7 +501,9 @@ final class FluentMySQLDriverTests: XCTestCase {
                 password: env("MYSQL_PASSWORD_B") ?? "test_password",
                 database: databaseB,
                 tlsConfiguration: tls,
-                connectionPoolTimeout: .seconds(10)
+                connectionPoolTimeout: .seconds(10),
+                pruneInterval: .seconds(30),
+                maxIdleTimeBeforePruning: .seconds(60)
             ), as: .b)
     }
 

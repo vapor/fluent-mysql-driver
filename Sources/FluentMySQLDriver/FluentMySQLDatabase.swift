@@ -69,12 +69,12 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
     }
 
     // See `Database.transaction(_:)`.
-    func transaction<T>(_ closure: @escaping @Sendable (any Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+    func transaction<T: Sendable>(_ closure: @escaping @Sendable (any Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.inTransaction ? closure(self) : self.eventLoop.makeFutureWithTask { try await self.transaction { try await closure($0).get() } }
     }
 
     // See `Database.transaction(_:)`.
-    func transaction<T>(_ closure: @escaping @Sendable (any Database) async throws -> T) async throws -> T {
+    func transaction<T: Sendable>(_ closure: @escaping @Sendable (any Database) async throws -> T) async throws -> T {
         guard !self.inTransaction else {
             return try await closure(self)
         }
@@ -144,7 +144,7 @@ struct FluentMySQLDatabase: Database, SQLDatabase, MySQLDatabase {
     }
 
     // See `SQLDatabase.withSession(_:)`.
-    func withSession<R>(_ closure: @escaping @Sendable (any SQLDatabase) async throws -> R) async throws -> R {
+    func withSession<R: Sendable>(_ closure: @escaping @Sendable (any SQLDatabase) async throws -> R) async throws -> R {
         try await self.withConnection { (conn: MySQLConnection) in
             conn.eventLoop.makeFutureWithTask {
                 try await closure(conn.sql(encoder: self.encoder, decoder: self.decoder, queryLogLevel: self.queryLogLevel))

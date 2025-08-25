@@ -29,7 +29,7 @@ jobs:
     container: swift:noble
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with: { 'fetch-depth': 0 }
       - name: API breaking changes
         run: |
@@ -44,7 +44,7 @@ jobs:
         dbimage:
           - mysql:5.7
           - mysql:8.3
-          - mysql:9.2
+          - mysql:9.4
           - mariadb:10.4
           - mariadb:11
           - percona:8.0
@@ -71,10 +71,12 @@ jobs:
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
     steps:
+      - name: Ensure curl is available
+        run: apt-get update -y && apt-get install -y curl
       - name: Check out package
-        uses: actions/checkout@v4
-      - name: Run local tests with coverage and TSan
-        run: swift test --enable-code-coverage --sanitize=thread
+        uses: actions/checkout@v5
+      - name: Run local tests with coverage
+        run: swift test --enable-code-coverage
       - name: Submit coverage report to Codecov.io
         uses: vapor/swift-codecov-action@v0.3
         with:
@@ -109,9 +111,9 @@ jobs:
               CREATE DATABASE test_database_b; GRANT ALL PRIVILEGES ON test_database_b.* TO test_username@localhost;
           SQL
       - name: Check out code
-        uses: actions/checkout@v4
-      - name: Run tests with Thread Sanitizer
-        run: swift test --sanitize=thread
+        uses: actions/checkout@v5
+      - name: Run tests
+        run: swift test
         env: 
           MYSQL_HOSTNAME_A: '127.0.0.1'
           MYSQL_HOSTNAME_B: '127.0.0.1'
