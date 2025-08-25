@@ -45,8 +45,8 @@ jobs:
           - mysql:5.7
           - mysql:8.3
           - mysql:9.4
-          - mariadb:10.4
-          - mariadb:11
+          - mariadb:10.6
+          - mariadb:12
           - percona:8.0
         runner:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
