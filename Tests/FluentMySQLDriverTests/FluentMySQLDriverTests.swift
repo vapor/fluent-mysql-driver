@@ -463,6 +463,23 @@ final class FluentMySQLDriverTests: XCTestCase {
         await XCTAssertEqualAsync(try await self.db.transaction { try await ($0 as! FluentMySQLDatabase).transaction { _ in 1 } }, 1)
     }
 
+    func testCoverageOfConfigMethods() throws {
+        XCTAssertTrue(try DatabaseConfigurationFactory.mysql(unixDomainSocketPath: "/", username: "", password: "", database: "", maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, pruneInterval: nil, maxIdleTimeBeforePruning: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+        XCTAssertTrue(try DatabaseConfigurationFactory.mysql(unixDomainSocketPath: "/", username: "", password: "", database: "", maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+
+        XCTAssertTrue(try DatabaseConfigurationFactory.mysql(url: "mysql://u:p@h:1/d", maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, pruneInterval: nil, maxIdleTimeBeforePruning: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+        XCTAssertTrue(try DatabaseConfigurationFactory.mysql(url: "mysql://u:p@h:1/d", maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+
+        XCTAssertTrue(try DatabaseConfigurationFactory.mysql(url: URL(string: "mysql://u:p@h:1/d")!, maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, pruneInterval: nil, maxIdleTimeBeforePruning: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+        XCTAssertTrue(try DatabaseConfigurationFactory.mysql(url: URL(string: "mysql://u:p@h:1/d")!, maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+
+        XCTAssertTrue(DatabaseConfigurationFactory.mysql(hostname: "", port: 0, username: "", password: "", database: "", tlsConfiguration: nil, maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, pruneInterval: nil, maxIdleTimeBeforePruning: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+        XCTAssertTrue(DatabaseConfigurationFactory.mysql(hostname: "", port: 0, username: "", password: "", database: "", tlsConfiguration: nil, maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+
+        XCTAssertTrue(DatabaseConfigurationFactory.mysql(configuration: .init(hostname: "", port: 0, username: "", password: "", database: "", tlsConfiguration: nil), maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, pruneInterval: nil, maxIdleTimeBeforePruning: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+        XCTAssertTrue(DatabaseConfigurationFactory.mysql(configuration: .init(hostname: "", port: 0, username: "", password: "", database: "", tlsConfiguration: nil), maxConnectionsPerEventLoop: 0, connectionPoolTimeout: .zero, encoder: .init(), decoder: .init(), sqlLogLevel: .debug).make().middleware.isEmpty)
+    }
+
     var benchmarker: FluentBenchmarker { .init(databases: self.dbs) }
     var eventLoopGroup: any EventLoopGroup { MultiThreadedEventLoopGroup.singleton }
     var threadPool: NIOThreadPool { NIOThreadPool.singleton }
