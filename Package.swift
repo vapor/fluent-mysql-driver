@@ -13,9 +13,10 @@ let package = Package(
         .library(name: "FluentMySQLDriver", targets: ["FluentMySQLDriver"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.51.0"),
-        .package(url: "https://github.com/vapor/mysql-kit.git", from: "4.9.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.3"),
+        .package(url: "https://github.com/vapor/fluent-kit.git", from: "1.52.2"),
+        .package(url: "https://github.com/vapor/mysql-kit.git", from: "4.10.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
+        .package(url: "https://github.com/vapor/async-kit.git", from: "1.21.0"),
     ],
     targets: [
         .target(
@@ -25,6 +26,7 @@ let package = Package(
                 .product(name: "FluentSQL", package: "fluent-kit"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "MySQLKit", package: "mysql-kit"),
+                .product(name: "AsyncKit", package: "async-kit"),
             ],
             swiftSettings: swiftSettings
         ),
@@ -41,6 +43,7 @@ let package = Package(
 
 var swiftSettings: [SwiftSetting] { [
     .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("MemberImportVisibility"),
     .enableUpcomingFeature("ConciseMagicFile"),
     .enableUpcomingFeature("ForwardTrailingClosures"),
     .enableUpcomingFeature("DisableOutwardActorInference"),
